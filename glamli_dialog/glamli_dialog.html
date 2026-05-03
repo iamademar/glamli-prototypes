@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GLAMLI / dialog</title>
+<!--
+  GLAMLI / Dialog — research prototype.
+  Single-file vanilla HTML/CSS/JS. Five states, hash-routed.
+  Design system per brief §1. No design-system divergences.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400;1,8..60,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f7f4ee;
+    --paper-2:#fbf9f4;
+    --paper-3:#f1ece1;
+    --ink:#2b2a25;
+    --ink-2:#4a473f;
+    --ink-3:#807a6c;
+    --rule:#e6e0d4;
+    --rule-2:#d8d0bf;
+    --sage:#6f8a6a;
+    --sage-tint:#e3ebde;
+    --sage-deep:#4f6a4a;
+    --sage-border:#c5d4be;
+    --amber:#c08a3c;
+    --amber-tint:#f4ebd4;
+    --rust:#b86244;
+    --rust-tint:#f1dcd2;
+    --shadow-card:0 1px 0 rgba(43,42,37,.02);
+    --serif:"Source Serif 4", Georgia, serif;
+    --sans:"Inter", system-ui, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, monospace;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{font-size:14px;}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow:hidden;
+    height:100vh;
+  }
+  button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;}
+  textarea{font:inherit;color:inherit;}
+
+  /* ───────── App shell ───────── */
+  .app{display:flex;flex-direction:column;height:100vh;width:100vw;}
+
+  /* Top bar */
+  .topbar{
+    height:56px;flex:none;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 24px;
+    background:var(--paper-2);
+    border-bottom:1px solid var(--rule);
+    z-index:5;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:28px;height:28px;border-radius:6px;background:var(--sage);
+    color:var(--paper-2);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:18px;font-weight:500;line-height:1;
+    padding-bottom:1px;
+  }
+  .brand-word{
+    font-family:var(--sans);font-weight:600;font-size:14px;letter-spacing:.04em;
+    color:var(--ink);
+  }
+  .brand-rule{
+    width:1px;height:18px;background:var(--rule-2);
+  }
+  .brand-mode{
+    font-family:var(--mono);font-size:12px;color:var(--ink-3);
+  }
+  .topbar-right{display:flex;align-items:center;gap:14px;}
+  .meta{
+    display:flex;align-items:center;gap:10px;
+    font-size:12px;color:var(--ink-3);
+  }
+  .meta-sep{width:3px;height:3px;border-radius:50%;background:var(--rule-2);}
+  .meta strong{font-weight:500;color:var(--ink-2);}
+
+  /* Mobile drawer trigger — hidden on desktop */
+  .know-trigger{display:none;}
+
+  /* Pill */
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:3px 10px;border-radius:100px;
+    background:var(--paper-3);border:1px solid var(--rule);
+    font-size:11px;color:var(--ink-2);line-height:1;
+  }
+  .pill--live{background:var(--sage-tint);border-color:var(--sage-border);color:var(--sage-deep);}
+  .pill--live .dot{
+    width:6px;height:6px;border-radius:50%;background:var(--sage);
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:.5;transform:scale(.85);}
+    50%{opacity:1;transform:scale(1);}
+  }
+
+  /* Body grid */
+  .body{
+    flex:1;min-height:0;
+    display:grid;
+    grid-template-columns:1.35fr 1fr;
+    overflow:hidden;
+  }
+
+  /* ───────── Chat pane ───────── */
+  .chat{
+    background:var(--paper);
+    display:flex;flex-direction:column;
+    min-height:0;
+    border-right:1px solid var(--rule);
+  }
+  .chat-head{
+    padding:18px 32px 8px;
+    display:flex;align-items:baseline;justify-content:space-between;
+    flex:none;
+  }
+  .chat-title{
+    font-family:var(--serif);font-size:20px;font-weight:400;letter-spacing:-.02em;
+    color:var(--ink);margin:0;
+  }
+  .chat-sub{font-size:12px;color:var(--ink-3);}
+
+  .feed{
+    flex:1;min-height:0;overflow-y:auto;
+    padding:8px 32px 16px;
+    scroll-behavior:smooth;
+  }
+  .feed::-webkit-scrollbar{width:8px;}
+  .feed::-webkit-scrollbar-thumb{background:var(--rule);border-radius:8px;}
+
+  /* Bubbles */
+  .row{display:flex;margin:14px 0;animation:fadein .35s ease-out both;}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  .row.user{justify-content:flex-end;}
+  .bubble{
+    max-width:78%;
+    padding:11px 15px;
+    border-radius:14px;
+    line-height:1.5;
+    font-size:14px;
+  }
+  .row.assistant .bubble{
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    color:var(--ink);
+    border-top-left-radius:4px;
+  }
+  .row.user .bubble{
+    background:var(--sage-tint);
+    border:1px solid var(--sage-border);
+    color:var(--sage-deep);
+    font-style:italic;
+    border-top-right-radius:4px;
+  }
+  .bubble p{margin:0 0 8px;}
+  .bubble p:last-child{margin-bottom:0;}
+  .bubble .tag{
+    font-family:var(--mono);font-size:11px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    padding:1px 5px;border-radius:4px;
+    font-style:normal;
+  }
+  .row.user .bubble .tag{background:rgba(255,255,255,.5);}
+
+  /* Typing indicator */
+  .typing{
+    display:inline-flex;gap:4px;padding:4px 0 2px;
+  }
+  .typing span{
+    width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+    animation:typedot 1.1s ease-in-out infinite;
+  }
+  .typing span:nth-child(2){animation-delay:.15s;}
+  .typing span:nth-child(3){animation-delay:.30s;}
+  @keyframes typedot{
+    0%,80%,100%{opacity:.2;transform:translateY(0);}
+    40%{opacity:1;transform:translateY(-2px);}
+  }
+
+  /* Inline upload widget inside a bubble */
+  .upload-widget{
+    margin-top:10px;
+    background:var(--paper);
+    border:1px dashed var(--rule-2);
+    border-radius:10px;
+    padding:14px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .upload-icon{
+    width:32px;height:32px;flex:none;
+    border-radius:8px;background:var(--paper-3);
+    display:flex;align-items:center;justify-content:center;color:var(--ink-2);
+  }
+  .upload-text{flex:1;min-width:0;}
+  .upload-text .t1{font-size:13px;color:var(--ink);font-weight:500;}
+  .upload-text .t2{font-size:11px;color:var(--ink-3);margin-top:2px;}
+  .upload-actions{display:flex;gap:8px;flex:none;}
+
+  /* Inline parsed-file confirmation */
+  .file-card{
+    margin-top:10px;background:var(--paper);
+    border:1px solid var(--rule);border-radius:10px;
+    padding:12px 14px;
+  }
+  .file-card .fc-row{display:flex;align-items:center;gap:10px;}
+  .file-card .fc-name{font-family:var(--mono);font-size:12px;color:var(--ink);}
+  .file-card .fc-meta{font-size:11px;color:var(--ink-3);margin-left:auto;}
+  .file-card .fc-cols{
+    display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;
+  }
+
+  /* Inline example mini-card */
+  .example-card{
+    margin-top:10px;background:var(--paper);
+    border:1px solid var(--rule);border-radius:10px;
+    padding:11px 13px;
+    display:flex;align-items:flex-start;gap:10px;
+    font-size:13px;
+  }
+  .example-card .ec-prose{flex:1;color:var(--ink-2);font-style:italic;}
+  .example-card .ec-arrow{color:var(--ink-3);margin-top:2px;}
+  .example-card .ec-out{flex:none;}
+  .out-chip{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:11px;font-weight:500;
+    padding:3px 9px;border-radius:100px;
+    border:1px solid var(--rule);background:var(--paper-3);color:var(--ink-2);
+    font-style:normal;
+  }
+  .out-chip--churn{background:var(--rust-tint);border-color:#e8c1b1;color:var(--rust);}
+  .out-chip--stay{background:var(--sage-tint);border-color:var(--sage-border);color:var(--sage-deep);}
+
+  /* Starter chips */
+  .starters{
+    flex:none;
+    padding:6px 32px 10px;
+    display:flex;flex-wrap:wrap;gap:8px;
+  }
+  .chip{
+    font-size:13px;color:var(--ink-2);
+    background:var(--paper-3);
+    border:1px solid var(--rule);
+    padding:7px 13px;border-radius:100px;
+    transition:background .15s ease-out,border-color .15s ease-out,color .15s ease-out;
+  }
+  .chip:hover{background:var(--paper-2);border-color:var(--rule-2);color:var(--ink);}
+
+  /* Composer */
+  .composer-wrap{flex:none;padding:10px 32px 24px;}
+  .composer{
+    background:var(--paper-2);
+    border:1px solid var(--rule-2);
+    border-radius:14px;
+    padding:8px 8px 8px 14px;
+    display:flex;align-items:flex-end;gap:8px;
+    transition:border-color .15s ease-out, box-shadow .15s ease-out;
+  }
+  .composer:focus-within{
+    border-color:var(--sage);
+    box-shadow:0 0 0 3px var(--sage-tint);
+  }
+  .composer textarea{
+    flex:1;border:0;background:transparent;outline:none;
+    resize:none;font-size:14px;line-height:1.5;color:var(--ink);
+    min-height:24px;max-height:120px;padding:8px 0;
+  }
+  .composer textarea::placeholder{color:var(--ink-3);}
+  .send-btn{
+    width:34px;height:34px;border-radius:10px;
+    background:var(--sage);color:var(--paper-2);
+    display:flex;align-items:center;justify-content:center;flex:none;
+    transition:background .15s ease-out, transform .15s ease-out;
+  }
+  .send-btn:hover{background:var(--sage-deep);}
+  .send-btn:disabled{background:var(--rule-2);cursor:not-allowed;}
+  .composer-hint{
+    margin-top:8px;font-size:11px;color:var(--ink-3);
+    display:flex;justify-content:space-between;
+  }
+
+  /* ───────── Knowledge pane ───────── */
+  .know{
+    background:var(--paper-2);
+    display:flex;flex-direction:column;
+    min-height:0;
+    overflow:hidden;
+  }
+  .know-head{
+    padding:18px 24px 6px;display:flex;align-items:baseline;justify-content:space-between;flex:none;
+  }
+  .know-title{
+    font-family:var(--serif);font-size:20px;font-weight:400;letter-spacing:-.02em;
+    color:var(--ink);margin:0;
+  }
+  .know-eyebrow{
+    font-size:10px;font-weight:500;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-3);
+  }
+  .know-scroll{
+    flex:1;min-height:0;overflow-y:auto;
+    padding:10px 24px 14px;
+  }
+  .know-scroll::-webkit-scrollbar{width:8px;}
+  .know-scroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:8px;}
+
+  /* Knowledge cards */
+  .kcard{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    transition:border-color .2s ease-out;
+  }
+  .kcard.empty{
+    background-color:var(--paper-2);
+    background-image:repeating-linear-gradient(45deg, var(--paper-3) 0 1px, transparent 1px 8px);
+    border-style:dashed;
+    border-color:var(--rule-2);
+  }
+  .kcard.empty:hover{border-color:var(--ink-3);}
+  .kcard.filling{
+    animation:cardfill 400ms ease-out forwards;
+  }
+  @keyframes cardfill{
+    0%{opacity:.0;transform:scale(.98);border-style:dashed;}
+    50%{opacity:.7;transform:scale(.99);border-style:dashed;}
+    51%{border-style:solid;}
+    100%{opacity:1;transform:scale(1);border-style:solid;}
+  }
+
+  .kcard-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .kcard-icon{
+    width:18px;height:18px;flex:none;color:var(--ink-3);
+  }
+  .kcard.filled .kcard-icon{color:var(--sage-deep);}
+  .kcard-label{
+    font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-3);
+  }
+  .kcard-counter{
+    margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+  }
+  .kcard-empty-hint{
+    font-size:13px;color:var(--ink-3);font-style:italic;
+    line-height:1.5;
+  }
+  .kcard.filled .kcard-empty-hint{display:none;}
+  .kcard-body{display:none;}
+  .kcard.filled .kcard-body{display:block;}
+
+  /* Goal card body */
+  .goal-line{
+    font-family:var(--serif);font-size:17px;line-height:1.4;letter-spacing:-.01em;
+    color:var(--ink);font-weight:400;
+  }
+  .goal-line em{color:var(--sage-deep);font-style:italic;}
+
+  /* Data card body */
+  .data-name{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-family:var(--mono);font-size:12px;color:var(--ink);
+  }
+  .data-meta{font-family:var(--sans);font-size:11px;color:var(--ink-3);font-weight:400;}
+  .data-cols{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+  .preview-table{
+    margin-top:10px;border:1px solid var(--rule);border-radius:8px;overflow:hidden;
+    font-family:var(--mono);font-size:10px;
+  }
+  .preview-table table{width:100%;border-collapse:collapse;}
+  .preview-table th{
+    background:var(--paper-3);color:var(--ink-2);font-weight:500;
+    padding:5px 7px;text-align:left;border-bottom:1px solid var(--rule);
+  }
+  .preview-table td{padding:4px 7px;border-bottom:1px solid var(--rule);color:var(--ink-2);}
+  .preview-table tr:last-child td{border-bottom:0;}
+  .preview-table .churn-y{color:var(--rust);font-weight:500;}
+  .preview-table .churn-n{color:var(--sage-deep);font-weight:500;}
+
+  /* Examples card body */
+  .ex-list{display:flex;flex-direction:column;gap:6px;}
+  .ex-row{
+    display:flex;align-items:flex-start;gap:8px;
+    padding:7px 8px;border-radius:8px;background:var(--paper-2);
+    border:1px solid var(--rule);
+    font-size:12px;line-height:1.4;
+  }
+  .ex-num{
+    flex:none;width:18px;height:18px;border-radius:50%;
+    background:var(--paper-3);color:var(--ink-3);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10px;font-weight:500;
+  }
+  .ex-prose{flex:1;color:var(--ink-2);font-style:italic;}
+  .ex-out{flex:none;}
+
+  /* Domain card body */
+  .dom-list{display:flex;flex-direction:column;gap:8px;}
+  .dom-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.45;color:var(--ink-2);}
+  .dom-bullet{
+    flex:none;width:5px;height:5px;border-radius:50%;background:var(--sage);
+    margin-top:7px;
+  }
+  .dom-row .tag{
+    font-family:var(--mono);font-size:11px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    padding:1px 5px;border-radius:4px;
+  }
+
+  /* ───────── Confidence card ───────── */
+  .conf{
+    flex:none;
+    margin:0 24px 76px;
+    background:linear-gradient(135deg,var(--sage-tint),var(--paper-2));
+    border:1px solid var(--sage-border);
+    border-radius:14px;padding:16px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .conf-head{display:flex;align-items:baseline;justify-content:space-between;}
+  .conf-label{
+    font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--sage-deep);
+  }
+  .conf-num{
+    font-family:var(--serif);font-size:24px;font-weight:500;
+    color:var(--sage-deep);letter-spacing:-.02em;
+    line-height:1;
+  }
+  .conf-bar{
+    height:4px;background:var(--rule);border-radius:100px;overflow:hidden;
+  }
+  .conf-fill{
+    height:100%;background:var(--sage);border-radius:100px;
+    transition:width 600ms ease-out;
+  }
+  .conf-hint{font-size:12px;color:var(--ink-2);line-height:1.45;}
+  .conf-hint em{font-style:italic;}
+  .btn-go{
+    width:100%;background:var(--sage);color:var(--paper-2);
+    padding:10px 14px;border-radius:10px;
+    font-size:14px;font-weight:500;letter-spacing:0;
+    transition:background .15s ease-out, transform .15s ease-out;
+  }
+  .btn-go:hover{background:var(--sage-deep);}
+  .btn-go:active{transform:translateY(1px);}
+  .btn-go[disabled]{background:var(--rule-2);color:var(--ink-3);cursor:not-allowed;}
+
+  /* ───────── Running panel ───────── */
+  .run{
+    margin:10px 24px 76px;background:var(--paper);
+    border:1px solid var(--rule);border-radius:14px;padding:18px;
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .run-head{display:flex;align-items:center;gap:14px;}
+  .spinner{
+    width:34px;height:34px;flex:none;
+    border-radius:50%;
+    border:3px solid var(--rule);
+    border-top-color:var(--sage);
+    animation:spin 1.1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .run-title{font-family:var(--serif);font-size:18px;color:var(--ink);font-weight:500;letter-spacing:-.01em;}
+  .run-pct{font-family:var(--mono);font-size:13px;color:var(--ink-3);margin-top:3px;}
+  .run-bar{height:4px;background:var(--rule);border-radius:100px;overflow:hidden;}
+  .run-fill{height:100%;background:var(--sage);border-radius:100px;width:0;transition:width .8s ease-out;}
+  .steps{display:flex;flex-direction:column;gap:8px;}
+  .step{
+    display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-3);
+    transition:color .25s ease-out;
+  }
+  .step.done{color:var(--ink-2);}
+  .step.active{color:var(--ink);font-weight:500;}
+  .step .step-mark{
+    width:16px;height:16px;flex:none;border-radius:50%;
+    border:1.5px solid var(--rule-2);background:var(--paper);
+    display:flex;align-items:center;justify-content:center;
+    transition:background .25s, border-color .25s;
+  }
+  .step.done .step-mark{background:var(--sage);border-color:var(--sage);color:var(--paper-2);}
+  .step.active .step-mark{border-color:var(--sage);background:var(--paper);}
+  .step.active .step-mark::after{
+    content:"";width:6px;height:6px;border-radius:50%;background:var(--sage);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  .step .step-mark svg{width:10px;height:10px;}
+
+  /* ───────── Result card ───────── */
+  .result{
+    margin:0 24px 76px;
+    background:var(--paper);border:1px solid var(--rule);border-radius:14px;
+    padding:18px;box-shadow:var(--shadow-card);
+  }
+  .result-eyebrow{
+    font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:8px;
+  }
+  .result-headline{
+    font-family:var(--serif);font-size:24px;line-height:1.25;letter-spacing:-.02em;
+    color:var(--ink);font-weight:400;margin-bottom:14px;
+  }
+  .result-headline em{font-style:italic;color:var(--sage-deep);}
+  .result-model{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:11px;color:var(--ink-2);
+    background:var(--paper-3);border:1px solid var(--rule);
+    padding:3px 8px;border-radius:100px;margin-bottom:14px;
+  }
+  .test-grid{
+    display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:14px;
+  }
+  .test-row{
+    display:flex;align-items:flex-start;gap:10px;padding:8px 10px;
+    border:1px solid var(--rule);border-radius:8px;background:var(--paper-2);
+    font-size:12px;line-height:1.4;
+  }
+  .test-row.fail{background:var(--rust-tint);border-color:#e8c1b1;}
+  .test-mark{
+    width:18px;height:18px;flex:none;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:var(--paper-2);
+  }
+  .test-mark.pass{background:var(--sage);}
+  .test-mark.fail{background:var(--rust);}
+  .test-prose{flex:1;color:var(--ink-2);font-style:italic;}
+  .test-row.fail .test-prose{color:var(--rust);}
+  .test-out{font-family:var(--mono);font-size:10px;color:var(--ink-3);font-style:normal;display:block;margin-top:3px;}
+  .test-row.fail .test-out{color:var(--rust);}
+  .result-actions{display:flex;align-items:center;gap:10px;margin-top:6px;}
+  .btn-primary{
+    background:var(--sage);color:var(--paper-2);
+    padding:9px 14px;border-radius:8px;font-size:13px;font-weight:500;
+    transition:background .15s ease-out;
+  }
+  .btn-primary:hover{background:var(--sage-deep);}
+  .ghost-link{
+    font-size:12px;color:var(--ink-3);text-decoration:underline;text-decoration-color:var(--rule-2);
+    text-underline-offset:3px;
+    background:none;
+  }
+  .ghost-link:hover{color:var(--ink-2);text-decoration-color:var(--ink-3);}
+
+  /* ───────── State switcher (dev) ───────── */
+  .switcher{
+    position:fixed;bottom:16px;right:16px;z-index:50;
+    background:var(--ink);
+    border-radius:100px;
+    padding:6px;
+    display:flex;align-items:center;gap:2px;
+    box-shadow:0 4px 16px rgba(43,42,37,.18);
+    transition:opacity .2s ease-out, transform .2s ease-out;
+  }
+  .switcher.hidden{opacity:0;transform:translateY(8px);pointer-events:none;}
+  .sw-btn{
+    font-family:var(--mono);font-size:11px;
+    color:var(--paper-2);opacity:.6;
+    padding:6px 12px;border-radius:100px;
+    transition:background .15s ease-out, opacity .15s ease-out;
+  }
+  .sw-btn:hover{opacity:1;}
+  .sw-btn.active{background:var(--sage);opacity:1;color:var(--paper-2);}
+  .sw-hint{
+    font-family:var(--mono);font-size:10px;color:var(--paper-2);opacity:.45;
+    padding:0 8px 0 4px;letter-spacing:.02em;
+    pointer-events:none;
+    user-select:none;
+  }
+  .sw-hint kbd{
+    font-family:var(--mono);
+    border:1px solid rgba(251,249,244,.25);
+    border-radius:4px;padding:0 4px;
+    margin-right:4px;
+  }
+
+  /* ───────── Mobile drawer ───────── */
+  .drawer-backdrop{
+    position:fixed;inset:0;background:rgba(43,42,37,.4);
+    opacity:0;pointer-events:none;transition:opacity .25s ease-out;
+    z-index:30;
+  }
+  .drawer-backdrop.open{opacity:1;pointer-events:auto;}
+
+  /* ───────── Responsive ───────── */
+  @media (max-width:1024px){
+    .body{grid-template-columns:1.2fr 1fr;}
+    .feed{padding:8px 22px 16px;}
+    .chat-head,.starters,.composer-wrap{padding-left:22px;padding-right:22px;}
+    .know-head,.know-scroll,.conf,.run,.result{margin-left:0;margin-right:0;}
+    .know-head,.know-scroll{padding-left:18px;padding-right:18px;}
+    .conf,.run,.result{margin-left:18px;margin-right:18px;}
+    .kcard{padding:12px 14px;}
+    .goal-line{font-size:15px;}
+    .know-title,.chat-title{font-size:18px;}
+  }
+  @media (max-width:720px){
+    .body{grid-template-columns:1fr;}
+    .know{
+      position:fixed;top:0;right:0;bottom:0;
+      width:min(92vw,360px);
+      border-left:1px solid var(--rule);
+      transform:translateX(100%);
+      transition:transform .28s ease-out;
+      z-index:40;
+      box-shadow:-2px 0 16px rgba(43,42,37,.08);
+    }
+    .know.open{transform:translateX(0);}
+    .chat{border-right:0;}
+    .know-trigger{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:5px 10px;border-radius:100px;
+      background:var(--paper-3);border:1px solid var(--rule);
+      font-size:11px;color:var(--ink-2);
+    }
+    .meta{display:none;}
+    .feed{padding:8px 18px 16px;}
+    .chat-head,.starters,.composer-wrap{padding-left:18px;padding-right:18px;}
+    .switcher{bottom:12px;right:12px;}
+    .sw-hint{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">G</div>
+      <div class="brand-word">GLAMLI</div>
+      <div class="brand-rule" aria-hidden="true"></div>
+      <div class="brand-mode">dialog</div>
+    </div>
+    <div class="topbar-right">
+      <div class="meta">
+        <span>project</span>
+        <span class="meta-sep"></span>
+        <strong>customer churn</strong>
+        <span class="meta-sep"></span>
+        <span>maya</span>
+      </div>
+      <div class="pill pill--live" id="topPill"><span class="dot"></span><span id="pillText">listening</span></div>
+      <button class="know-trigger" id="knowTrigger" aria-label="open what we know">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+        <span>what we know</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Body -->
+  <main class="body">
+
+    <!-- ───────── Chat pane ───────── -->
+    <section class="chat" aria-label="conversation">
+      <div class="chat-head">
+        <h1 class="chat-title">a conversation</h1>
+        <span class="chat-sub">say anything — we'll figure it out together</span>
+      </div>
+
+      <div class="feed" id="feed" role="log" aria-live="polite"></div>
+
+      <div class="starters" id="starters"></div>
+
+      <div class="composer-wrap">
+        <div class="composer">
+          <textarea id="composer" rows="1" placeholder="tell me what you've got, or what you want to do…"></textarea>
+          <button class="send-btn" id="sendBtn" aria-label="send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <div class="composer-hint">
+          <span>plain language is fine — i'll ask if i'm unsure.</span>
+          <span><kbd style="font-family:var(--mono);font-size:10px;">enter</kbd> to send · <kbd style="font-family:var(--mono);font-size:10px;">shift+enter</kbd> for newline</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── Knowledge pane ───────── -->
+    <aside class="know" id="know" aria-label="what we know">
+      <div class="know-head">
+        <h2 class="know-title">what we know</h2>
+        <span class="know-eyebrow">a passive mirror</span>
+      </div>
+
+      <div class="know-scroll" id="knowScroll">
+
+        <!-- Goal -->
+        <article class="kcard empty" id="card-goal" data-card="goal">
+          <header class="kcard-head">
+            <svg class="kcard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+            <span class="kcard-label">goal</span>
+            <span class="kcard-counter" id="goal-counter"></span>
+          </header>
+          <p class="kcard-empty-hint"><em>i'll fill this in as we talk — what you want this model to do, in your words.</em></p>
+          <div class="kcard-body" id="goal-body">
+            <p class="goal-line" id="goal-line">learning what <em>"about to leave us"</em> means for your customers.</p>
+          </div>
+        </article>
+
+        <!-- Data -->
+        <article class="kcard empty" id="card-data" data-card="data">
+          <header class="kcard-head">
+            <svg class="kcard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+            <span class="kcard-label">data</span>
+          </header>
+          <p class="kcard-empty-hint"><em>drop a file in the chat and i'll show you what's inside.</em></p>
+          <div class="kcard-body" id="data-body">
+            <div class="data-name">
+              <span id="data-filename">customer_churn.csv</span>
+              <span class="data-meta" id="data-meta">7,043 rows · 21 columns</span>
+            </div>
+            <div class="data-cols" id="data-cols">
+              <span class="tag">tenure</span>
+              <span class="tag">contract</span>
+              <span class="tag">monthly_charges</span>
+              <span class="tag">internet_service</span>
+              <span class="tag">churn</span>
+            </div>
+            <div class="preview-table">
+              <table>
+                <thead><tr><th>tenure</th><th>contract</th><th>charges</th><th>churn</th></tr></thead>
+                <tbody>
+                  <tr><td>2</td><td>month-to-month</td><td>89.10</td><td class="churn-y">yes</td></tr>
+                  <tr><td>34</td><td>one year</td><td>56.95</td><td class="churn-n">no</td></tr>
+                  <tr><td>1</td><td>month-to-month</td><td>72.40</td><td class="churn-y">yes</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+
+        <!-- Examples -->
+        <article class="kcard empty" id="card-examples" data-card="examples">
+          <header class="kcard-head">
+            <svg class="kcard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+            <span class="kcard-label">examples</span>
+            <span class="kcard-counter" id="ex-counter">0 of ~3</span>
+          </header>
+          <p class="kcard-empty-hint"><em>describe a few real customers — i'll learn what you mean.</em></p>
+          <div class="kcard-body">
+            <div class="ex-list" id="ex-list"></div>
+          </div>
+        </article>
+
+        <!-- Domain -->
+        <article class="kcard empty" id="card-domain" data-card="domain">
+          <header class="kcard-head">
+            <svg class="kcard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l8 4-8 4-8-4 8-4z"/><path d="M4 11l8 4 8-4M4 15l8 4 8-4"/></svg>
+            <span class="kcard-label">domain hints</span>
+          </header>
+          <p class="kcard-empty-hint"><em>things you mention along the way that change how i should read your data.</em></p>
+          <div class="kcard-body">
+            <div class="dom-list" id="dom-list"></div>
+          </div>
+        </article>
+
+      </div>
+
+      <!-- Confidence card (in default/preflight) -->
+      <div class="conf" id="confCard">
+        <div class="conf-head">
+          <span class="conf-label" id="confLabel">readiness</span>
+          <span class="conf-num" id="confNum">0%</span>
+        </div>
+        <div class="conf-bar"><div class="conf-fill" id="confFill" style="width:0%"></div></div>
+        <p class="conf-hint" id="confHint"><em>more examples will get us higher — i'll let you know when there's enough.</em></p>
+        <button class="btn-go" id="btnGo" disabled>let's go</button>
+      </div>
+
+    </aside>
+  </main>
+</div>
+
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+<!-- State switcher -->
+<div class="switcher" id="switcher" role="toolbar" aria-label="state switcher">
+  <span class="sw-hint"><kbd>D</kbd>toggle</span>
+  <button class="sw-btn" data-state="empty">empty</button>
+  <button class="sw-btn" data-state="mid">mid</button>
+  <button class="sw-btn" data-state="preflight">preflight</button>
+  <button class="sw-btn" data-state="running">running</button>
+  <button class="sw-btn" data-state="done">done</button>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   GLAMLI / Dialog — prototype script
+   Vanilla JS. State machine + hash routing.
+   ───────────────────────────────────────────── */
+
+(function(){
+  'use strict';
+
+  /* ── Canonical assets (§0.2) ── */
+  const CANON = {
+    filename: 'customer_churn.csv',
+    rows: 7043,
+    cols: 21,
+    examples: [
+      { id:1, prose:"a customer who's been with us 2 months, on a month-to-month plan, paying about $90/month", out:'will churn', kind:'churn' },
+      { id:2, prose:"long-time customer, 3+ years on an annual contract, low monthly bill", out:'will stay', kind:'stay' },
+      { id:3, prose:"new customer, 1 month, fiber internet, no add-ons like security or backup", out:'probably will churn', kind:'churn' },
+      { id:4, prose:"senior citizen, no add-on services", out:'will churn', kind:'churn' },
+      { id:5, prose:"long-tenure customer, fiber internet, no add-ons", out:'will stay', kind:'stay' }
+    ],
+    domain: [
+      { html:'short tenure on <span class="tag">month-to-month</span> is a strong churn signal in your business.' },
+      { html:'<span class="tag">fiber_optic</span> without <span class="tag">online_security</span>/<span class="tag">tech_support</span> tends to leave.' },
+      { html:'<span class="tag">tenure</span> ≥ 24 months almost always stays — long-tenure customers are sticky.' }
+    ]
+  };
+
+  /* ── Microcopy (§4.5) ── */
+  const COPY = {
+    opener: `<p>hi — i'm here to help you build a model. we don't need to start with anything specific.</p><p>tell me what you've got, what you want to do, or even just what's on your mind. we'll work it out together.</p>`,
+    afterIntent: (frag) => `<p>got it — <strong>you want to predict customer churn.</strong> ${frag||''}</p><p>do you have a file with customer data? drop it here, or use the sample i've got handy.</p>`,
+    afterUpload: `<p>looking at your file — it's <strong>7,043 rows</strong> with <strong>21 columns</strong>. i can see <span class="tag">tenure</span>, <span class="tag">contract</span>, <span class="tag">monthly_charges</span>, <span class="tag">internet_service</span>, and what looks like the column you care about — <span class="tag">churn</span> (yes / no).</p><p>now — instead of you describing what "churn" means in the abstract, can you give me a few examples? real customers, in your own words. one or two who left, one or two who stayed.</p>`,
+    afterExample1: `<p>captured. <em>two more like that and i'll have enough.</em></p>`,
+    afterExample2: `<p>good — that's two. one more would help me check my reading.</p>`,
+    afterExample3: `<p>that's three — i'm starting to see the pattern. quick question: in your business, is being on <span class="tag">month-to-month</span> always a churn signal, or only when paired with short tenure?</p>`,
+    domainAck: `<p>noted. i'll weigh tenure and contract together rather than reading <span class="tag">month-to-month</span> as a flag on its own.</p>`,
+    preflight: `<p>i think we're close. <em>readiness is at 85%</em> — enough to train a first pass. you can keep adding examples, or hit <strong>let's go</strong> on the right and i'll get started.</p>`,
+    runningCompany: `<p>training now. this usually takes a minute or two — i'll keep an eye on it. ask me anything in the meantime.</p>`,
+    done: `<p>all done. <strong>4 of your 5 examples passed.</strong> the one that didn't is the senior citizen with no add-ons — i predicted "will stay" but you said "will churn." want to add a similar example so i can re-check, or test a new customer?</p>`
+  };
+
+  /* ── DOM refs ── */
+  const $ = sel => document.querySelector(sel);
+  const feed = $('#feed');
+  const composer = $('#composer');
+  const sendBtn = $('#sendBtn');
+  const startersEl = $('#starters');
+  const switcher = $('#switcher');
+  const knowEl = $('#know');
+  const knowTrigger = $('#knowTrigger');
+  const drawerBackdrop = $('#drawerBackdrop');
+  const knowScroll = $('#knowScroll');
+  const confCard = $('#confCard');
+  const confFill = $('#confFill');
+  const confNum = $('#confNum');
+  const confLabel = $('#confLabel');
+  const confHint = $('#confHint');
+  const btnGo = $('#btnGo');
+  const pillText = $('#pillText');
+  const topPill = $('#topPill');
+
+  /* ── Knowledge state ── */
+  const STATES = ['empty','mid','preflight','running','done'];
+  let currentState = null;
+
+  /* ── Utilities ── */
+  function el(html){
+    const t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstChild;
+  }
+  function appendBubble(role, html){
+    const row = el(`<div class="row ${role}"><div class="bubble">${html}</div></div>`);
+    feed.appendChild(row);
+    feed.scrollTop = feed.scrollHeight;
+    return row;
+  }
+  function appendTyping(){
+    const row = el(`<div class="row assistant"><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`);
+    feed.appendChild(row);
+    feed.scrollTop = feed.scrollHeight;
+    return row;
+  }
+  function clearFeed(){ feed.innerHTML = ''; }
+
+  /* ── Knowledge cards ── */
+  function fillCard(id, opts={}){
+    const card = document.getElementById(id);
+    if(!card) return;
+    if(card.classList.contains('filled')) return;
+    setTimeout(() => {
+      card.classList.remove('empty');
+      card.classList.add('filling','filled');
+      setTimeout(()=>card.classList.remove('filling'), 420);
+    }, opts.delay || 0);
+  }
+  function emptyCard(id){
+    const card = document.getElementById(id);
+    if(!card) return;
+    card.classList.remove('filled','filling');
+    card.classList.add('empty');
+  }
+
+  function setExampleCount(n){
+    const counter = $('#ex-counter');
+    if(counter) counter.textContent = `${n} of ~3`;
+  }
+
+  function renderExamples(list){
+    const wrap = $('#ex-list');
+    wrap.innerHTML = '';
+    list.forEach(ex => {
+      const cls = ex.kind === 'churn' ? 'out-chip--churn' : 'out-chip--stay';
+      wrap.appendChild(el(`
+        <div class="ex-row">
+          <div class="ex-num">${ex.id}</div>
+          <div class="ex-prose">"${ex.prose}"</div>
+          <div class="ex-out"><span class="out-chip ${cls}">${ex.out}</span></div>
+        </div>
+      `));
+    });
+    setExampleCount(list.length);
+  }
+
+  function renderDomain(list){
+    const wrap = $('#dom-list');
+    wrap.innerHTML = '';
+    list.forEach(d => {
+      wrap.appendChild(el(`<div class="dom-row"><span class="dom-bullet"></span><span>${d.html}</span></div>`));
+    });
+  }
+
+  function setConfidence(pct, ready){
+    confFill.style.width = pct + '%';
+    confNum.textContent = pct + '%';
+    if(ready){
+      confLabel.textContent = 'ready when you are';
+      confHint.innerHTML = `<em>more examples will get us higher, but this is enough.</em>`;
+      btnGo.disabled = false;
+    } else {
+      confLabel.textContent = 'readiness';
+      confHint.innerHTML = pct === 0
+        ? `<em>i'll fill this in as we talk — and let you know when there's enough.</em>`
+        : `<em>more examples will get us higher — i'll let you know when there's enough.</em>`;
+      btnGo.disabled = true;
+    }
+  }
+
+  function setPill(kind, text){
+    topPill.classList.toggle('pill--live', kind !== 'idle');
+    pillText.textContent = text;
+  }
+
+  /* ── Starter chips ── */
+  const STARTERS = [
+    "I have data, not sure what to do",
+    "I want to predict customer churn",
+    "What can you do?"
+  ];
+  function renderStarters(visible){
+    startersEl.innerHTML = '';
+    if(!visible) return;
+    STARTERS.forEach(s => {
+      const c = el(`<button class="chip">${s}</button>`);
+      c.addEventListener('click', () => onStarter(s));
+      startersEl.appendChild(c);
+    });
+  }
+
+  /* ── Onboard the right pane for a state ── */
+  function showRightPane(mode){
+    // mode: 'cards' | 'running' | 'done'
+    knowScroll.style.display = mode === 'cards' ? '' : 'none';
+    confCard.style.display = mode === 'cards' ? '' : 'none';
+
+    let runEl = document.getElementById('runPanel');
+    let resultEl = document.getElementById('resultPanel');
+    if(runEl) runEl.remove();
+    if(resultEl) resultEl.remove();
+
+    if(mode === 'running'){
+      const head = $('.know-head');
+      const r = el(`
+        <div class="run" id="runPanel">
+          <div class="run-head">
+            <div class="spinner"></div>
+            <div>
+              <div class="run-title">training your model</div>
+              <div class="run-pct" id="runPct">0% · just getting started</div>
+            </div>
+          </div>
+          <div class="run-bar"><div class="run-fill" id="runFill"></div></div>
+          <div class="steps" id="runSteps">
+            <div class="step" data-i="0"><span class="step-mark"></span><span>cleaning your data</span></div>
+            <div class="step" data-i="1"><span class="step-mark"></span><span>trying a few different models</span></div>
+            <div class="step" data-i="2"><span class="step-mark"></span><span>checking against your examples</span></div>
+            <div class="step" data-i="3"><span class="step-mark"></span><span>picking the one that fits best</span></div>
+          </div>
+        </div>
+      `);
+      head.insertAdjacentElement('afterend', r);
+    }
+
+    if(mode === 'done'){
+      const head = $('.know-head');
+      const failProse = CANON.examples[3].prose; // example #4
+      const rows = CANON.examples.map((ex,i) => {
+        const fail = i === 3;
+        return `
+          <div class="test-row${fail ? ' fail':''}">
+            <div class="test-mark ${fail?'fail':'pass'}">
+              ${fail
+                ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>`
+                : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 7"/></svg>`
+              }
+            </div>
+            <div class="test-prose">"${ex.prose}"
+              ${fail ? `<span class="test-out">expected: will churn · predicted: will stay</span>` : `<span class="test-out">predicted: ${ex.out}</span>`}
+            </div>
+          </div>`;
+      }).join('');
+
+      const r = el(`
+        <div class="result" id="resultPanel">
+          <div class="result-eyebrow">result</div>
+          <h3 class="result-headline">passes <em>4 of 5</em> of the examples you gave me.</h3>
+          <span class="result-model">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 8l3 3M14 14l3 3"/></svg>
+            best model: gradient boosting
+          </span>
+          <div class="test-grid">${rows}</div>
+          <div class="result-actions">
+            <button class="btn-primary" id="btnTest">test a new customer</button>
+            <button class="ghost-link" id="btnDetails">see the technical details →</button>
+          </div>
+        </div>
+      `);
+      head.insertAdjacentElement('afterend', r);
+
+      r.querySelector('#btnTest').addEventListener('click', () => {
+        appendBubble('user', `<em>let me try one — a 6-month customer on month-to-month, fiber, no add-ons</em>`);
+        const t = appendTyping();
+        setTimeout(() => {
+          t.querySelector('.bubble').innerHTML = `<p>that customer is <strong>likely to churn</strong> — short tenure, fiber without add-ons, and a flexible contract is your highest-risk pattern. <em>(confidence: high)</em></p>`;
+        }, 700);
+      });
+      r.querySelector('#btnDetails').addEventListener('click', () => {
+        appendBubble('user', `<em>show me the technical details</em>`);
+        const t = appendTyping();
+        setTimeout(() => {
+          t.querySelector('.bubble').innerHTML = `<p>fine — opening the technical view. (in the real product this would slide a panel in with f1, roc-auc, confusion matrix, and a leaderboard. for this prototype, that surface is out of scope.)</p>`;
+        }, 700);
+      });
+    }
+  }
+
+  /* ── State renderers ── */
+  function renderState(state, opts={}){
+    if(!STATES.includes(state)) state = 'empty';
+    currentState = state;
+    document.querySelectorAll('.sw-btn').forEach(b => b.classList.toggle('active', b.dataset.state === state));
+    if(location.hash !== '#' + state) location.hash = state;
+
+    // Reset cards
+    ['card-goal','card-data','card-examples','card-domain'].forEach(emptyCard);
+    renderExamples([]);
+    renderDomain([]);
+    setExampleCount(0);
+    clearFeed();
+
+    if(state === 'empty'){
+      setPill('live','listening');
+      showRightPane('cards');
+      setConfidence(0, false);
+      renderStarters(true);
+      // assistant opener
+      appendBubble('assistant', COPY.opener);
+    }
+
+    if(state === 'mid'){
+      setPill('live','listening');
+      showRightPane('cards');
+      renderStarters(false);
+
+      // Conversation history (data parsed, 1-2 examples, 2 domain hints)
+      appendBubble('assistant', COPY.opener);
+      appendBubble('user', `<em>I have a CSV of telco customers and I want to figure out who's about to leave us.</em>`);
+      const ass1 = appendBubble('assistant', COPY.afterIntent());
+      ass1.querySelector('.bubble').insertAdjacentHTML('beforeend', `
+        <div class="upload-widget">
+          <div class="upload-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>
+          </div>
+          <div class="upload-text">
+            <div class="t1">customer_churn.csv</div>
+            <div class="t2">already attached · 7,043 rows · 21 columns</div>
+          </div>
+        </div>
+      `);
+      // upload echoed by user
+      appendBubble('user', `<em>(uploaded customer_churn.csv)</em>`);
+      const ass2 = appendBubble('assistant', COPY.afterUpload);
+      // file card inside ass2
+      ass2.querySelector('.bubble').insertAdjacentHTML('beforeend', `
+        <div class="file-card">
+          <div class="fc-row">
+            <span class="fc-name">customer_churn.csv</span>
+            <span class="fc-meta">7,043 × 21</span>
+          </div>
+          <div class="fc-cols">
+            <span class="tag">tenure</span><span class="tag">contract</span>
+            <span class="tag">monthly_charges</span><span class="tag">internet_service</span>
+            <span class="tag">churn</span>
+          </div>
+        </div>
+      `);
+      // first example
+      appendBubble('user', `<em>${CANON.examples[0].prose}</em>`);
+      const ass3 = appendBubble('assistant', COPY.afterExample1);
+      ass3.querySelector('.bubble').insertAdjacentHTML('beforeend', `
+        <div class="example-card">
+          <div class="ec-prose">"${CANON.examples[0].prose}"</div>
+          <div class="ec-arrow">→</div>
+          <div class="ec-out"><span class="out-chip out-chip--churn">${CANON.examples[0].out}</span></div>
+        </div>
+      `);
+      // second
+      appendBubble('user', `<em>${CANON.examples[1].prose} — that one definitely stayed.</em>`);
+      const ass4 = appendBubble('assistant', COPY.afterExample2);
+      ass4.querySelector('.bubble').insertAdjacentHTML('beforeend', `
+        <div class="example-card">
+          <div class="ec-prose">"${CANON.examples[1].prose}"</div>
+          <div class="ec-arrow">→</div>
+          <div class="ec-out"><span class="out-chip out-chip--stay">${CANON.examples[1].out}</span></div>
+        </div>
+      `);
+      // domain follow-up
+      appendBubble('assistant', `<p>quick one — in your business, is <span class="tag">month-to-month</span> categorically different from <span class="tag">one year</span> and <span class="tag">two year</span>, or do you think of contract length as a number?</p>`);
+      appendBubble('user', `<em>categorically different. month-to-month people are basically just trying us out.</em>`);
+      appendBubble('assistant', COPY.domainAck);
+
+      // Fill cards (staggered)
+      fillCard('card-goal', {delay:0});
+      $('#goal-line').innerHTML = `learning what <em>"about to leave us"</em> means for your customers.`;
+      fillCard('card-data', {delay:80});
+      fillCard('card-examples', {delay:160});
+      renderExamples([CANON.examples[0], CANON.examples[1]]);
+      fillCard('card-domain', {delay:240});
+      renderDomain([CANON.domain[0], CANON.domain[1]]);
+
+      setConfidence(54, false);
+    }
+
+    if(state === 'preflight'){
+      setPill('live','ready when you are');
+      showRightPane('cards');
+      renderStarters(false);
+
+      // Replay short conversation summary then preflight prompt
+      appendBubble('assistant', COPY.opener);
+      appendBubble('user', `<em>I want to predict customer churn for our telco accounts.</em>`);
+      appendBubble('assistant', `<p>great — <strong>customer churn.</strong> i've got your file, your examples, and a couple of rules-of-thumb from your side.</p>`);
+      // examples summary bubble
+      const summary = appendBubble('assistant', `<p>here's what i'm holding onto:</p>`);
+      const sb = summary.querySelector('.bubble');
+      CANON.examples.slice(0,3).forEach(ex => {
+        const cls = ex.kind === 'churn' ? 'out-chip--churn' : 'out-chip--stay';
+        sb.insertAdjacentHTML('beforeend', `
+          <div class="example-card">
+            <div class="ec-prose">"${ex.prose}"</div>
+            <div class="ec-arrow">→</div>
+            <div class="ec-out"><span class="out-chip ${cls}">${ex.out}</span></div>
+          </div>
+        `);
+      });
+      appendBubble('assistant', COPY.preflight);
+
+      fillCard('card-goal', {delay:0});
+      fillCard('card-data', {delay:60});
+      fillCard('card-examples', {delay:120});
+      renderExamples(CANON.examples.slice(0,3));
+      fillCard('card-domain', {delay:180});
+      renderDomain(CANON.domain);
+
+      setConfidence(85, true);
+    }
+
+    if(state === 'running'){
+      setPill('live','training');
+      showRightPane('running');
+      renderStarters(false);
+
+      appendBubble('assistant', COPY.preflight);
+      appendBubble('user', `<em>let's go.</em>`);
+      appendBubble('assistant', COPY.runningCompany);
+
+      // animate steps
+      runTrainingAnimation(opts.autoAdvance !== false);
+    }
+
+    if(state === 'done'){
+      setPill('idle','done');
+      showRightPane('done');
+      renderStarters(false);
+
+      appendBubble('assistant', COPY.runningCompany);
+      appendBubble('assistant', COPY.done);
+    }
+  }
+
+  /* ── Training animation ── */
+  let runTimer = null;
+  function runTrainingAnimation(autoAdvance){
+    if(runTimer){clearTimeout(runTimer); runTimer = null;}
+    const steps = document.querySelectorAll('#runSteps .step');
+    const fill = document.getElementById('runFill');
+    const pct = document.getElementById('runPct');
+    if(!steps.length) return;
+
+    const labels = [
+      '12% · cleaning your data',
+      '38% · trying a few different models',
+      '70% · checking against your examples',
+      '92% · picking the one that fits best',
+      '100% · done'
+    ];
+
+    let i = 0;
+    const total = steps.length;
+
+    function advance(){
+      if(i > 0){
+        steps[i-1].classList.remove('active');
+        steps[i-1].classList.add('done');
+        steps[i-1].querySelector('.step-mark').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 7"/></svg>`;
+      }
+      if(i < total){
+        steps[i].classList.add('active');
+        const widthPct = ((i+1)/total) * 100;
+        fill.style.width = (widthPct - 8) + '%';
+        pct.textContent = labels[i];
+        i++;
+        runTimer = setTimeout(advance, 800);
+      } else {
+        fill.style.width = '100%';
+        pct.textContent = labels[labels.length-1];
+        if(autoAdvance){
+          runTimer = setTimeout(() => {
+            if(currentState === 'running') renderState('done');
+          }, 700);
+        }
+      }
+    }
+    runTimer = setTimeout(advance, 350);
+  }
+
+  /* ── Composer interactions ── */
+  function autoResize(){
+    composer.style.height = 'auto';
+    composer.style.height = Math.min(composer.scrollHeight, 120) + 'px';
+  }
+  composer.addEventListener('input', autoResize);
+  composer.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      onSend();
+    }
+  });
+  sendBtn.addEventListener('click', onSend);
+
+  function onSend(){
+    const txt = composer.value.trim();
+    if(!txt) return;
+    composer.value = '';
+    autoResize();
+    appendBubble('user', `<em>${escapeHtml(txt)}</em>`);
+    const t = appendTyping();
+    setTimeout(() => {
+      t.querySelector('.bubble').innerHTML = cannedReply(txt);
+      // soft state nudges
+      if(currentState === 'empty' && /churn|leave|predict|customer/i.test(txt)){
+        // Not auto-advancing; chip click is the canonical advance
+      }
+    }, 650);
+  }
+
+  function cannedReply(txt){
+    const t = txt.toLowerCase();
+    if(/(hi|hello|hey)\b/.test(t)){
+      return `<p>hi. plain language is fine — what are you trying to figure out?</p>`;
+    }
+    if(/churn|leave|stop|cancel/.test(t)){
+      return `<p>got it — sounds like <strong>customer churn</strong>. do you have data on customers who already left? if so, drop the file and i'll take a look.</p>`;
+    }
+    if(/csv|file|data|upload/.test(t)){
+      return `<p>drop the file in the chat (or use the sample affordance below the latest assistant message). i'll tell you what i can see in it before we do anything.</p>`;
+    }
+    if(/help|do|can/.test(t)){
+      return `<p>i can help you build a model from a spreadsheet. you don't need to know what to do up front — describe what you've got, or examples of what you want, and i'll figure out the shape of the problem with you.</p>`;
+    }
+    return `<p>noted. <em>tell me a little more</em> — or, if you've got a file, drop it here and we'll start from what's actually in your data.</p>`;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ── Starter chip handler ── */
+  function onStarter(label){
+    appendBubble('user', `<em>${label}</em>`);
+    renderStarters(false);
+    const t = appendTyping();
+    setTimeout(() => {
+      let reply = '';
+      if(/data/i.test(label)){
+        reply = `<p>perfect — that's the most common starting point. drop the file in here, or we can use a sample telco dataset i've got handy. once i can see your data, i'll suggest a few directions based on what's actually in it.</p>`;
+      } else if(/predict/i.test(label)){
+        reply = COPY.afterIntent();
+      } else {
+        reply = `<p>i help you build a model from a spreadsheet, in plain language. you describe what you have and a few examples of what you want, and i'll figure out the rest. usually a one-or-two-minute conversation gets us started.</p>`;
+      }
+      t.querySelector('.bubble').innerHTML = reply;
+      // If the user picked the "predict" starter, attach an upload widget
+      if(/predict/i.test(label)){
+        t.querySelector('.bubble').insertAdjacentHTML('beforeend', `
+          <div class="upload-widget">
+            <div class="upload-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </div>
+            <div class="upload-text">
+              <div class="t1">drop your CSV here</div>
+              <div class="t2">or use the sample telco dataset</div>
+            </div>
+            <div class="upload-actions">
+              <button class="chip" id="useSample">use the sample</button>
+            </div>
+          </div>
+        `);
+        // wire the sample
+        const sample = t.querySelector('#useSample');
+        sample.addEventListener('click', onSample);
+        // Goal card narration begins
+        $('#goal-line').innerHTML = `learning what <em>"about to leave us"</em> means for your customers.`;
+        fillCard('card-goal');
+        setConfidence(20, false);
+      }
+    }, 600);
+  }
+
+  function onSample(){
+    appendBubble('user', `<em>(using the sample dataset)</em>`);
+    const t = appendTyping();
+    setTimeout(() => {
+      t.querySelector('.bubble').innerHTML = COPY.afterUpload;
+      t.querySelector('.bubble').insertAdjacentHTML('beforeend', `
+        <div class="file-card">
+          <div class="fc-row">
+            <span class="fc-name">customer_churn.csv</span>
+            <span class="fc-meta">7,043 × 21</span>
+          </div>
+          <div class="fc-cols">
+            <span class="tag">tenure</span><span class="tag">contract</span>
+            <span class="tag">monthly_charges</span><span class="tag">internet_service</span>
+            <span class="tag">churn</span>
+          </div>
+        </div>
+      `);
+      fillCard('card-data', {delay:120});
+      setConfidence(40, false);
+      // After short delay, begin to elicit examples → state becomes 'mid'
+      setTimeout(() => {
+        renderState('mid');
+      }, 900);
+    }, 800);
+  }
+
+  /* ── Confidence "let's go" ── */
+  btnGo.addEventListener('click', () => {
+    if(btnGo.disabled) return;
+    renderState('running');
+  });
+
+  /* ── State switcher ── */
+  switcher.querySelectorAll('.sw-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      renderState(b.dataset.state);
+    });
+  });
+
+  /* ── Hash routing ── */
+  function fromHash(){
+    const s = (location.hash || '#empty').slice(1);
+    return STATES.includes(s) ? s : 'empty';
+  }
+  window.addEventListener('hashchange', () => {
+    if(fromHash() !== currentState) renderState(fromHash());
+  });
+
+  /* ── D toggles dev switcher ── */
+  window.__glamliDev = true;
+  document.addEventListener('keydown', (e) => {
+    if(e.target === composer) return;
+    if(e.key === 'd' || e.key === 'D'){
+      window.__glamliDev = !window.__glamliDev;
+      switcher.classList.toggle('hidden', !window.__glamliDev);
+    }
+  });
+
+  /* ── Mobile drawer ── */
+  knowTrigger.addEventListener('click', () => {
+    knowEl.classList.add('open');
+    drawerBackdrop.classList.add('open');
+  });
+  drawerBackdrop.addEventListener('click', () => {
+    knowEl.classList.remove('open');
+    drawerBackdrop.classList.remove('open');
+  });
+
+  /* ── Init ── */
+  renderState(fromHash());
+
+})();
+</script>
+</body>
+</html>

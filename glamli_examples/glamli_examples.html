@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GLAMLI / examples</title>
+<!--
+  GLAMLI/Examples — interactive prototype, v1.1
+  States: #empty (upload) · #examples · #filled · #mapping · #review · #done
+  Design-system additions / clarifications (none silently introduced):
+  - "matched" pill state uses sage-tint + sage-deep, mirroring §1.5 pill conventions.
+  - Training-progress card uses 4px sage progress bar on --rule per §1.3 motion.
+  - Mobile: side rail collapses behind a top-bar "ask" affordance per §4.4.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:      #f7f4ee;
+  --paper-2:    #fbf9f4;
+  --paper-3:    #f1ece1;
+  --ink:        #2b2a25;
+  --ink-2:      #4a473f;
+  --ink-3:      #807a6c;
+  --rule:       #e6e0d4;
+  --rule-2:     #d8d0bf;
+  --sage:       #6f8a6a;
+  --sage-tint:  #e3ebde;
+  --sage-deep:  #4f6a4a;
+  --amber:      #c08a3c;
+  --amber-tint: #f4ebd4;
+  --rust:       #b86244;
+  --rust-tint:  #f1dcd2;
+
+  --serif: 'Source Serif 4', Georgia, serif;
+  --sans:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono:  'JetBrains Mono', ui-monospace, monospace;
+
+  font-size: 14px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* ============ TOP BAR ============ */
+.topbar {
+  height: 56px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 28px; height: 28px;
+  background: var(--sage);
+  color: var(--paper-2);
+  border-radius: 6px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.wordmark {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+.brand-rule {
+  width: 1px; height: 16px; background: var(--rule-2);
+}
+.mode-label {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+.topbar-right {
+  display: flex; align-items: center; gap: 12px;
+}
+.project-meta {
+  font-size: 12px; color: var(--ink-3);
+}
+.project-meta .meta-name { color: var(--ink-2); font-weight: 500; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--paper-3);
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-weight: 500;
+}
+.pill--live {
+  background: var(--sage-tint);
+  border-color: #c5d4be;
+  color: var(--sage-deep);
+}
+.pill--live .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--sage);
+  animation: livepulse 2s ease-in-out infinite;
+}
+@keyframes livepulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.8); }
+}
+
+.ask-toggle { display: none; }
+
+/* ============ APP SHELL ============ */
+.app {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  min-height: calc(100vh - 56px);
+}
+.canvas {
+  padding: 32px 40px 120px;
+  min-width: 0;
+}
+.rail {
+  background: var(--paper-2);
+  border-left: 1px solid var(--rule);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 56px);
+}
+
+/* ============ STEP RAIL ============ */
+.steprail {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.steprail .step {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 4px;
+  background: none; border: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 150ms ease-out;
+}
+.steprail .step .num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.steprail .step.is-active { color: var(--ink); }
+.steprail .step.is-active .num { color: var(--sage-deep); }
+.steprail .step.is-done { color: var(--ink-2); }
+.steprail .step.is-done .num { color: var(--sage); }
+.steprail .step:hover:not(.is-active) { color: var(--ink-2); cursor: pointer; }
+.steprail .sep {
+  flex: 0 0 28px;
+  height: 1px;
+  background: var(--rule);
+  margin: 0 8px;
+}
+
+/* ============ HEADLINES ============ */
+.eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+}
+.headline {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 14px;
+  max-width: 720px;
+  text-wrap: balance;
+}
+.subhead {
+  font-size: 14px;
+  color: var(--ink-2);
+  max-width: 620px;
+  margin: 0 0 28px;
+  line-height: 1.55;
+}
+
+/* ============ EXAMPLE TABLE ============ */
+.exampletable {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.exampletable-head {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px 1fr;
+  background: var(--paper-3);
+  border-bottom: 1px solid var(--rule);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  padding: 10px 0;
+}
+.exampletable-head > div { padding: 0 14px; }
+.exampletable-head .arrow-col { text-align: center; }
+
+.exrow {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px 1fr;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+  transition: background 150ms ease-out;
+}
+.exrow:last-child { border-bottom: 0; }
+.exrow:hover { background: rgba(241, 236, 225, 0.4); }
+.exrow.is-empty { opacity: 0.6; }
+.exrow.is-empty .num,
+.exrow.is-empty .arrow-cell { opacity: 0.5; }
+
+.exrow .num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  padding: 18px 0 0 16px;
+}
+.exrow .arrow-cell {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18px;
+}
+
+.exrow textarea {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  background: transparent;
+  resize: none;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 14px 16px;
+  outline: none;
+  font-family: var(--sans);
+}
+.exrow textarea.outcome {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.exrow textarea::placeholder {
+  color: var(--ink-3);
+  opacity: 0.6;
+}
+.exrow.is-focused { background: rgba(241, 236, 225, 0.55); }
+
+.exampletable-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--paper-2);
+  border-top: 1px solid var(--rule);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.progress-block {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12px; color: var(--ink-3);
+}
+.progress-bar {
+  width: 140px;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 100px;
+  overflow: hidden;
+}
+.progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--sage);
+  width: 0%;
+  transition: width 300ms ease-out;
+}
+.progress-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.foot-actions { display: flex; gap: 10px; align-items: center; }
+
+.ground-truth-note {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-left: 2px solid var(--rule-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  max-width: 760px;
+  background: rgba(241, 236, 225, 0.3);
+  border-radius: 0 6px 6px 0;
+}
+.ground-truth-note em {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink);
+}
+
+/* ============ BUTTONS ============ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 150ms ease-out;
+  font-family: var(--sans);
+}
+.btn--primary {
+  background: var(--sage);
+  color: var(--paper-2);
+  border-color: var(--sage);
+}
+.btn--primary:hover { background: var(--sage-deep); border-color: var(--sage-deep); }
+.btn--primary[disabled] {
+  background: var(--rule-2);
+  border-color: var(--rule-2);
+  color: var(--paper);
+  cursor: not-allowed;
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--ink-2);
+  border-color: var(--rule-2);
+}
+.btn--ghost:hover { background: var(--paper-3); color: var(--ink); }
+.btn--text {
+  background: transparent;
+  color: var(--sage-deep);
+  border: 0;
+  padding: 6px 4px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgba(79, 106, 74, 0.3);
+  text-underline-offset: 3px;
+}
+.btn--text:hover { text-decoration-color: var(--sage-deep); }
+
+/* ============ TAG / CHIP ============ */
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--sage-tint);
+  color: var(--sage-deep);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 500;
+}
+
+/* ============ INFERRED COLUMNS PANEL ============ */
+.inferred {
+  margin-top: 28px;
+  background: linear-gradient(135deg, var(--sage-tint) 0%, var(--paper-2) 100%);
+  border: 1px solid #c5d4be;
+  border-radius: 16px;
+  padding: 24px 26px 26px;
+  position: relative;
+  overflow: hidden;
+}
+.inferred-head {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 18px;
+}
+.inferred-icon {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: var(--paper-2);
+  border: 1px solid #c5d4be;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.inferred-icon svg { width: 16px; height: 16px; stroke: var(--sage-deep); fill: none; stroke-width: 1.5; }
+.inferred-title {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+.inferred-sub {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.inferred-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.colcard {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 12px 13px;
+  transition: transform 200ms ease-out, border-color 200ms ease-out;
+}
+.colcard:hover { border-color: var(--rule-2); }
+.colcard .col-name {
+  display: inline-block;
+  background: var(--sage-tint);
+  color: var(--sage-deep);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.colcard .col-desc {
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.colcard.is-add {
+  background: transparent;
+  border: 1px dashed var(--rule-2);
+  color: var(--ink-3);
+  display: flex; flex-direction: column; justify-content: center;
+  font-size: 12px;
+}
+.colcard.is-add:hover { border-color: var(--sage); color: var(--sage-deep); cursor: pointer; }
+
+/* reveal animation */
+.reveal-enter { opacity: 0; transform: translateY(12px); }
+.reveal-enter.in { opacity: 1; transform: translateY(0); transition: opacity 400ms ease-out, transform 400ms ease-out; }
+.colcard { opacity: 0; transform: translateY(8px); }
+.colcard.in { opacity: 1; transform: translateY(0); transition: opacity 360ms ease-out, transform 360ms ease-out; }
+
+.inferred-cta {
+  display: flex; align-items: center; gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #d3dfcc;
+  flex-wrap: wrap;
+}
+.inferred-cta .meta {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-family: var(--mono);
+}
+
+/* ============ SIDE RAIL (chat) ============ */
+.rail-head {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.rail-list {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 12px;
+  overflow-y: auto;
+}
+.bubble {
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 100%;
+}
+.bubble--ai {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  border-bottom-left-radius: 4px;
+}
+.bubble--user {
+  background: var(--sage-tint);
+  color: var(--sage-deep);
+  font-style: italic;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+  border: 1px solid #c5d4be;
+}
+.bubble.faint { opacity: 0.7; font-size: 12px; }
+
+.composer {
+  margin-top: auto;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: 12px;
+  padding: 8px 10px 10px;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.composer:focus-within {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px var(--sage-tint);
+}
+.composer textarea {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  resize: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  min-height: 36px;
+  max-height: 120px;
+  padding: 4px 4px 0;
+}
+.composer-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 4px;
+}
+.composer-row .hint {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.composer-row button {
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.composer-row button:hover { background: var(--paper-3); color: var(--ink-2); }
+
+/* ============ MAPPING STATE ============ */
+.mapping-card {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.mapping-meta {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-3);
+  font-size: 12px;
+  color: var(--ink-2);
+  flex-wrap: wrap;
+}
+.mapping-meta .file {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+.mapping-meta .meta-sep { width: 1px; height: 12px; background: var(--rule-2); }
+
+.mapping-grid-head {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr 130px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  align-items: center;
+}
+.maprow {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr 130px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+  align-items: center;
+  transition: background 150ms ease-out;
+  gap: 12px;
+}
+.maprow:last-child { border-bottom: 0; }
+.maprow:hover { background: rgba(241, 236, 225, 0.45); }
+.maprow .source {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.maprow .source .src-name {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--sage-tint);
+  color: var(--sage-deep);
+  border-radius: 4px;
+  padding: 1px 6px;
+  align-self: flex-start;
+  font-weight: 500;
+}
+.maprow .source .src-desc {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.maprow .arrow {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: center;
+}
+.maprow .target {
+  position: relative;
+}
+.maprow .target-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 5px 10px;
+  width: 100%;
+  text-align: left;
+  justify-content: space-between;
+}
+.maprow .target-btn:hover { border-color: var(--ink-3); }
+.maprow .target-btn .caret { color: var(--ink-3); font-size: 10px; }
+
+.maprow.is-mismatch {
+  background: var(--rust-tint);
+}
+.maprow.is-mismatch:hover {
+  background: #ecd1c7;
+}
+.maprow.is-mismatch .target-btn {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+.maprow .status-pill {
+  justify-self: end;
+}
+.status-pill {
+  font-family: var(--sans);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.status-pill.matched { background: var(--sage-tint); color: var(--sage-deep); border: 1px solid #c5d4be; }
+.status-pill.mismatch { background: var(--paper-2); color: var(--rust); border: 1px solid var(--rust); }
+.status-pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+.status-pill.matched .dot { background: var(--sage); }
+.status-pill.mismatch .dot { background: var(--rust); }
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--paper-2);
+  border: 1px solid var(--rule-2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(43,42,37,0.1);
+  padding: 4px;
+  z-index: 20;
+  display: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.dropdown.open { display: block; }
+.dropdown-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  padding: 7px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.dropdown-item:hover { background: var(--paper-3); }
+.dropdown-item .item-meta {
+  display: block;
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.mapping-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-2);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.mapping-foot .summary {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.mapping-foot .summary strong { color: var(--ink); font-weight: 500; }
+
+/* ============ REVIEW STATE ============ */
+.review-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.review-card {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+  min-height: 260px;
+}
+.review-card .rc-eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.review-card h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+}
+.review-card p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+}
+.review-examples {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.review-ex {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 8px;
+  font-size: 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--rule);
+}
+.review-ex:last-child { border-bottom: 0; }
+.review-ex .num { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+.review-ex .desc { color: var(--ink-2); line-height: 1.45; }
+.review-ex .out {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.review-success {
+  font-family: var(--serif);
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  color: var(--sage-deep);
+  line-height: 1.1;
+}
+.review-success em {
+  font-style: italic;
+  color: var(--sage);
+}
+.review-foot {
+  display: flex; align-items: center; gap: 14px;
+  flex-wrap: wrap;
+}
+.review-foot .quiet {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* ============ TRAINING STATE (overlay) ============ */
+.training-card {
+  max-width: 480px;
+  margin: 80px auto 0;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  padding: 32px 32px 28px;
+  text-align: center;
+}
+.training-card .hero {
+  font-family: var(--serif);
+  font-size: 56px;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.training-card .hero em { font-style: italic; color: var(--amber); font-weight: 400; }
+.training-card .label {
+  font-size: 13px; color: var(--ink-2);
+  margin-bottom: 22px;
+}
+.training-progress {
+  height: 4px;
+  background: var(--rule);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.training-progress > span {
+  display: block; height: 100%;
+  background: var(--sage);
+  width: 0%;
+  transition: width 200ms linear;
+}
+.training-steps {
+  display: flex; flex-direction: column; gap: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: left;
+}
+.training-steps .step-line {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 0;
+  transition: color 200ms ease-out;
+}
+.training-steps .step-line .indi {
+  width: 8px; text-align: center;
+}
+.training-steps .step-line.done { color: var(--sage-deep); }
+.training-steps .step-line.active { color: var(--ink); }
+
+/* ============ DONE STATE ============ */
+.done-hero {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+.done-hero .hero-num {
+  font-family: var(--serif);
+  font-size: 64px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.done-hero .hero-num em {
+  font-style: italic;
+  color: var(--sage);
+  font-weight: 400;
+}
+.done-hero .hero-label {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin-top: 10px;
+  line-height: 1.5;
+  max-width: 360px;
+}
+.done-hero .right-pane {
+  display: flex; flex-direction: column; gap: 10px;
+  font-size: 12px;
+}
+.dot-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.dot-row .ldot {
+  width: 7px; height: 7px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-row.pass .ldot { background: var(--sage); }
+.dot-row.fail { color: var(--rust); border-color: var(--rust); background: var(--rust-tint); }
+.dot-row.fail .ldot { background: var(--rust); }
+.dot-row .ex-num { font-family: var(--mono); font-size: 11px; color: var(--ink-3); width: 18px; }
+.dot-row .ex-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.failcard {
+  background: var(--paper-2);
+  border: 1px solid var(--rust);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 22px;
+}
+.failcard-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rust);
+}
+.failcard-head .dotbadge {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--rust);
+}
+.fail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.fail-col .fc-label {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+.fail-col .fc-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.fail-col .fc-out {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
+}
+.fail-col .fc-out.expected { background: var(--sage-tint); color: var(--sage-deep); }
+.fail-col .fc-out.predicted { background: var(--rust-tint); color: var(--rust); }
+.fail-explain {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--rule);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.fail-explain .hint-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--amber-tint);
+  color: var(--amber);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-right: 6px;
+  font-weight: 500;
+}
+
+.done-actions {
+  display: flex; gap: 12px; align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ============ STATE SWITCHER ============ */
+.devswitch {
+  position: fixed;
+  bottom: 16px; right: 16px;
+  background: var(--ink);
+  color: var(--paper-2);
+  border-radius: 100px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  box-shadow: 0 4px 16px rgba(43,42,37,0.18);
+  z-index: 100;
+  font-family: var(--mono);
+}
+.devswitch button {
+  background: transparent;
+  border: 0;
+  color: var(--paper-2);
+  opacity: 0.6;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 100px;
+  transition: background 150ms ease-out, opacity 150ms ease-out, color 150ms ease-out;
+}
+.devswitch button:hover { opacity: 1; }
+.devswitch button.is-active {
+  background: var(--sage);
+  color: var(--paper-2);
+  opacity: 1;
+}
+.devswitch.hidden { display: none; }
+.devswitch-hint {
+  position: fixed;
+  bottom: 16px; right: 16px;
+  background: var(--ink);
+  color: var(--paper-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 100px;
+  opacity: 0.4;
+  z-index: 100;
+  display: none;
+}
+.devswitch-hint.shown { display: block; }
+
+/* ============ UPLOAD (empty) STATE ============ */
+.upload-shell {
+  display: flex; align-items: center; justify-content: center;
+  min-height: calc(100vh - 56px - 154px);
+  padding: 20px 0 40px;
+}
+.invite {
+  width: min(580px, 100%);
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  padding: 36px 38px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(43,42,37,0.02);
+}
+.invite::before {
+  content: "";
+  position: absolute; top: -80px; right: -80px;
+  width: 320px; height: 320px;
+  background: radial-gradient(circle at center, var(--sage-tint) 0%, transparent 70%);
+  opacity: 0.6; pointer-events: none;
+}
+.invite-eyebrow {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--ink-3); margin: 0 0 14px; font-weight: 500;
+}
+.invite-headline {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.invite-sub {
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.55;
+  margin: 0 0 24px;
+  max-width: 44ch;
+}
+.invite-drop {
+  border: 1.5px dashed var(--rule-2);
+  border-radius: 14px;
+  padding: 22px;
+  background: var(--paper);
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer;
+  transition: border-color 200ms ease-out, background 200ms ease-out;
+}
+.invite-drop:hover,
+.invite-drop.is-dragover {
+  border-color: var(--sage);
+  background: var(--sage-tint);
+}
+.invite-icon {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: var(--paper-3);
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 36px;
+}
+.invite-icon svg { width: 18px; height: 18px; stroke: var(--ink-2); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.invite-drop-txt { flex: 1; min-width: 0; }
+.invite-drop-title { font-size: 13px; font-weight: 500; color: var(--ink); }
+.invite-drop-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.invite-foot {
+  margin-top: 14px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+  flex-wrap: wrap;
+}
+.invite-foot .sample {
+  color: var(--sage-deep);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-2);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+}
+.invite-foot .sample:hover { text-decoration-color: var(--sage); }
+.parse-bar {
+  margin-top: 18px;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 100px;
+  overflow: hidden;
+  display: none;
+}
+.parse-bar.show { display: block; }
+.parse-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--sage);
+  width: 0%;
+  transition: width 800ms ease-out;
+}
+.parse-status {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  display: none;
+}
+.parse-status.show { display: block; }
+
+/* ============ STATE SHOW/HIDE ============ */
+[data-state] { display: none; }
+[data-state].is-active { display: block; }
+[data-state="empty"].is-active { display: flex; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .app { grid-template-columns: 1fr 280px; }
+  .canvas { padding: 28px 28px 100px; }
+  .review-grid { grid-template-columns: 1fr; }
+  .review-card { min-height: auto; }
+  .done-hero { grid-template-columns: 1fr; gap: 18px; }
+  .fail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .topbar { padding: 0 16px; }
+  .ask-toggle {
+    display: inline-flex;
+    align-items: center; gap: 5px;
+    background: var(--paper);
+    border: 1px solid var(--rule-2);
+    color: var(--ink-2);
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 100px;
+  }
+  .project-meta { display: none; }
+  .app { grid-template-columns: 1fr; }
+  .rail {
+    display: none;
+    position: fixed;
+    top: 56px; right: 0; bottom: 0;
+    width: min(360px, 90vw);
+    z-index: 60;
+    box-shadow: -8px 0 24px rgba(43,42,37,0.08);
+  }
+  .rail.shown { display: flex; }
+  .canvas { padding: 22px 16px 100px; }
+  .headline { font-size: 26px; }
+
+  /* stack example rows */
+  .exampletable-head { display: none; }
+  .exrow {
+    grid-template-columns: 1fr;
+    padding: 10px 14px 14px;
+    position: relative;
+  }
+  .exrow .num {
+    padding: 0;
+    margin-bottom: 4px;
+  }
+  .exrow .arrow-cell {
+    padding: 4px 0;
+    justify-content: flex-start;
+    font-size: 14px;
+  }
+  .exrow textarea { padding: 8px 0; min-height: 40px; }
+
+  .review-grid { grid-template-columns: 1fr; }
+  .done-hero { padding: 22px 18px; }
+  .done-hero .hero-num { font-size: 48px; }
+  .mapping-grid-head { display: none; }
+  .maprow { grid-template-columns: 1fr auto; gap: 8px; padding: 14px; }
+  .maprow .arrow { display: none; }
+  .maprow .source { grid-column: 1 / -1; }
+  .maprow .target { grid-column: 1; }
+  .maprow .status-pill { grid-column: 2; }
+  .devswitch { padding: 4px; }
+  .devswitch button { padding: 4px 9px; font-size: 10px; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">G</div>
+    <div class="wordmark">GLAMLI</div>
+    <div class="brand-rule"></div>
+    <div class="mode-label">examples</div>
+  </div>
+  <div class="topbar-right">
+    <div class="project-meta">
+      <span class="meta-name">churn analysis</span>
+      <span> · draft</span>
+    </div>
+    <div id="status-pill" class="pill">
+      <span>ready</span>
+    </div>
+    <button class="ask-toggle" id="ask-toggle" aria-label="ask">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      ask
+    </button>
+  </div>
+</header>
+
+<main class="app">
+
+  <!-- ============ CANVAS ============ -->
+  <div class="canvas">
+
+    <!-- Step rail -->
+    <nav class="steprail" id="steprail" aria-label="workflow">
+      <button class="step" data-jump="empty"><span class="num">01</span><span>drop your data</span></button>
+      <span class="sep"></span>
+      <button class="step" data-jump="examples"><span class="num">02</span><span>show me what you want</span></button>
+      <span class="sep"></span>
+      <button class="step" data-jump="mapping"><span class="num">03</span><span>map columns</span></button>
+      <span class="sep"></span>
+      <button class="step" data-jump="review"><span class="num">04</span><span>train</span></button>
+    </nav>
+
+    <!-- ============ STATE: empty (upload) ============ -->
+    <section data-state="empty" data-screen-label="01 Upload" class="upload-shell">
+      <div class="invite" id="invite" role="button" tabindex="0" aria-label="Drop a CSV to start">
+        <p class="invite-eyebrow">step 01 · your data</p>
+        <h1 class="invite-headline">Drop a CSV — then tell me what you want from it.</h1>
+        <p class="invite-sub">I'll read your file first so I can speak its language. After that, you'll write a few examples in your own words and I'll train a model to match.</p>
+        <div class="invite-drop" id="invite-drop">
+          <div class="invite-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+          </div>
+          <div class="invite-drop-txt">
+            <div class="invite-drop-title">Drop a CSV anywhere on this card</div>
+            <div class="invite-drop-sub">or click here — anything with a header row works</div>
+          </div>
+          <span class="tag" style="font-size:10px">CSV · TSV</span>
+        </div>
+        <div class="parse-bar" id="parse-bar"><i></i></div>
+        <div class="parse-status" id="parse-status">reading file…</div>
+        <div class="invite-foot">
+          <span>Don't have one handy?</span>
+          <button class="sample" id="use-sample-csv-empty">use sample · customer_churn.csv</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATE: examples / filled (share the example table) ============ -->
+    <section data-state="examples" data-state-also="filled" data-screen-label="02 Examples — empty/filled">
+      <div class="eyebrow">step 02 · your examples</div>
+      <h1 class="headline">Now show me three to five examples of what you want this to do.</h1>
+      <p class="subhead">I've read your file — <span class="tag" style="font-size:11px">customer_churn.csv</span> · 7,043 rows · 21 columns. Describe a customer in your own words on the left, and put what you'd expect on the right. I'll match your words to columns I found.</p>
+
+      <div class="exampletable" id="exampletable">
+        <div class="exampletable-head">
+          <div></div>
+          <div>your description</div>
+          <div class="arrow-col"></div>
+          <div>expected outcome</div>
+        </div>
+        <!-- 5 rows, rendered by JS -->
+        <div id="exrows"></div>
+
+        <div class="exampletable-foot">
+          <div class="progress-block">
+            <span class="progress-count" id="progress-count">0 of ~5</span>
+            <span class="progress-bar"><span id="progress-fill"></span></span>
+          </div>
+          <div class="foot-actions">
+            <button class="btn btn--text" id="use-sample">use sample examples</button>
+            <button class="btn btn--ghost" id="add-row">+ another example</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="ground-truth-note">
+        <em>Your examples will become the ground truth.</em> I'll train a model on your file and check it against the examples you wrote here. They never get used to teach the model — only to grade it.
+      </p>
+
+      <!-- Inferred columns panel (hidden until 3 rows filled) -->
+      <div class="inferred reveal-enter" id="inferred" hidden>
+        <div class="inferred-head">
+          <div class="inferred-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><circle cx="18" cy="14" r="3"/><path d="m20 16 2 2"/></svg>
+          </div>
+          <div>
+            <h2 class="inferred-title">Here's what I'll pull from your file, based on your examples.</h2>
+            <p class="inferred-sub">From what you described, these are the columns I'll match against in <span class="tag" style="font-size:11px">customer_churn.csv</span>. You can add anything else you think matters.</p>
+          </div>
+        </div>
+
+        <div class="inferred-grid" id="inferred-grid">
+          <div class="colcard"><span class="col-name">tenure</span><div class="col-desc">how long they've been a customer (months)</div></div>
+          <div class="colcard"><span class="col-name">contract</span><div class="col-desc">month-to-month, annual, or 2-year</div></div>
+          <div class="colcard"><span class="col-name">monthly_charges</span><div class="col-desc">what they pay per month</div></div>
+          <div class="colcard"><span class="col-name">internet_service</span><div class="col-desc">DSL, fiber, or none</div></div>
+          <div class="colcard"><span class="col-name">add_ons</span><div class="col-desc">security, backup, tech support — any extras on the plan</div></div>
+          <div class="colcard"><span class="col-name">senior_citizen</span><div class="col-desc">whether they're a senior — you mentioned this</div></div>
+          <div class="colcard is-add">+ anything else you think matters</div>
+        </div>
+
+        <div class="inferred-cta">
+          <button class="btn btn--primary" id="continue-to-mapping">see how your file matches</button>
+          <span class="meta">7,043 rows · 21 columns · 6 needed</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATE: mapping ============ -->
+    <section data-state="mapping" data-screen-label="03 Mapping">
+      <div class="eyebrow">step 03 · upload &amp; map</div>
+      <h1 class="headline">Here's what I found in your file. One thing didn't match cleanly.</h1>
+      <p class="subhead">I matched the columns I needed to columns in your file. The one I'm not sure about is highlighted — click it to pick the right one.</p>
+
+      <div class="mapping-card">
+        <div class="mapping-meta">
+          <span>file</span>
+          <span class="file">customer_churn.csv</span>
+          <span class="meta-sep"></span>
+          <span>7,043 rows</span>
+          <span class="meta-sep"></span>
+          <span>21 columns</span>
+          <span class="meta-sep"></span>
+          <span style="color: var(--sage-deep);">parsed in 0.4s</span>
+        </div>
+
+        <div class="mapping-grid-head">
+          <div>what we wanted</div>
+          <div></div>
+          <div>what we found</div>
+          <div></div>
+        </div>
+
+        <div id="maprows">
+          <!-- rendered by JS -->
+        </div>
+
+        <div class="mapping-foot">
+          <div class="summary"><strong id="mapping-summary">5 matched</strong> · <span id="mapping-mismatch-summary" style="color: var(--rust);">1 needs your attention</span></div>
+          <button class="btn btn--primary" id="mapping-continue" disabled>continue</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATE: review ============ -->
+    <section data-state="review" data-screen-label="04 Review">
+      <div class="eyebrow">step 04 · train</div>
+      <h1 class="headline">Ready when you are.</h1>
+      <p class="subhead">Here's what I'm about to do. The 5 examples you wrote stay separate from training — I'll use them to grade the model afterwards.</p>
+
+      <div class="review-grid">
+        <div class="review-card">
+          <div class="rc-eyebrow"><span>your examples</span><span class="status-pill matched"><span class="dot"></span>held-out test</span></div>
+          <h3>5 examples, ready to grade</h3>
+          <div class="review-examples" id="review-examples"></div>
+        </div>
+        <div class="review-card">
+          <div class="rc-eyebrow"><span>the model we'll train</span></div>
+          <h3>Gradient Boosting</h3>
+          <p>a Gradient Boosting model on your <strong>7,038</strong> customers — your 5 examples are the test, kept aside.</p>
+          <div style="margin-top:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);">
+            7,038 train · 5 test · 21 columns
+          </div>
+        </div>
+        <div class="review-card">
+          <div class="rc-eyebrow"><span>what success looks like</span></div>
+          <h3>passing all 5 of your examples</h3>
+          <p>i'll show you which ones passed, and explain anything that didn't.</p>
+        </div>
+      </div>
+
+      <div class="review-foot">
+        <button class="btn btn--primary" id="train-btn">train the model</button>
+        <span class="quiet">about 30 seconds</span>
+      </div>
+    </section>
+
+    <!-- ============ STATE: training (transient inside review) ============ -->
+    <section data-state="training" data-screen-label="04b Training">
+      <div class="training-card">
+        <div class="hero"><em id="training-pct">0</em>%</div>
+        <div class="label">training your model on 7,038 customers</div>
+        <div class="training-progress"><span id="training-fill"></span></div>
+        <div class="training-steps" id="training-steps">
+          <div class="step-line"><span class="indi">○</span><span>reading your file</span></div>
+          <div class="step-line"><span class="indi">○</span><span>preparing the data</span></div>
+          <div class="step-line"><span class="indi">○</span><span>training Gradient Boosting</span></div>
+          <div class="step-line"><span class="indi">○</span><span>checking against your 5 examples</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATE: done ============ -->
+    <section data-state="done" data-screen-label="05 Done">
+      <div class="eyebrow">step 04 · trained</div>
+      <h1 class="headline">4 of your 5 examples were predicted correctly.</h1>
+      <p class="subhead">Here's how the model did on the examples you wrote. One didn't match — that's worth a look.</p>
+
+      <div class="done-hero">
+        <div>
+          <div class="hero-num"><em>4</em>/5</div>
+          <div class="hero-label">examples passing. The model is on the right track. One case is rare in your data — adding more examples like it will probably fix it.</div>
+        </div>
+        <div class="right-pane" id="done-rows">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+      <div class="failcard">
+        <div class="failcard-head">
+          <span class="dotbadge"></span>
+          <span>example 04 · didn't match</span>
+        </div>
+        <div class="fail-grid">
+          <div class="fail-col">
+            <div class="fc-label">your description</div>
+            <div class="fc-desc">Senior citizen, no add-on services</div>
+          </div>
+          <div class="fail-col">
+            <div class="fc-label">you expected</div>
+            <div class="fc-out expected">will churn</div>
+          </div>
+          <div class="fail-col">
+            <div class="fc-label">model predicted</div>
+            <div class="fc-out predicted">will stay</div>
+          </div>
+        </div>
+        <div class="fail-explain">
+          <span class="hint-tag">why</span>
+          this customer's profile is rare in your data — only <strong>12 similar customers</strong> in 7,038. With more examples like this one, the model will learn the pattern.
+        </div>
+      </div>
+
+      <div class="done-actions">
+        <button class="btn btn--ghost" id="add-more">add more examples and try again</button>
+        <button class="btn btn--primary">use this model</button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============ SIDE RAIL ============ -->
+  <aside class="rail" id="rail">
+    <div class="rail-head">
+      <span>ask</span>
+      <span style="font-family:var(--mono);color:var(--ink-3);text-transform:none;letter-spacing:0;font-size:11px;">quiet so far</span>
+    </div>
+    <div class="rail-list" id="rail-list">
+      <div class="bubble bubble--ai">
+        i'm here if you get stuck. otherwise, the canvas is the workflow.
+      </div>
+      <div class="bubble bubble--ai faint">
+        a few things you might ask: <em>"can my outcomes be more than two values?"</em>, <em>"what if i don't have one of these columns?"</em>
+      </div>
+    </div>
+    <div class="composer">
+      <textarea placeholder="ask anything about your examples or the data..."></textarea>
+      <div class="composer-row">
+        <span class="hint">enter to send</span>
+        <button>send</button>
+      </div>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ============ STATE SWITCHER ============ -->
+<div class="devswitch" id="devswitch" role="navigation" aria-label="state switcher">
+  <button data-state-jump="empty">upload</button>
+  <button data-state-jump="examples">examples</button>
+  <button data-state-jump="filled">filled</button>
+  <button data-state-jump="mapping">mapping</button>
+  <button data-state-jump="review">review</button>
+  <button data-state-jump="done">done</button>
+</div>
+
+<script>
+(function () {
+  // ===== Canonical examples §0.2 =====
+  const CANONICAL = [
+    { desc: "A customer who's been with us 2 months, on a month-to-month plan, paying about $90/month", out: "will churn", pass: true },
+    { desc: "Long-time customer (3+ years) on an annual contract, low monthly bill", out: "will stay", pass: true },
+    { desc: "New customer, 1 month, fiber internet, no add-ons like security or backup", out: "probably will churn", pass: true },
+    { desc: "Senior citizen, no add-on services", out: "will churn", pass: false, predicted: "will stay" },
+    { desc: "Long-tenure customer, fiber internet, no add-ons", out: "will stay", pass: true }
+  ];
+
+  // ===== State management =====
+  const VALID_STATES = ['empty','examples','filled','mapping','review','done'];
+  let currentState = 'empty';
+
+  function readHashState() {
+    const h = (location.hash || '').replace('#','');
+    return VALID_STATES.includes(h) ? h : 'empty';
+  }
+  function setHash(s) {
+    if (location.hash.replace('#','') !== s) {
+      history.replaceState(null, '', '#' + s);
+    }
+  }
+
+  function showState(s) {
+    if (!VALID_STATES.includes(s)) s = 'empty';
+    currentState = s;
+
+    // Hide all
+    document.querySelectorAll('[data-state]').forEach(el => el.classList.remove('is-active'));
+
+    // examples + filled share the same section
+    if (s === 'examples' || s === 'filled') {
+      document.querySelector('[data-state="examples"]').classList.add('is-active');
+      const inferred = document.getElementById('inferred');
+      if (s === 'filled') {
+        // Pre-fill examples & show inferred
+        prefillExamples();
+        showInferredImmediate();
+      } else {
+        // examples: hide inferred, keep typed user content.
+        inferred.hidden = true;
+        inferred.classList.remove('in');
+        document.querySelectorAll('#inferred-grid .colcard').forEach(c => c.classList.remove('in'));
+      }
+    } else {
+      const sec = document.querySelector(`[data-state="${s}"]`);
+      if (sec) sec.classList.add('is-active');
+    }
+
+    // step rail active highlights
+    updateStepRail(s);
+
+    // Status pill
+    updateStatusPill(s);
+
+    // dev switch active
+    document.querySelectorAll('#devswitch button').forEach(b => {
+      b.classList.toggle('is-active', b.dataset.stateJump === s);
+    });
+
+    // Per-state setup
+    if (s === 'mapping') setupMapping();
+    if (s === 'review') setupReview();
+    if (s === 'done') setupDone();
+
+    setHash(s);
+    window.scrollTo({ top: 0 });
+  }
+
+  function updateStepRail(s) {
+    const order = { empty: 0, examples: 1, filled: 1, mapping: 2, review: 3, training: 3, done: 3 };
+    const stage = order[s] ?? 0;
+    document.querySelectorAll('#steprail .step').forEach((btn, i) => {
+      btn.classList.toggle('is-active', i === stage);
+      btn.classList.toggle('is-done', i < stage);
+    });
+  }
+
+  function updateStatusPill(s) {
+    const pill = document.getElementById('status-pill');
+    pill.className = 'pill';
+    let text = 'ready';
+    if (s === 'empty') text = 'waiting for data';
+    if (s === 'examples') text = 'file loaded';
+    if (s === 'filled') text = 'columns matched';
+    if (s === 'mapping') text = 'file mapped';
+    if (s === 'review') text = 'ready to train';
+    if (s === 'training') { text = 'training'; pill.className = 'pill pill--live'; }
+    if (s === 'done') { text = 'live'; pill.className = 'pill pill--live'; }
+    pill.innerHTML = (pill.classList.contains('pill--live') ? '<span class="dot"></span>' : '') + '<span>' + text + '</span>';
+  }
+
+  // ===== Example table =====
+  const ROWS = 5;
+  const exrowsEl = document.getElementById('exrows');
+  const exData = Array.from({length: ROWS}, () => ({ desc: '', out: '' }));
+  let revealedInferred = false;
+
+  function renderRows() {
+    exrowsEl.innerHTML = '';
+    exData.forEach((row, i) => {
+      const div = document.createElement('div');
+      div.className = 'exrow' + (row.desc.trim() === '' && row.out.trim() === '' ? ' is-empty' : '');
+      div.innerHTML = `
+        <div class="num">0${i+1}</div>
+        <textarea class="desc" data-i="${i}" data-k="desc" placeholder="describe a customer..." rows="1">${escapeHtml(row.desc)}</textarea>
+        <div class="arrow-cell">→</div>
+        <textarea class="outcome" data-i="${i}" data-k="out" placeholder="what would you expect?" rows="1">${escapeHtml(row.out)}</textarea>
+      `;
+      exrowsEl.appendChild(div);
+    });
+    // attach listeners
+    exrowsEl.querySelectorAll('textarea').forEach(t => {
+      autoresize(t);
+      t.addEventListener('input', onCellInput);
+      t.addEventListener('focus', onCellFocus);
+      t.addEventListener('blur', onCellBlur);
+    });
+    updateProgress();
+  }
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function autoresize(t) {
+    t.style.height = 'auto';
+    t.style.height = (t.scrollHeight) + 'px';
+  }
+  function onCellInput(e) {
+    const t = e.currentTarget;
+    const i = +t.dataset.i, k = t.dataset.k;
+    exData[i][k] = t.value;
+    autoresize(t);
+    const row = t.closest('.exrow');
+    const filled = exData[i].desc.trim() !== '' || exData[i].out.trim() !== '';
+    row.classList.toggle('is-empty', !filled);
+    updateProgress();
+  }
+  function onCellFocus(e) { e.currentTarget.closest('.exrow').classList.add('is-focused'); }
+  function onCellBlur(e) {
+    e.currentTarget.closest('.exrow').classList.remove('is-focused');
+    // Signature interaction: when 3rd row's outcome cell blurs and we have ≥3 complete rows, reveal
+    const t = e.currentTarget;
+    const i = +t.dataset.i;
+    if (i === 2 && t.dataset.k === 'out' && countComplete() >= 3 && !revealedInferred) {
+      revealInferred();
+    }
+  }
+
+  function countComplete() {
+    return exData.filter(r => r.desc.trim() !== '' && r.out.trim() !== '').length;
+  }
+  function updateProgress() {
+    const c = countComplete();
+    document.getElementById('progress-count').textContent = c + ' of ~5';
+    document.getElementById('progress-fill').style.width = Math.min(100, (c / 3) * 100) + '%';
+  }
+
+  function prefillExamples() {
+    CANONICAL.forEach((c, i) => { exData[i].desc = c.desc; exData[i].out = c.out; });
+    renderRows();
+  }
+
+  function revealInferred() {
+    revealedInferred = true;
+    const panel = document.getElementById('inferred');
+    panel.hidden = false;
+    requestAnimationFrame(() => {
+      panel.classList.add('in');
+      const cards = document.querySelectorAll('#inferred-grid .colcard');
+      cards.forEach((c, i) => {
+        setTimeout(() => c.classList.add('in'), 120 + i * 60);
+      });
+    });
+    currentState = 'filled';
+    setHash('filled');
+    updateStepRail('filled');
+    updateStatusPill('filled');
+    document.querySelectorAll('#devswitch button').forEach(b => {
+      b.classList.toggle('is-active', b.dataset.stateJump === 'filled');
+    });
+  }
+  function showInferredImmediate() {
+    revealedInferred = true;
+    const panel = document.getElementById('inferred');
+    panel.hidden = false;
+    panel.classList.add('in');
+    document.querySelectorAll('#inferred-grid .colcard').forEach(c => c.classList.add('in'));
+  }
+
+  // ===== Mapping =====
+  const MAPPINGS = [
+    { wanted: 'tenure', desc: 'how long they\'ve been a customer', found: 'tenure', status: 'matched' },
+    { wanted: 'contract', desc: 'plan term', found: 'contract', status: 'matched' },
+    { wanted: 'monthly_charges', desc: 'monthly bill', found: 'MonthlyCharges', status: 'matched' },
+    { wanted: 'internet_service', desc: 'DSL, fiber, none', found: 'InternetService', status: 'matched' },
+    { wanted: 'add_ons', desc: 'security, backup, tech support', found: '— I see 3 columns that might fit', status: 'mismatch',
+      candidates: [
+        { name: 'OnlineSecurity', meta: 'Yes / No / No internet — 7,043 values' },
+        { name: 'OnlineBackup', meta: 'Yes / No / No internet — 7,043 values' },
+        { name: 'TechSupport', meta: 'Yes / No / No internet — 7,043 values' },
+        { name: 'combine all three (recommended)', meta: 'creates a single add_ons column from the three' }
+      ]
+    },
+    { wanted: 'senior_citizen', desc: 'whether they\'re a senior', found: 'SeniorCitizen', status: 'matched' }
+  ];
+
+  function setupMapping() {
+    const host = document.getElementById('maprows');
+    host.innerHTML = '';
+    MAPPINGS.forEach((m, i) => {
+      const row = document.createElement('div');
+      row.className = 'maprow' + (m.status === 'mismatch' ? ' is-mismatch' : '');
+      row.dataset.i = i;
+      row.innerHTML = `
+        <div class="source">
+          <span class="src-name">${m.wanted}</span>
+          <span class="src-desc">${m.desc}</span>
+        </div>
+        <div class="arrow">→</div>
+        <div class="target">
+          <button class="target-btn">
+            <span class="target-name">${m.found}</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="dropdown"></div>
+        </div>
+        <span class="status-pill ${m.status}"><span class="dot"></span>${m.status === 'matched' ? 'matched' : 'needs you'}</span>
+      `;
+      host.appendChild(row);
+
+      const btn = row.querySelector('.target-btn');
+      const dd = row.querySelector('.dropdown');
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.dropdown.open').forEach(d => { if (d !== dd) d.classList.remove('open'); });
+        const candidates = m.candidates || [
+          { name: m.found, meta: 'currently matched' },
+          { name: 'tenure', meta: 'how long they\'ve been a customer' },
+          { name: 'contract', meta: 'plan term' },
+          { name: 'MonthlyCharges', meta: 'monthly bill' },
+          { name: 'InternetService', meta: 'DSL / fiber / no' },
+          { name: 'PaymentMethod', meta: 'how they pay' }
+        ];
+        dd.innerHTML = candidates.map(c =>
+          `<button class="dropdown-item" data-name="${escapeHtml(c.name)}"><span>${escapeHtml(c.name)}</span><span class="item-meta">${escapeHtml(c.meta)}</span></button>`
+        ).join('');
+        dd.classList.toggle('open');
+
+        dd.querySelectorAll('.dropdown-item').forEach(it => {
+          it.addEventListener('click', () => {
+            const name = it.dataset.name;
+            row.querySelector('.target-name').textContent = name;
+            // Resolve mismatch -> matched
+            row.classList.remove('is-mismatch');
+            const pill = row.querySelector('.status-pill');
+            pill.className = 'status-pill matched';
+            pill.innerHTML = '<span class="dot"></span>matched';
+            m.status = 'matched';
+            dd.classList.remove('open');
+            updateMappingFoot();
+          });
+        });
+      });
+    });
+    updateMappingFoot();
+  }
+
+  function updateMappingFoot() {
+    const total = MAPPINGS.length;
+    const matched = MAPPINGS.filter(m => m.status === 'matched').length;
+    const mismatch = total - matched;
+    document.getElementById('mapping-summary').textContent = matched + ' of ' + total + ' matched';
+    const ms = document.getElementById('mapping-mismatch-summary');
+    if (mismatch === 0) {
+      ms.textContent = 'all set';
+      ms.style.color = 'var(--sage-deep)';
+    } else {
+      ms.textContent = mismatch + ' need' + (mismatch === 1 ? 's' : '') + ' your attention';
+      ms.style.color = 'var(--rust)';
+    }
+    document.getElementById('mapping-continue').disabled = mismatch !== 0;
+  }
+
+  // ===== Review =====
+  function setupReview() {
+    const host = document.getElementById('review-examples');
+    host.innerHTML = CANONICAL.map((c, i) =>
+      `<div class="review-ex">
+        <span class="num">0${i+1}</span>
+        <span class="desc">${escapeHtml(truncate(c.desc, 70))}</span>
+        <span class="out">${escapeHtml(c.out)}</span>
+      </div>`
+    ).join('');
+  }
+  function truncate(s, n) { return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; }
+
+  // ===== Done =====
+  function setupDone() {
+    const host = document.getElementById('done-rows');
+    host.innerHTML = CANONICAL.map((c, i) =>
+      `<div class="dot-row ${c.pass ? 'pass' : 'fail'}">
+        <span class="ldot"></span>
+        <span class="ex-num">0${i+1}</span>
+        <span class="ex-text">${escapeHtml(truncate(c.desc, 56))}</span>
+        <span style="font-family:var(--mono);font-size:11px;">${c.pass ? '✓' : '✗'}</span>
+      </div>`
+    ).join('');
+  }
+
+  // ===== Training transient =====
+  function runTraining() {
+    showState('training');
+    updateStatusPill('training');
+    const fill = document.getElementById('training-fill');
+    const pct = document.getElementById('training-pct');
+    const stepsEls = document.querySelectorAll('#training-steps .step-line');
+    let p = 0;
+    stepsEls.forEach(s => s.classList.remove('done','active'));
+    const stepThresholds = [10, 35, 75, 95];
+    const t = setInterval(() => {
+      p += 1.5 + Math.random() * 2;
+      if (p > 100) p = 100;
+      fill.style.width = p + '%';
+      pct.textContent = Math.floor(p);
+      stepsEls.forEach((el, i) => {
+        if (p >= stepThresholds[i]) {
+          el.classList.remove('active');
+          el.classList.add('done');
+          el.querySelector('.indi').textContent = '●';
+        } else if (i === 0 || stepsEls[i-1].classList.contains('done')) {
+          el.classList.add('active');
+          el.querySelector('.indi').textContent = '○';
+        }
+      });
+      if (p >= 100) {
+        clearInterval(t);
+        setTimeout(() => showState('done'), 350);
+      }
+    }, 60);
+  }
+
+  // ===== Wire up =====
+  document.querySelectorAll('#devswitch button').forEach(b => {
+    b.addEventListener('click', () => showState(b.dataset.stateJump));
+  });
+  document.querySelectorAll('#steprail .step').forEach(b => {
+    b.addEventListener('click', () => showState(b.dataset.jump));
+  });
+  document.getElementById('use-sample').addEventListener('click', () => {
+    prefillExamples();
+    setTimeout(revealInferred, 250);
+  });
+  document.getElementById('add-row').addEventListener('click', () => {
+    exData.push({ desc: '', out: '' });
+    renderRows();
+  });
+  document.getElementById('continue-to-mapping').addEventListener('click', () => showState('mapping'));
+  document.getElementById('mapping-continue').addEventListener('click', () => showState('review'));
+  document.getElementById('train-btn').addEventListener('click', runTraining);
+  document.getElementById('add-more').addEventListener('click', () => showState('examples'));
+
+  // ===== Upload flow (empty state) =====
+  // No real file picker — clicking the card or the sample link runs a simulated parse,
+  // matching glamli_live's invite behaviour.
+  const invite = document.getElementById('invite');
+  const inviteDrop = document.getElementById('invite-drop');
+  const useSampleCsvEmpty = document.getElementById('use-sample-csv-empty');
+  let uploadRunning = false;
+
+  inviteDrop.addEventListener('click', () => runUpload('customer_churn.csv'));
+  invite.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); runUpload('customer_churn.csv'); }
+  });
+  useSampleCsvEmpty.addEventListener('click', (e) => {
+    e.stopPropagation();
+    runUpload('customer_churn.csv');
+  });
+
+  // drag affordance only (no real file is read; drop just runs the simulated parse)
+  ['dragenter','dragover'].forEach(ev => {
+    inviteDrop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      inviteDrop.classList.add('is-dragover');
+    });
+  });
+  ['dragleave','drop'].forEach(ev => {
+    inviteDrop.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      inviteDrop.classList.remove('is-dragover');
+    });
+  });
+  inviteDrop.addEventListener('drop', () => runUpload('customer_churn.csv'));
+  ['dragover','drop'].forEach(ev => window.addEventListener(ev, (e) => e.preventDefault()));
+
+  function runUpload(filename) {
+    if (uploadRunning) return;
+    uploadRunning = true;
+    const pill = document.getElementById('status-pill');
+    pill.className = 'pill pill--live';
+    pill.innerHTML = '<span class="dot"></span><span>reading ' + escapeHtml(filename) + '…</span>';
+    const bar = document.getElementById('parse-bar');
+    const inner = bar.querySelector('i');
+    const status = document.getElementById('parse-status');
+    bar.classList.add('show');
+    status.classList.add('show');
+    status.textContent = 'reading ' + filename + '…';
+    requestAnimationFrame(() => { inner.style.width = '100%'; });
+    setTimeout(() => {
+      status.textContent = 'parsed 7,043 rows · 21 columns in 0.4s';
+      setTimeout(() => {
+        bar.classList.remove('show');
+        inner.style.width = '0%';
+        status.classList.remove('show');
+        uploadRunning = false;
+        showState('examples');
+      }, 450);
+    }, 900);
+  }
+
+  // ===== Dev switch toggle (D key) =====
+  window.__glamliDev = true;
+  const dev = document.getElementById('devswitch');
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') {
+      // ignore if typing in textarea/input
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'textarea' || tag === 'input') return;
+      window.__glamliDev = !window.__glamliDev;
+      dev.classList.toggle('hidden', !window.__glamliDev);
+    }
+  });
+
+  // close dropdowns on outside click
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+  });
+
+  // mobile: ask toggle
+  document.getElementById('ask-toggle').addEventListener('click', () => {
+    document.getElementById('rail').classList.toggle('shown');
+  });
+
+  // hash-driven init
+  window.addEventListener('hashchange', () => showState(readHashState()));
+
+  // initial render
+  renderRows();
+  showState(readHashState());
+})();
+</script>
+</body>
+</html>

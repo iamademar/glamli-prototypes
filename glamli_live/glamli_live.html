@@ -1,0 +1,1594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GLAMLI/live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* =====================================================================
+     GLAMLI/live — single-file interactive prototype
+     Design system per spec §1.  No deviations introduced.
+     ===================================================================== */
+
+  :root{
+    --paper:#f7f4ee;
+    --paper-2:#fbf9f4;
+    --paper-3:#f1ece1;
+    --ink:#2b2a25;
+    --ink-2:#4a473f;
+    --ink-3:#807a6c;
+    --rule:#e6e0d4;
+    --rule-2:#d8d0bf;
+    --sage:#6f8a6a;
+    --sage-tint:#e3ebde;
+    --sage-deep:#4f6a4a;
+    --amber:#c08a3c;
+    --amber-tint:#f4ebd4;
+    --amber-deep:#8a5a1f;
+    --rust:#b86244;
+    --rust-tint:#f1dcd2;
+    --rust-deep:#7e3a23;
+
+    --serif: "Source Serif 4", Georgia, serif;
+    --sans: "Inter", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{font-size:14px}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+  textarea{font:inherit;color:inherit}
+  ::selection{background:var(--sage-tint);color:var(--ink)}
+
+  /* ---- Top bar ------------------------------------------------------- */
+  .topbar{
+    height:56px;
+    background:var(--paper-2);
+    border-bottom:1px solid var(--rule);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    position:sticky;top:0;z-index:50;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand-mark{
+    width:28px;height:28px;border-radius:6px;
+    background:var(--sage);color:var(--paper-2);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:18px;font-weight:500;
+    line-height:1;padding-bottom:2px;
+  }
+  .wordmark{
+    font-family:var(--serif);font-size:18px;font-weight:500;
+    letter-spacing:-0.01em;color:var(--ink);
+  }
+  .brand-rule{
+    width:1px;height:18px;background:var(--rule-2);margin:0 4px;
+  }
+  .mode-label{
+    font-family:var(--sans);font-size:13px;font-weight:400;
+    color:var(--ink-2);letter-spacing:0;
+  }
+  .top-right{display:flex;align-items:center;gap:14px}
+  .meta{
+    color:var(--ink-3);font-size:12px;
+  }
+  .meta strong{color:var(--ink-2);font-weight:500}
+
+  /* ---- Pills --------------------------------------------------------- */
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:3px 10px;border-radius:100px;
+    background:var(--paper-3);border:1px solid var(--rule);
+    font-size:11px;color:var(--ink-2);font-weight:500;
+    letter-spacing:0.02em;
+    transition:background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out;
+  }
+  .pill .dot{
+    width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+    flex:0 0 6px;
+  }
+  .pill--ready{background:var(--sage-tint);border-color:transparent;color:var(--sage-deep)}
+  .pill--ready .dot{background:var(--sage);animation:pulse 2s ease-in-out infinite}
+  .pill--retrain{background:var(--amber-tint);border-color:transparent;color:var(--amber-deep)}
+  .pill--retrain .dot{background:var(--amber);animation:pulse 2s ease-in-out infinite}
+  .pill--locked{background:var(--sage-tint);border-color:transparent;color:var(--sage-deep)}
+  .pill--locked .dot{background:var(--sage-deep);animation:none}
+  @keyframes pulse{
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:0.45;transform:scale(0.85)}
+  }
+
+  /* ---- Tags & chips -------------------------------------------------- */
+  .tag{
+    display:inline-block;
+    font-family:var(--mono);font-size:11px;
+    padding:1px 6px;border-radius:4px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    line-height:1.5;
+  }
+  .tag--amber{background:var(--amber-tint);color:var(--amber-deep)}
+  .tag--rust{background:var(--rust-tint);color:var(--rust-deep)}
+  .tag--paper{background:var(--paper-3);color:var(--ink-2)}
+
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:100px;
+    background:var(--paper-3);color:var(--ink-2);
+    font-size:12px;font-weight:500;
+    border:1px solid transparent;
+    transition:background 150ms ease-out;
+  }
+  .chip:hover{background:var(--rule)}
+
+  /* ---- Buttons ------------------------------------------------------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    padding:8px 14px;border-radius:8px;
+    font-size:13px;font-weight:500;
+    transition:background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+  }
+  .btn--primary{background:var(--sage);color:var(--paper-2)}
+  .btn--primary:hover{background:var(--sage-deep)}
+  .btn--ghost{
+    background:transparent;border:1px solid var(--rule-2);color:var(--ink-2);
+  }
+  .btn--ghost:hover{background:var(--paper-3)}
+  .btn--small{padding:6px 11px;font-size:12px;border-radius:7px}
+
+  /* ---- Layout -------------------------------------------------------- */
+  .shell{
+    display:grid;
+    grid-template-columns:1fr 1.3fr;
+    gap:0;
+    min-height:calc(100vh - 56px);
+  }
+  .pane{
+    padding:28px 32px;
+    min-width:0;
+  }
+  .pane--inbox{
+    border-right:1px solid var(--rule);
+    background:var(--paper);
+    display:flex;flex-direction:column;
+    max-height:calc(100vh - 56px);
+  }
+  .pane--live{
+    background:var(--paper-2);
+    overflow-y:auto;
+    max-height:calc(100vh - 56px);
+  }
+
+  /* ---- Inbox header & tabs ------------------------------------------ */
+  .inbox-head{margin-bottom:16px}
+  .inbox-title{
+    font-family:var(--serif);font-size:18px;font-weight:500;
+    letter-spacing:-0.01em;margin:0 0 4px;
+  }
+  .inbox-sub{font-size:12px;color:var(--ink-3);margin:0}
+  .tabs{
+    display:flex;gap:2px;margin-top:14px;
+    border-bottom:1px solid var(--rule);
+  }
+  .tab{
+    padding:8px 12px;font-size:12px;color:var(--ink-3);
+    border-bottom:1px solid transparent;margin-bottom:-1px;
+    font-weight:500;letter-spacing:0;
+  }
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+  .tab .count{
+    display:inline-block;margin-left:5px;
+    background:var(--paper-3);color:var(--ink-2);
+    font-family:var(--mono);font-size:10px;
+    padding:0 5px;border-radius:8px;
+  }
+
+  /* ---- Suggestion feed ---------------------------------------------- */
+  .feed{
+    flex:1;overflow-y:auto;
+    padding:14px 0 6px;
+    margin-right:-6px;padding-right:6px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .feed::-webkit-scrollbar{width:8px}
+  .feed::-webkit-scrollbar-thumb{background:var(--rule);border-radius:8px}
+  .feed::-webkit-scrollbar-track{background:transparent}
+
+  .card{
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:16px 18px;
+    transition:border-color 150ms ease-out, box-shadow 200ms ease-out, opacity 300ms ease-out, transform 300ms ease-out, background-color 600ms ease-out;
+  }
+  .card:hover{border-color:var(--rule-2)}
+  .card--priority{
+    border-left:3px solid var(--amber);
+    padding-left:15px;
+  }
+  .card--amber-pull{
+    animation:amberFlash 600ms ease-out 1;
+  }
+  @keyframes amberFlash{
+    0%{background:var(--paper-2)}
+    25%{background:var(--amber-tint)}
+    100%{background:var(--paper-2)}
+  }
+
+  .card-head{
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;
+    flex-wrap:wrap;
+  }
+  .card-meta{
+    margin-left:auto;font-size:11px;color:var(--ink-3);
+    font-family:var(--mono);
+  }
+  .card-body{
+    font-size:13.5px;color:var(--ink);line-height:1.55;
+    margin:0 0 14px;
+    text-wrap:pretty;
+  }
+  .card-body code, .card-body .col{
+    font-family:var(--mono);font-size:12px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    padding:1px 5px;border-radius:4px;
+  }
+  .card-foot{
+    display:flex;align-items:center;gap:10px;
+    flex-wrap:wrap;
+  }
+  .card-foot .impact{
+    margin-left:auto;font-size:11px;color:var(--sage-deep);
+    font-family:var(--mono);
+  }
+  .card.exiting{opacity:0;transform:translateY(-4px)}
+  .card.entering{
+    animation:cardIn 360ms ease-out both;
+  }
+  @keyframes cardIn{
+    from{opacity:0;transform:translateY(-12px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* ---- Composer ------------------------------------------------------ */
+  .composer{
+    margin-top:14px;
+    background:var(--paper-2);
+    border:1px solid var(--rule-2);
+    border-radius:14px;
+    padding:12px 14px 10px;
+    transition:border-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+  .composer:focus-within{
+    border-color:var(--sage);
+    box-shadow:0 0 0 3px var(--sage-tint);
+  }
+  .composer textarea{
+    width:100%;border:0;background:transparent;outline:none;resize:none;
+    font-family:var(--sans);font-size:13.5px;line-height:1.5;color:var(--ink);
+    min-height:22px;max-height:120px;display:block;
+  }
+  .composer textarea::placeholder{color:var(--ink-3)}
+  .composer-row{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:8px;
+  }
+  .composer-hint{font-size:11px;color:var(--ink-3)}
+  .composer-send{
+    width:28px;height:28px;border-radius:8px;
+    background:var(--paper-3);color:var(--ink-2);
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:background 150ms ease-out, color 150ms ease-out;
+  }
+  .composer-send:hover{background:var(--sage);color:var(--paper-2)}
+
+  /* ---- Live pane ----------------------------------------------------- */
+  .live-stack{display:flex;flex-direction:column;gap:20px;max-width:760px}
+
+  .hero{
+    position:relative;overflow:hidden;
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:16px;
+    padding:24px 26px;
+    box-shadow:0 1px 0 rgba(43,42,37,0.02);
+  }
+  .hero::before{
+    content:"";position:absolute;top:-60px;right:-60px;
+    width:280px;height:280px;
+    background:radial-gradient(circle at center, var(--sage-tint) 0%, transparent 70%);
+    opacity:0.5;pointer-events:none;
+  }
+  .hero-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    position:relative;
+  }
+  .model-name{
+    font-family:var(--serif);font-size:22px;font-weight:500;
+    letter-spacing:-0.01em;margin:0 0 4px;
+  }
+  .retrained{font-size:12px;color:var(--ink-3);margin:0}
+  .hero-eyebrow{
+    font-size:10px;font-weight:500;text-transform:uppercase;
+    letter-spacing:0.07em;color:var(--ink-3);margin:0 0 6px;
+  }
+  .hero-mid{
+    margin-top:18px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    position:relative;
+  }
+  .passrate{
+    font-family:var(--serif);font-size:60px;font-weight:400;
+    letter-spacing:-0.03em;line-height:1;color:var(--ink);
+    display:flex;align-items:baseline;
+  }
+  .passrate .accent{font-style:italic;color:var(--sage-deep)}
+  .passrate .slash{color:var(--ink-3);margin:0 2px;font-style:normal}
+  .passrate .denom{color:var(--ink-2);font-style:normal}
+  .passrate-label{
+    font-size:12px;color:var(--ink-3);margin-top:6px;
+  }
+  .num-flip{display:inline-block;position:relative;overflow:hidden;width:0.55em;height:0.92em;vertical-align:baseline}
+  .num-flip span{
+    position:absolute;left:0;top:0;width:100%;
+    transition:transform 200ms ease-out, opacity 200ms ease-out;
+  }
+  .num-flip span.out{transform:translateY(-100%);opacity:0}
+  .num-flip span.in-from-below{transform:translateY(100%);opacity:0}
+
+  .sparkline{
+    width:200px;height:64px;flex:0 0 200px;
+  }
+  .sparkline path.line{fill:none;stroke:var(--sage);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+  .sparkline path.fill{fill:var(--sage-tint);opacity:0.55;stroke:none}
+  .sparkline circle{fill:var(--sage-deep);transition:opacity 200ms ease-out}
+
+  .test-cells{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+    margin-top:22px;position:relative;
+  }
+  .cell{
+    background:var(--sage-tint);border:1px solid transparent;
+    border-radius:10px;padding:10px 11px;
+    display:flex;flex-direction:column;gap:6px;
+    transition:background-color 400ms ease-out, border-color 400ms ease-out;
+    min-height:104px;
+  }
+  .cell--fail{background:var(--rust-tint)}
+  .cell-num{
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    letter-spacing:0.04em;
+  }
+  .cell-desc{
+    font-size:11.5px;color:var(--ink-2);line-height:1.35;
+    flex:1;
+    text-wrap:pretty;
+  }
+  .cell-pred{
+    font-size:11px;color:var(--sage-deep);font-weight:500;
+    display:flex;align-items:center;gap:5px;
+  }
+  .cell--fail .cell-pred{color:var(--rust-deep)}
+  .cell-expected{font-size:10px;color:var(--rust-deep);opacity:0.85}
+  .cell.flip{animation:cellFlip 600ms ease-out 1}
+  @keyframes cellFlip{
+    0%{transform:rotateX(0)}
+    50%{transform:rotateX(90deg)}
+    100%{transform:rotateX(0)}
+  }
+
+  /* What's driving predictions */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:16px;
+    padding:20px 22px;
+  }
+  .panel-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .panel-title{
+    font-family:var(--serif);font-size:17px;font-weight:500;
+    letter-spacing:-0.01em;margin:0;
+  }
+  .panel-sub{font-size:11px;color:var(--ink-3)}
+
+  .impact-list{display:flex;flex-direction:column;gap:11px}
+  .impact-row{
+    display:grid;grid-template-columns:130px 1fr 70px;
+    align-items:center;gap:12px;
+  }
+  .impact-row .col-label{
+    font-family:var(--mono);font-size:12px;color:var(--ink);
+  }
+  .impact-bar{
+    height:8px;background:var(--paper-3);border-radius:100px;overflow:hidden;
+    position:relative;
+  }
+  .impact-bar > i{
+    display:block;height:100%;border-radius:100px;
+    background:var(--sage);
+    transition:width 600ms ease-out;
+  }
+  .impact-bar.lvl-strong > i{background:var(--sage-deep)}
+  .impact-bar.lvl-medium > i{background:var(--sage)}
+  .impact-bar.lvl-weak > i{background:#a8b8a3}
+  .impact-tag{
+    font-size:11px;color:var(--ink-3);text-align:right;
+    font-weight:500;letter-spacing:0;
+  }
+
+  /* What's changed timeline */
+  .timeline{
+    display:flex;flex-direction:column;
+  }
+  .tl-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:11px 0;
+    border-bottom:1px dashed var(--rule);
+    animation:cardIn 360ms ease-out both;
+  }
+  .tl-row:last-child{border-bottom:0}
+  .tl-text{font-size:13px;color:var(--ink-2);text-wrap:pretty}
+  .tl-text .col, .tl-text code{
+    font-family:var(--mono);font-size:11.5px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    padding:1px 5px;border-radius:4px;
+  }
+  .tl-delta{
+    font-family:var(--mono);font-size:11px;color:var(--sage-deep);
+    white-space:nowrap;flex:0 0 auto;
+  }
+  .tl-delta.neutral{color:var(--ink-3)}
+  .tl-time{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-right:10px}
+
+  /* ---- Empty state -------------------------------------------------- */
+  .empty-shell{
+    grid-column:1 / -1;
+    display:flex;align-items:center;justify-content:center;
+    min-height:calc(100vh - 56px);
+    padding:40px;
+    background:var(--paper-2);
+  }
+  .invite{
+    width:min(560px, 100%);
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:18px;
+    padding:36px 38px;
+    text-align:left;position:relative;overflow:hidden;
+    box-shadow:0 1px 0 rgba(43,42,37,0.02);
+  }
+  .invite::before{
+    content:"";position:absolute;top:-80px;right:-80px;
+    width:320px;height:320px;
+    background:radial-gradient(circle at center, var(--sage-tint) 0%, transparent 70%);
+    opacity:0.6;pointer-events:none;
+  }
+  .invite-eyebrow{
+    font-size:10px;text-transform:uppercase;letter-spacing:0.08em;
+    color:var(--ink-3);margin:0 0 14px;font-weight:500;
+  }
+  .invite-headline{
+    font-family:var(--serif);font-size:30px;font-weight:400;
+    letter-spacing:-0.02em;margin:0 0 12px;line-height:1.2;
+    text-wrap:balance;
+  }
+  .invite-sub{
+    font-size:14px;color:var(--ink-2);margin:0 0 24px;line-height:1.55;
+    max-width:42ch;text-wrap:pretty;
+  }
+  .invite-drop{
+    border:1.5px dashed var(--rule-2);border-radius:14px;
+    padding:22px;background:var(--paper-2);
+    display:flex;align-items:center;gap:14px;
+    transition:border-color 200ms ease-out, background 200ms ease-out;
+  }
+  .invite-drop:hover{border-color:var(--sage);background:var(--sage-tint)}
+  .invite-icon{
+    width:36px;height:36px;border-radius:9px;
+    background:var(--paper-3);
+    display:flex;align-items:center;justify-content:center;
+    flex:0 0 36px;
+  }
+  .invite-drop-txt{flex:1}
+  .invite-drop-title{font-size:13px;font-weight:500;color:var(--ink)}
+  .invite-drop-sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+  .invite-foot{
+    margin-top:14px;display:flex;align-items:center;gap:10px;
+    font-size:12px;color:var(--ink-3);
+  }
+  .invite-foot .sample{
+    color:var(--sage-deep);font-weight:500;text-decoration:underline;
+    text-decoration-color:var(--rule-2);text-underline-offset:3px;
+    cursor:pointer;
+  }
+  .invite-foot .sample:hover{text-decoration-color:var(--sage)}
+
+  /* file parse tiny progress */
+  .parse-bar{
+    margin-top:18px;height:4px;background:var(--rule);border-radius:100px;overflow:hidden;
+    display:none;
+  }
+  .parse-bar.show{display:block}
+  .parse-bar i{display:block;height:100%;background:var(--sage);width:0%;transition:width 800ms ease-out}
+
+  /* ---- Locked ribbon banner ----------------------------------------- */
+  .lock-banner{
+    display:none;
+    background:var(--sage-tint);
+    border:1px solid transparent;border-left:3px solid var(--sage-deep);
+    border-radius:12px;padding:14px 18px;
+    align-items:center;justify-content:space-between;gap:16px;
+  }
+  .lock-banner.show{display:flex}
+  .lock-banner-text{font-size:13px;color:var(--sage-deep)}
+  .lock-banner-text strong{font-weight:500;color:var(--ink)}
+
+  /* ---- Lock prompt card (in inbox) ---------------------------------- */
+  .card--lock{
+    background:var(--sage-tint);
+    border-color:transparent;
+  }
+  .card--lock .card-body{color:var(--sage-deep)}
+
+  /* ---- State switcher ----------------------------------------------- */
+  .switcher{
+    position:fixed;bottom:16px;right:16px;z-index:100;
+    background:var(--ink);
+    border-radius:100px;
+    padding:6px;
+    display:inline-flex;gap:2px;align-items:center;
+    box-shadow:0 4px 16px rgba(43,42,37,0.18);
+    transition:opacity 150ms ease-out, transform 150ms ease-out;
+  }
+  .switcher.hidden{opacity:0;transform:translateY(8px) scale(0.96);pointer-events:none}
+  .switcher-btn{
+    font-family:var(--mono);font-size:11px;
+    padding:6px 12px;border-radius:100px;
+    color:rgba(251,249,244,0.6);
+    transition:color 120ms ease-out, background 120ms ease-out;
+  }
+  .switcher-btn:hover{color:var(--paper-2)}
+  .switcher-btn.active{background:var(--sage);color:var(--paper-2)}
+  .switcher-hint{
+    font-family:var(--mono);font-size:10px;
+    color:rgba(251,249,244,0.4);padding:0 8px 0 4px;
+  }
+
+  /* ---- Hidden state helper ------------------------------------------ */
+  main[data-state], section[data-state]{display:none}
+  body[data-state="empty"] section[data-state="empty"]{display:flex}
+  body[data-state="baseline"] main[data-state="workspace"],
+  body[data-state="active"] main[data-state="workspace"],
+  body[data-state="data-trap"] main[data-state="workspace"],
+  body[data-state="locked"] main[data-state="workspace"]{display:grid}
+
+  /* ---- Responsive ---------------------------------------------------- */
+  @media (max-width:1024px){
+    .pane{padding:22px 24px}
+    .passrate{font-size:48px}
+    .test-cells{grid-template-columns:repeat(5,1fr)}
+    .impact-row{grid-template-columns:110px 1fr 60px}
+  }
+  @media (max-width:760px){
+    .shell{
+      grid-template-columns:1fr;
+      max-height:none;
+    }
+    .pane--inbox, .pane--live{
+      max-height:none;border-right:0;
+    }
+    /* live pane first on mobile per spec */
+    .pane--live{order:1}
+    .pane--inbox{order:2;border-top:1px solid var(--rule)}
+    .test-cells{grid-template-columns:repeat(2,1fr)}
+    .passrate{font-size:44px}
+    .topbar{padding:0 16px}
+    .meta{display:none}
+    .switcher{bottom:auto;top:8px;right:8px}
+    .impact-row{grid-template-columns:100px 1fr 56px}
+  }
+</style>
+</head>
+<body data-state="empty">
+
+<!-- ============================ TOP BAR ================================ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">G</div>
+    <div class="wordmark">GLAMLI</div>
+    <div class="brand-rule" aria-hidden="true"></div>
+    <div class="mode-label">live</div>
+  </div>
+  <div class="top-right">
+    <div class="meta">
+      <strong id="metaFile">customer_churn.csv</strong> · 7,043 rows · 21 cols
+    </div>
+    <div class="pill pill--ready" id="livePill" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="pill-text">ready</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ EMPTY STATE ============================= -->
+<section data-state="empty" class="empty-shell">
+  <div class="invite" id="invite" role="button" tabindex="0" aria-label="Drop a CSV to start">
+    <p class="invite-eyebrow">step zero — there is no step zero</p>
+    <h1 class="invite-headline">Drop a CSV — I'll have a working model on it within seconds.</h1>
+    <p class="invite-sub">No setup. No questions about goals or metrics. The model trains on what's there. From the first second, every change you make will move the needle, and you'll see it move.</p>
+    <div class="invite-drop">
+      <div class="invite-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a473f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+      </div>
+      <div class="invite-drop-txt">
+        <div class="invite-drop-title">Drop a CSV anywhere on this card</div>
+        <div class="invite-drop-sub">or click to browse — anything with a header row works</div>
+      </div>
+      <span class="tag" style="font-size:10px">CSV · TSV</span>
+    </div>
+    <div class="parse-bar" id="parseBar"><i></i></div>
+    <div class="invite-foot">
+      <span>Don't have one handy?</span>
+      <span class="sample" id="useSample">use sample · customer_churn.csv</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ WORKSPACE =============================== -->
+<main data-state="workspace" class="shell">
+
+  <!-- ===== INBOX (left) ===== -->
+  <section class="pane pane--inbox">
+    <div class="inbox-head">
+      <h2 class="inbox-title">Suggestions</h2>
+      <p class="inbox-sub">things I'd try next, ranked by how much I think they'll help.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="for-you">for you <span class="count" id="forYouCount">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="history">history <span class="count" id="historyCount">0</span></button>
+      </div>
+    </div>
+
+    <div class="feed" id="feed" aria-label="suggestion feed">
+      <!-- cards injected by JS -->
+    </div>
+
+    <form class="composer" id="composer" autocomplete="off" onsubmit="return false">
+      <textarea id="composerInput" rows="1" placeholder="Tell me anything about your data, or ask a question…"></textarea>
+      <div class="composer-row">
+        <span class="composer-hint">enter to send · shift + enter for a new line</span>
+        <button type="submit" class="composer-send" aria-label="send" id="composerSend">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== LIVE (right) ===== -->
+  <section class="pane pane--live">
+    <div class="live-stack">
+
+      <div class="lock-banner" id="lockBanner">
+        <div class="lock-banner-text">
+          Locked <strong>Gradient Boosting · v7</strong> — 5 of 5 examples passing, stable across 3 versions.
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn--ghost btn--small">view spec</button>
+          <button class="btn btn--primary btn--small">use this model</button>
+        </div>
+      </div>
+
+      <article class="hero">
+        <div class="hero-head">
+          <div>
+            <p class="hero-eyebrow">live model</p>
+            <h2 class="model-name">Gradient Boosting</h2>
+            <p class="retrained" id="retrainedCaption">retrained 4 seconds ago · v1</p>
+          </div>
+          <div style="text-align:right">
+            <p class="hero-eyebrow" style="margin-bottom:0">version</p>
+            <div style="font-family:var(--mono);font-size:13px;color:var(--ink-2);margin-top:4px" id="versionTxt">v1</div>
+          </div>
+        </div>
+
+        <div class="hero-mid">
+          <div>
+            <div class="passrate" aria-label="pass rate">
+              <span class="accent" id="passNum">3</span><span class="slash">/</span><span class="denom">5</span>
+            </div>
+            <div class="passrate-label">example customers predicted correctly</div>
+          </div>
+          <svg class="sparkline" id="sparkline" viewBox="0 0 200 64" preserveAspectRatio="none" aria-hidden="true">
+            <path class="fill" d=""></path>
+            <path class="line" d=""></path>
+            <circle cx="0" cy="0" r="3"></circle>
+          </svg>
+        </div>
+
+        <div class="test-cells" id="testCells">
+          <!-- 5 cells injected by JS -->
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title">What's driving predictions</h3>
+          <span class="panel-sub">top columns by impact</span>
+        </div>
+        <div class="impact-list" id="impactList">
+          <!-- bars injected by JS -->
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title">What's changed</h3>
+          <span class="panel-sub">your last few moves &amp; their effect</span>
+        </div>
+        <div class="timeline" id="timeline">
+          <!-- timeline injected by JS -->
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================ STATE SWITCHER ========================== -->
+<nav class="switcher" id="switcher" aria-label="state switcher">
+  <button class="switcher-btn" data-go="empty">empty</button>
+  <button class="switcher-btn" data-go="baseline">baseline</button>
+  <button class="switcher-btn" data-go="active">active</button>
+  <button class="switcher-btn" data-go="data-trap">data-trap</button>
+  <button class="switcher-btn" data-go="locked">locked</button>
+  <span class="switcher-hint" title="press D to toggle">D</span>
+</nav>
+
+<script>
+/* =====================================================================
+   GLAMLI/live — prototype state engine
+   No frameworks; vanilla JS.  All state in window.__glamli for inspect.
+   ===================================================================== */
+
+window.__glamliDev = true;
+
+// -- canonical assets (§0.2) --------------------------------------------
+const CANON_EXAMPLES = [
+  { n:1, desc:"A customer who's been with us 2 months, on a month-to-month plan, paying about $90/month", expected:"will churn" },
+  { n:2, desc:"Long-time customer (3+ years) on an annual contract, low monthly bill", expected:"will stay" },
+  { n:3, desc:"New customer, 1 month, fiber internet, no add-ons like security or backup", expected:"probably will churn" },
+  { n:4, desc:"Senior citizen, no add-on services", expected:"will churn" },
+  { n:5, desc:"Long-tenure customer, fiber internet, no add-ons", expected:"will stay" },
+];
+
+// baseline prediction state — example 4 fails
+const BASELINE_PREDS = [
+  { pass:true,  pred:"will churn" },
+  { pass:true,  pred:"will stay" },
+  { pass:true,  pred:"probably will churn" },
+  { pass:false, pred:"will stay" },   // expected: will churn -> FAIL
+  { pass:true,  pred:"will stay" },
+];
+
+// active state — example 4 now passes (after senior+no-addons feature accepted)
+const ACTIVE_PREDS = [
+  { pass:true, pred:"will churn" },
+  { pass:true, pred:"will stay" },
+  { pass:true, pred:"probably will churn" },
+  { pass:true, pred:"will churn" },
+  { pass:true, pred:"will stay" },
+];
+// active still has 4/5 — let's keep example 5 as borderline pass; spec says active = 4/5
+// Actually spec §2.5 active: hero shows 4/5. So one of these must be a fail in active.
+// Make example 5 still failing in active.
+ACTIVE_PREDS[4] = { pass:false, pred:"probably will churn" };  // expected will stay
+
+const LOCKED_PREDS = [
+  { pass:true, pred:"will churn" },
+  { pass:true, pred:"will stay" },
+  { pass:true, pred:"probably will churn" },
+  { pass:true, pred:"will churn" },
+  { pass:true, pred:"will stay" },
+];
+
+// suggestion templates -------------------------------------------------
+const BASELINE_CARDS = [
+  {
+    id:"sug-feat-senior",
+    priority:true,
+    tags:[ {kind:"sage", label:"feature hint"}, {kind:"rust", label:"test 4 failing"} ],
+    body:`Test 4 is failing. I notice <code>senior_citizen</code> + <code>no_add_ons</code> together is uncommon in your data — want me to treat that combination as a feature on its own?`,
+    impact:"+1 test passing",
+    primary:"try it",
+    actionId:"accept-senior",
+  },
+  {
+    id:"sug-domain-contract",
+    tags:[ {kind:"sage", label:"domain hint"} ],
+    body:`Quick question — for <code>contract</code>, is "month-to-month" categorically different from "annual" and "2-year", or is it a scale (shorter → longer)?`,
+    impact:"clearer signal",
+    primary:"categorically different",
+    secondary:"it's a scale",
+    actionId:"accept-contract",
+  },
+  {
+    id:"sug-feat-tenure",
+    tags:[ {kind:"sage", label:"feature hint"} ],
+    body:`Most subscription churn happens in the first year. Want to split <code>tenure</code> into "first 12 months" vs. "after"?`,
+    impact:"likely +1 test passing",
+    primary:"split tenure",
+    actionId:"accept-tenure",
+  },
+  {
+    id:"sug-examples",
+    tags:[ {kind:"paper", label:"examples"} ],
+    body:`I'm running on five example customers. Two more like the ones you described and I'll have enough to spot edge cases.`,
+    impact:"better confidence",
+    primary:"add an example",
+    actionId:"add-example",
+  },
+];
+
+const ABOUT_DATA_CARD = {
+  id:"sug-about-data",
+  tags:[ {kind:"amber", label:"about your data"} ],
+  body:`You asked if more data would help. Honestly — probably not much. Your model is already learning well from 7,043 rows; the bottleneck is which columns we feed it. I'd rather try splitting <code>tenure</code> into "first 12 months" vs. "after" — that's how churn behaves in most subscription products.`,
+  impact:"reframe the move",
+  primary:"try the split instead",
+  secondary:"i still want to add data",
+  actionId:"accept-tenure",
+  attentionPull:true,
+};
+
+const LOCK_CARD = {
+  id:"sug-lock",
+  isLock:true,
+  tags:[ {kind:"sage", label:"all clear"} ],
+  body:`I think we've reached a good place — 5 of 5 examples passing, stable across the last 3 versions. Want to lock this in?`,
+  impact:"freeze v7",
+  primary:"lock model v7",
+  secondary:"keep tinkering",
+  actionId:"lock",
+};
+
+// timeline entries by state -------------------------------------------
+const BASELINE_TIMELINE = [
+  { time:"4s ago", text:`trained baseline on <code>customer_churn.csv</code> — 7,043 rows, target inferred as <code>churn</code>`, delta:"3 of 5 passing", neutral:true },
+];
+const ACTIVE_TIMELINE = [
+  { time:"12s ago", text:`treated <code>senior_citizen × no_add_ons</code> as a combined feature`, delta:"+1 test ↑" },
+  { time:"38s ago", text:`marked <code>contract</code> as categorical (your call)`, delta:"clearer signal", neutral:true },
+  { time:"1m ago",  text:`split <code>tenure</code> into "first 12 months" vs. "after"`, delta:"+0 tests", neutral:true },
+  { time:"2m ago",  text:`trained baseline on <code>customer_churn.csv</code>`, delta:"3 of 5 passing", neutral:true },
+];
+const LOCKED_TIMELINE = [
+  { time:"just now", text:`locked <code>Gradient Boosting v7</code>`, delta:"5 of 5 ✓" },
+  { time:"4s ago", text:`treated <code>payment_method</code> "electronic check" as a risk signal`, delta:"+1 test ↑" },
+  { time:"22s ago", text:`treated <code>senior_citizen × no_add_ons</code> as a combined feature`, delta:"+1 test ↑" },
+  { time:"50s ago", text:`marked <code>contract</code> as categorical`, delta:"clearer signal", neutral:true },
+  { time:"1m ago",  text:`split <code>tenure</code> into "first 12 months" vs. "after"`, delta:"+0 tests", neutral:true },
+  { time:"2m ago",  text:`trained baseline on <code>customer_churn.csv</code>`, delta:"3 of 5 passing", neutral:true },
+];
+
+// impact bars per state ------------------------------------------------
+const BASELINE_IMPACT = [
+  { col:"contract",        pct:78, level:"strong", label:"strong"  },
+  { col:"tenure",          pct:64, level:"strong", label:"strong"  },
+  { col:"monthly_charges", pct:48, level:"medium", label:"medium"  },
+  { col:"internet_service",pct:36, level:"medium", label:"medium"  },
+  { col:"payment_method",  pct:22, level:"weak",   label:"weak"    },
+];
+const ACTIVE_IMPACT = [
+  { col:"contract",                       pct:82, level:"strong", label:"strong"  },
+  { col:"tenure (≤12m)",                  pct:71, level:"strong", label:"strong"  },
+  { col:"senior × no add-ons",            pct:55, level:"medium", label:"medium"  },
+  { col:"monthly_charges",                pct:46, level:"medium", label:"medium"  },
+  { col:"internet_service",               pct:34, level:"weak",   label:"weak"    },
+];
+const LOCKED_IMPACT = [
+  { col:"contract",                       pct:85, level:"strong", label:"strong"  },
+  { col:"tenure (≤12m)",                  pct:74, level:"strong", label:"strong"  },
+  { col:"senior × no add-ons",            pct:60, level:"medium", label:"medium"  },
+  { col:"payment_method",                 pct:52, level:"medium", label:"medium"  },
+  { col:"monthly_charges",                pct:44, level:"medium", label:"medium"  },
+];
+
+// sparkline series -----------------------------------------------------
+// each y is pass count out of 5 (0..5).  We map to viewBox.
+const SPARK_BASELINE = [3];
+const SPARK_ACTIVE   = [3, 3, 4, 4];   // ascent — clear up trend
+const SPARK_LOCKED   = [3, 3, 4, 4, 5, 5, 5];
+
+// ---------------------------------------------------------------------
+// State machine
+// ---------------------------------------------------------------------
+const STATES = ["empty","baseline","active","data-trap","locked"];
+let currentState = null;
+let cardsInFeed = []; // ids currently shown
+let acceptedActions = new Set();
+let historyCount = 0;
+
+function $(s, root){return (root||document).querySelector(s)}
+function $$(s, root){return Array.from((root||document).querySelectorAll(s))}
+
+function setHash(state){
+  if(location.hash.replace("#","") !== state){
+    history.replaceState(null,"","#"+state);
+  }
+}
+
+function setPill(mode){
+  const pill = $("#livePill");
+  pill.classList.remove("pill--ready","pill--retrain","pill--locked");
+  const txt = pill.querySelector(".pill-text");
+  if(mode==="ready"){pill.classList.add("pill--ready"); txt.textContent="ready"}
+  else if(mode==="retrain"){pill.classList.add("pill--retrain"); txt.textContent="retraining"}
+  else if(mode==="locked"){pill.classList.add("pill--locked"); txt.textContent="locked v7"}
+}
+
+function setPass(n, animate){
+  const el = $("#passNum");
+  if(!animate){ el.textContent = String(n); return }
+  // num-flip animation
+  const wrap = document.createElement("span");
+  wrap.className = "num-flip accent";
+  const oldVal = el.textContent;
+  el.outerHTML = `<span class="num-flip"><span class="cur" style="font-style:italic;color:var(--sage-deep)">${oldVal}</span></span>`;
+  // Actually simpler: just animate a fade swap
+  setTimeout(()=>{
+    const wrapEl = $(".num-flip");
+    if(!wrapEl) return;
+    const cur = wrapEl.querySelector(".cur");
+    const incoming = document.createElement("span");
+    incoming.className = "next";
+    incoming.style.cssText = "font-style:italic;color:var(--sage-deep)";
+    incoming.textContent = String(n);
+    wrapEl.appendChild(incoming);
+    requestAnimationFrame(()=>{
+      cur.classList.add("out");
+      incoming.classList.add("in-from-below");
+      requestAnimationFrame(()=>{
+        incoming.classList.remove("in-from-below");
+      });
+    });
+    setTimeout(()=>{
+      wrapEl.outerHTML = `<span class="accent" id="passNum" style="font-style:italic">${n}</span>`;
+    }, 450);
+  }, 0);
+}
+
+function renderTestCells(preds){
+  const wrap = $("#testCells");
+  wrap.innerHTML = "";
+  preds.forEach((p, idx)=>{
+    const ex = CANON_EXAMPLES[idx];
+    const cell = document.createElement("div");
+    cell.className = "cell" + (p.pass ? "" : " cell--fail");
+    cell.dataset.idx = String(idx);
+    cell.innerHTML = `
+      <div class="cell-num">test 0${ex.n}</div>
+      <div class="cell-desc">${ex.desc}</div>
+      <div class="cell-pred">
+        ${p.pass ? sageCheck() : rustX()}
+        <span>${p.pred}</span>
+      </div>
+      ${p.pass ? "" : `<div class="cell-expected">expected: ${ex.expected}</div>`}
+    `;
+    wrap.appendChild(cell);
+  });
+}
+
+function sageCheck(){
+  return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+}
+function rustX(){
+  return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>`;
+}
+
+function renderSparkline(series, animateNew){
+  const svg = $("#sparkline");
+  const W = 200, H = 64, padX = 4, padY = 8;
+  if(series.length === 0){ return }
+  const maxX = Math.max(series.length - 1, 1);
+  const xAt = i => padX + (W - padX*2) * (i / maxX);
+  const yAt = v => H - padY - (H - padY*2) * (v / 5);
+
+  const linePath = svg.querySelector("path.line");
+  const fillPath = svg.querySelector("path.fill");
+  const dot = svg.querySelector("circle");
+
+  let d = "";
+  series.forEach((v, i) => {
+    d += (i===0 ? "M" : " L") + xAt(i).toFixed(1) + " " + yAt(v).toFixed(1);
+  });
+  let fill = d + ` L ${xAt(maxX).toFixed(1)} ${H-padY} L ${padX} ${H-padY} Z`;
+  if(series.length === 1){
+    // tiny flat line
+    const y = yAt(series[0]).toFixed(1);
+    d = `M ${padX} ${y} L ${W-padX} ${y}`;
+    fill = `${d} L ${W-padX} ${H-padY} L ${padX} ${H-padY} Z`;
+  }
+  linePath.setAttribute("d", d);
+  fillPath.setAttribute("d", fill);
+
+  // dot at end
+  const lastX = series.length === 1 ? W - padX : xAt(maxX);
+  const lastY = yAt(series[series.length-1]);
+  dot.setAttribute("cx", lastX);
+  dot.setAttribute("cy", lastY);
+  dot.style.opacity = "1";
+
+  if(animateNew){
+    // simple draw animation via stroke-dasharray
+    const len = linePath.getTotalLength ? linePath.getTotalLength() : 200;
+    linePath.style.transition = "none";
+    linePath.style.strokeDasharray = len;
+    linePath.style.strokeDashoffset = len;
+    dot.style.opacity = "0";
+    requestAnimationFrame(()=>{
+      linePath.style.transition = "stroke-dashoffset 600ms ease-out";
+      linePath.style.strokeDashoffset = "0";
+      setTimeout(()=>{ dot.style.opacity = "1" }, 500);
+    });
+  }
+}
+
+function renderImpact(rows){
+  const wrap = $("#impactList");
+  wrap.innerHTML = "";
+  rows.forEach((r, i)=>{
+    const row = document.createElement("div");
+    row.className = "impact-row";
+    row.innerHTML = `
+      <div class="col-label">${r.col}</div>
+      <div class="impact-bar lvl-${r.level}"><i style="width:0%"></i></div>
+      <div class="impact-tag">${r.label}</div>
+    `;
+    wrap.appendChild(row);
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{
+        row.querySelector("i").style.width = r.pct + "%";
+      }, 60 * i);
+    });
+  });
+}
+
+function renderTimeline(rows){
+  const wrap = $("#timeline");
+  wrap.innerHTML = "";
+  rows.forEach(r=>{
+    const row = document.createElement("div");
+    row.className = "tl-row";
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0;flex:1;min-width:0">
+        <span class="tl-time">${r.time}</span>
+        <span class="tl-text">${r.text}</span>
+      </div>
+      <span class="tl-delta ${r.neutral?'neutral':''}">${r.delta}</span>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function prependTimeline(entry){
+  const wrap = $("#timeline");
+  const row = document.createElement("div");
+  row.className = "tl-row";
+  row.style.opacity = "0";
+  row.innerHTML = `
+    <div style="display:flex;align-items:center;gap:0;flex:1;min-width:0">
+      <span class="tl-time">${entry.time}</span>
+      <span class="tl-text">${entry.text}</span>
+    </div>
+    <span class="tl-delta ${entry.neutral?'neutral':''}">${entry.delta}</span>
+  `;
+  wrap.insertBefore(row, wrap.firstChild);
+  requestAnimationFrame(()=>{
+    row.style.transition = "opacity 300ms ease-out, transform 300ms ease-out";
+    row.style.transform = "translateY(-8px)";
+    requestAnimationFrame(()=>{
+      row.style.transform = "translateY(0)";
+      row.style.opacity = "1";
+    });
+  });
+}
+
+function makeCard(c){
+  const el = document.createElement("article");
+  el.className = "card" + (c.priority ? " card--priority" : "") + (c.isLock ? " card--lock" : "") + (c.attentionPull ? " card--amber-pull" : "");
+  el.dataset.id = c.id;
+  el.classList.add("entering");
+  setTimeout(()=>el.classList.remove("entering"), 400);
+
+  const tagsHtml = c.tags.map(t=>`<span class="tag tag--${t.kind==='sage'?'':t.kind}">${t.label}</span>`).join("");
+
+  const secondary = c.secondary
+    ? `<button class="btn btn--ghost btn--small" data-act="${c.actionId === 'accept-contract' ? 'accept-contract-scale' : (c.actionId==='accept-tenure' ? 'dismiss-data-still' : 'skip')}" data-id="${c.id}">${c.secondary}</button>`
+    : `<button class="btn btn--ghost btn--small" data-act="skip" data-id="${c.id}">skip</button>`;
+
+  el.innerHTML = `
+    <div class="card-head">
+      ${tagsHtml}
+      <span class="card-meta">just now</span>
+    </div>
+    <p class="card-body">${c.body}</p>
+    <div class="card-foot">
+      <button class="btn btn--primary btn--small" data-act="${c.actionId}" data-id="${c.id}">${c.primary}</button>
+      ${secondary}
+      <span class="impact">${c.impact}</span>
+    </div>
+  `;
+  return el;
+}
+
+function renderFeed(cards){
+  const feed = $("#feed");
+  feed.innerHTML = "";
+  cards.forEach(c => feed.appendChild(makeCard(c)));
+  cardsInFeed = cards.map(c=>c.id);
+  $("#forYouCount").textContent = cards.filter(c=>!c.isLock).length || cards.length;
+  $("#historyCount").textContent = historyCount;
+}
+
+function exitCard(id, then){
+  const el = $(`.card[data-id="${id}"]`, $("#feed"));
+  if(!el){ if(then) then(); return }
+  el.style.height = el.offsetHeight + "px";
+  el.classList.add("exiting");
+  setTimeout(()=>{
+    el.style.transition = "height 240ms ease-out, margin 240ms ease-out, padding 240ms ease-out, opacity 240ms ease-out";
+    el.style.height = "0px";
+    el.style.marginTop = "0";
+    el.style.marginBottom = "0";
+    el.style.paddingTop = "0";
+    el.style.paddingBottom = "0";
+    el.style.borderWidth = "0";
+    el.style.overflow = "hidden";
+    setTimeout(()=>{ el.remove(); historyCount++; $("#historyCount").textContent = historyCount; if(then) then() }, 260);
+  }, 280);
+}
+
+function prependCard(c){
+  const feed = $("#feed");
+  const el = makeCard(c);
+  feed.insertBefore(el, feed.firstChild);
+  feed.scrollTo({top:0, behavior:"smooth"});
+}
+
+// ---------------------------------------------------------------------
+// State renderers
+// ---------------------------------------------------------------------
+function gotoState(state, opts){
+  opts = opts || {};
+  if(!STATES.includes(state)) state = "empty";
+  currentState = state;
+  document.body.dataset.state = state;
+  setHash(state);
+
+  // switcher highlight
+  $$(".switcher-btn").forEach(b=>{
+    b.classList.toggle("active", b.dataset.go === state);
+  });
+
+  // lock banner
+  $("#lockBanner").classList.toggle("show", state === "locked");
+
+  if(state === "empty"){
+    setPill("ready");
+    return;
+  }
+
+  if(state === "baseline"){
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained 4 seconds ago · v1";
+    $("#versionTxt").textContent = "v1";
+    setPass(3, false);
+    renderTestCells(BASELINE_PREDS);
+    renderSparkline(SPARK_BASELINE, false);
+    renderImpact(BASELINE_IMPACT);
+    renderTimeline(BASELINE_TIMELINE);
+    historyCount = 0;
+    renderFeed(BASELINE_CARDS);
+    return;
+  }
+
+  if(state === "active"){
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained 12 seconds ago · v3";
+    $("#versionTxt").textContent = "v3";
+    setPass(4, false);
+    renderTestCells(ACTIVE_PREDS);
+    renderSparkline(SPARK_ACTIVE, false);
+    renderImpact(ACTIVE_IMPACT);
+    renderTimeline(ACTIVE_TIMELINE);
+    historyCount = 2;
+    // remaining inbox: 2 cards
+    renderFeed([ BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+    return;
+  }
+
+  if(state === "data-trap"){
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained 12 seconds ago · v3";
+    $("#versionTxt").textContent = "v3";
+    setPass(4, false);
+    renderTestCells(ACTIVE_PREDS);
+    renderSparkline(SPARK_ACTIVE, false);
+    renderImpact(ACTIVE_IMPACT);
+    renderTimeline(ACTIVE_TIMELINE);
+    historyCount = 2;
+    // amber card on top + remaining
+    renderFeed([ ABOUT_DATA_CARD, BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+    // composer should show the user's question
+    const composer = $("#composerInput");
+    composer.value = "can I add more data?";
+    autoResize(composer);
+    return;
+  }
+
+  if(state === "locked"){
+    setPill("locked");
+    $("#retrainedCaption").textContent = "locked · v7 · stable across last 3 versions";
+    $("#versionTxt").textContent = "v7 ✓";
+    setPass(5, false);
+    renderTestCells(LOCKED_PREDS);
+    renderSparkline(SPARK_LOCKED, false);
+    renderImpact(LOCKED_IMPACT);
+    renderTimeline(LOCKED_TIMELINE);
+    historyCount = 6;
+    // history view in inbox
+    renderHistoryFeed();
+    return;
+  }
+}
+
+function renderHistoryFeed(){
+  const feed = $("#feed");
+  feed.innerHTML = "";
+  $$('.tab').forEach(t => t.setAttribute("aria-selected", t.dataset.tab === "history" ? "true" : "false"));
+  const items = [
+    { tags:[{kind:"sage",label:"feature hint"}], body:`Treated <code>senior_citizen × no_add_ons</code> as a combined feature.`, when:"22 seconds ago", outcome:"+1 test ↑" },
+    { tags:[{kind:"sage",label:"domain hint"}], body:`Marked <code>contract</code> as categorical.`, when:"50 seconds ago", outcome:"clearer signal" },
+    { tags:[{kind:"sage",label:"feature hint"}], body:`Split <code>tenure</code> into "first 12 months" vs. "after".`, when:"1m ago", outcome:"+0 tests" },
+    { tags:[{kind:"amber",label:"about your data"}], body:`Reframed an "add more data" question — tried column work first.`, when:"1m ago", outcome:"useful detour" },
+    { tags:[{kind:"sage",label:"feature hint"}], body:`Treated <code>payment_method</code> "electronic check" as a risk signal.`, when:"4s ago", outcome:"+1 test ↑" },
+    { tags:[{kind:"paper",label:"examples"}], body:`Logged 5 canonical example customers as the standing test set.`, when:"2m ago", outcome:"baseline" },
+  ];
+  items.forEach(it=>{
+    const el = document.createElement("article");
+    el.className = "card";
+    el.style.opacity = "0.92";
+    const tagsHtml = it.tags.map(t=>`<span class="tag tag--${t.kind==='sage'?'':t.kind}">${t.label}</span>`).join("");
+    el.innerHTML = `
+      <div class="card-head">${tagsHtml}<span class="card-meta">${it.when}</span></div>
+      <p class="card-body">${it.body}</p>
+      <div class="card-foot"><span class="impact" style="margin-left:0">${it.outcome}</span></div>
+    `;
+    feed.appendChild(el);
+  });
+  $("#forYouCount").textContent = "0";
+  $("#historyCount").textContent = String(items.length);
+}
+
+// ---------------------------------------------------------------------
+// Action handlers
+// ---------------------------------------------------------------------
+function autoResize(ta){
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+}
+
+function handleAction(act, id){
+  if(act === "skip"){
+    exitCard(id);
+    return;
+  }
+  if(act === "lock"){
+    gotoState("locked");
+    return;
+  }
+  if(act === "accept-senior"){
+    runSignatureRetrain(id);
+    return;
+  }
+  if(act === "accept-contract" || act === "accept-contract-scale"){
+    exitCard(id);
+    setTimeout(()=>{
+      prependTimeline({ time:"just now", text:`marked <code>contract</code> as ${act==='accept-contract-scale' ? 'a scale (shorter → longer)' : 'categorical'}`, delta:"clearer signal", neutral:true });
+    }, 320);
+    return;
+  }
+  if(act === "accept-tenure"){
+    exitCard(id);
+    runMiniRetrain(()=>{
+      prependTimeline({ time:"just now", text:`split <code>tenure</code> into "first 12 months" vs. "after"`, delta:"+0 tests", neutral:true });
+    });
+    return;
+  }
+  if(act === "dismiss-data-still"){
+    // user insists on adding data — log a neutral entry, exit card
+    exitCard(id);
+    setTimeout(()=>{
+      prependTimeline({ time:"just now", text:`flagged "wants to add more rows" — i'll surface this if column work stalls`, delta:"noted", neutral:true });
+    }, 320);
+    return;
+  }
+  if(act === "add-example"){
+    exitCard(id);
+    setTimeout(()=>{
+      prependTimeline({ time:"just now", text:`opened the example-customer composer`, delta:"+0 tests", neutral:true });
+    }, 320);
+    return;
+  }
+}
+
+// the signature retrain — must be the centerpiece animation
+function runSignatureRetrain(cardId){
+  // 1. card exits
+  exitCard(cardId);
+  // 2. pill flips to retraining (after card has begun exiting)
+  setTimeout(()=> setPill("retrain"), 320);
+  // 3. pause ~2.5s
+  setTimeout(()=>{
+    // 4. pill back to ready
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained just now · v2";
+    $("#versionTxt").textContent = "v2";
+
+    // 5. flip example 4 cell: rust -> sage
+    const cell = $(`.cell[data-idx="3"]`);
+    if(cell){
+      cell.classList.add("flip");
+      cell.classList.remove("cell--fail");
+      // update inner text after the flip mid-point
+      setTimeout(()=>{
+        const ex = CANON_EXAMPLES[3];
+        cell.innerHTML = `
+          <div class="cell-num">test 0${ex.n}</div>
+          <div class="cell-desc">${ex.desc}</div>
+          <div class="cell-pred">${sageCheck()}<span>will churn</span></div>
+        `;
+      }, 280);
+      setTimeout(()=>cell.classList.remove("flip"), 620);
+    }
+
+    // 6. hero pass-rate 3 -> 4 with flip
+    flipPassNumber(3, 4);
+
+    // 7. sparkline new point
+    setTimeout(()=>{
+      renderSparkline([3,3,4], true);
+    }, 200);
+
+    // 8. timeline new entry
+    setTimeout(()=>{
+      prependTimeline({
+        time:"just now",
+        text:`treated <code>senior_citizen × no_add_ons</code> as a combined feature`,
+        delta:"+1 test ↑",
+      });
+    }, 600);
+
+    // After this retrain, surface a follow-up suggestion
+    setTimeout(()=>{
+      // change url state to active without re-rendering full feed
+      currentState = "active";
+      document.body.dataset.state = "active";
+      setHash("active");
+      $$(".switcher-btn").forEach(b => b.classList.toggle("active", b.dataset.go === "active"));
+    }, 1000);
+  }, 2800);
+}
+
+function flipPassNumber(from, to){
+  const el = $("#passNum");
+  if(!el) return;
+  // wrap in a flipping container
+  const flipBox = document.createElement("span");
+  flipBox.className = "accent num-flip";
+  flipBox.style.cssText = "font-style:italic;color:var(--sage-deep)";
+  flipBox.innerHTML = `<span class="cur">${from}</span>`;
+  el.replaceWith(flipBox);
+
+  setTimeout(()=>{
+    const incoming = document.createElement("span");
+    incoming.textContent = String(to);
+    incoming.className = "in-from-below";
+    incoming.style.cssText = "color:var(--sage-deep)";
+    flipBox.appendChild(incoming);
+    const cur = flipBox.querySelector(".cur");
+    requestAnimationFrame(()=>{
+      cur.classList.add("out");
+      requestAnimationFrame(()=>{
+        incoming.classList.remove("in-from-below");
+      });
+    });
+    setTimeout(()=>{
+      // settle to a normal span#passNum
+      const settled = document.createElement("span");
+      settled.id = "passNum";
+      settled.className = "accent";
+      settled.textContent = String(to);
+      settled.style.fontStyle = "italic";
+      flipBox.replaceWith(settled);
+    }, 500);
+  }, 100);
+}
+
+function runMiniRetrain(after){
+  setPill("retrain");
+  setTimeout(()=>{
+    setPill("ready");
+    if(after) after();
+  }, 1600);
+}
+
+// add-more-data counter ------------------------------------------------
+function triggerAddMoreDataCounter(question){
+  // already in inbox? skip
+  if($(`.card[data-id="sug-about-data"]`)) return;
+  // type the user's q into composer if not already; clear input
+  const composer = $("#composerInput");
+  composer.value = "";
+  autoResize(composer);
+
+  // surface the amber card at top
+  const cardEl = makeCard(ABOUT_DATA_CARD);
+  cardEl.classList.add("card--amber-pull");
+  const feed = $("#feed");
+  feed.insertBefore(cardEl, feed.firstChild);
+  feed.scrollTo({top:0, behavior:"smooth"});
+
+  // also write the user's question as a tiny passive note above
+  // (light, unobtrusive — preserves their phrasing in italics)
+  const note = document.createElement("div");
+  note.style.cssText = "font-size:11px;color:var(--ink-3);padding:0 4px 4px;font-style:italic";
+  note.textContent = `you · ${question}`;
+  feed.insertBefore(note, cardEl);
+  setTimeout(()=>{ note.style.transition="opacity 800ms ease-out 6s"; note.style.opacity="0" }, 50);
+
+  // route to data-trap state
+  currentState = "data-trap";
+  document.body.dataset.state = "data-trap";
+  setHash("data-trap");
+  $$(".switcher-btn").forEach(b => b.classList.toggle("active", b.dataset.go === "data-trap"));
+}
+
+// ---------------------------------------------------------------------
+// Wire-up
+// ---------------------------------------------------------------------
+document.addEventListener("click", (e)=>{
+  const sw = e.target.closest(".switcher-btn");
+  if(sw){ gotoState(sw.dataset.go); return; }
+
+  const tab = e.target.closest(".tab");
+  if(tab){
+    $$('.tab').forEach(t => t.setAttribute("aria-selected", t === tab ? "true" : "false"));
+    if(tab.dataset.tab === "history"){ renderHistoryFeed() }
+    else { /* re-render for-you for current state */
+      if(currentState === "baseline") renderFeed(BASELINE_CARDS);
+      else if(currentState === "active") renderFeed([ BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+      else if(currentState === "data-trap") renderFeed([ ABOUT_DATA_CARD, BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+    }
+    return;
+  }
+
+  const action = e.target.closest("[data-act]");
+  if(action){
+    handleAction(action.dataset.act, action.dataset.id);
+    return;
+  }
+
+  // empty state — invite or sample
+  if(e.target.closest("#useSample") || e.target.closest("#invite")){
+    runUploadFlow();
+    return;
+  }
+});
+
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "d" || e.key === "D"){
+    if(e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")) return;
+    const sw = $("#switcher");
+    sw.classList.toggle("hidden");
+    window.__glamliDev = !sw.classList.contains("hidden");
+    e.preventDefault();
+  }
+});
+
+// composer
+const composer = $("#composerInput");
+composer.addEventListener("input", ()=>autoResize(composer));
+composer.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    const v = composer.value.trim();
+    if(!v) return;
+    if(/data|more rows|bigger dataset|more samples/i.test(v)){
+      triggerAddMoreDataCounter(v);
+    } else {
+      // generic acknowledgement: prepend a small note to feed, mark in timeline
+      const note = document.createElement("div");
+      note.style.cssText = "font-size:11px;color:var(--ink-3);padding:0 4px 4px;font-style:italic";
+      note.textContent = `you · ${v}`;
+      const feed = $("#feed");
+      feed.insertBefore(note, feed.firstChild);
+      feed.scrollTo({top:0, behavior:"smooth"});
+      composer.value = "";
+      autoResize(composer);
+      setTimeout(()=>{ note.style.transition="opacity 800ms ease-out 4s"; note.style.opacity="0" }, 50);
+    }
+  }
+});
+
+$("#composerSend").addEventListener("click", ()=>{
+  const ev = new KeyboardEvent("keydown", {key:"Enter"});
+  composer.dispatchEvent(ev);
+});
+
+// upload flow from empty -> baseline
+function runUploadFlow(){
+  const bar = $("#parseBar");
+  bar.classList.add("show");
+  const inner = bar.querySelector("i");
+  requestAnimationFrame(()=>{ inner.style.width = "100%"; });
+  setTimeout(()=>{
+    // transition to baseline
+    gotoState("baseline");
+    // play a baseline-training sequence: pill briefly retrains, sparkline draws, cells appear
+    setPill("retrain");
+    // hide cells, then animate them in
+    const cells = $$(".cell");
+    cells.forEach((c, i)=>{
+      c.style.opacity = "0";
+      c.style.transform = "translateY(6px)";
+    });
+    setTimeout(()=>{
+      cells.forEach((c, i)=>{
+        setTimeout(()=>{
+          c.style.transition = "opacity 300ms ease-out, transform 300ms ease-out";
+          c.style.opacity = "1";
+          c.style.transform = "translateY(0)";
+        }, i * 120);
+      });
+      renderSparkline(SPARK_BASELINE, true);
+      setTimeout(()=>setPill("ready"), 1600);
+    }, 200);
+    bar.classList.remove("show");
+    inner.style.width = "0%";
+  }, 900);
+}
+
+// ---------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------
+function boot(){
+  const initial = (location.hash || "#empty").replace("#","");
+  gotoState(STATES.includes(initial) ? initial : "empty");
+}
+window.addEventListener("hashchange", ()=>{
+  const target = (location.hash || "#empty").replace("#","");
+  if(target !== currentState) gotoState(STATES.includes(target) ? target : "empty");
+});
+boot();
+</script>
+
+</body>
+</html>

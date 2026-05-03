@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GLAMLI — prototype index</title>
+    <style>
+      :root {
+        --ink: #1a1a1a;
+        --ink-soft: #4a4a4a;
+        --paper: #f7f5f1;
+        --rule: #d9d5cc;
+        --accent: #6b5b3a;
+        --card: #fdfcf9;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 72px 32px 96px;
+      }
+      header {
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 24px;
+        margin-bottom: 40px;
+      }
+      h1 {
+        font-size: 32px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        margin: 0 0 8px;
+      }
+      header p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-style: italic;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      li {
+        background: var(--card);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: 22px 26px;
+        margin-bottom: 18px;
+        transition: border-color 120ms ease, transform 120ms ease;
+      }
+      li:hover {
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+      li a.title {
+        display: inline-block;
+        font-size: 20px;
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+      li a.title:hover { color: var(--accent); }
+      li .slug {
+        font-family: "SF Mono", ui-monospace, Menlo, monospace;
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-left: 8px;
+      }
+      li p {
+        margin: 6px 0 0;
+        color: var(--ink-soft);
+      }
+      li .extras {
+        margin-top: 10px;
+        font-size: 14px;
+      }
+      li .extras a {
+        color: var(--accent);
+        text-decoration: none;
+        margin-right: 14px;
+      }
+      li .extras a:hover { text-decoration: underline; }
+      li dl {
+        margin: 14px 0 0;
+        padding: 12px 14px;
+        background: var(--paper);
+        border-left: 2px solid var(--rule);
+        border-radius: 2px;
+        font-size: 14.5px;
+      }
+      li dt {
+        font-variant: small-caps;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        color: var(--accent);
+        margin-top: 8px;
+      }
+      li dt:first-child { margin-top: 0; }
+      li dd {
+        margin: 2px 0 0;
+        color: var(--ink-soft);
+      }
+      li dd ul {
+        margin: 6px 0 0;
+        padding-left: 22px;
+        list-style: disc;
+      }
+      li dd ul li {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0 0 2px;
+        display: list-item;
+      }
+      li dd ul li:hover { transform: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>GLAMLI prototypes</h1>
+        <p><strong>GLAMLI</strong> — <em>Guided LLM-Augmented Machine Learning Interface.</em></p>
+        <p>COMPX520 dissertation — design prototypes exploring conversational, example-driven, and live machine-learning interfaces.</p>
+      </header>
+
+      <ul>
+        <li>
+          <a class="title" href="glamli_dialog/glamli_dialog.html">GLAMLI / dialog</a>
+          <span class="slug">glamli_dialog/</span>
+          <p>A conversational interface that enables model building through natural language, providing iterative feedback, queries, and results without structured workflows.</p>
+          <dl>
+            <dt>Scenario</dt>
+            <dd>Maya is a domain analyst at a telco. She opens the tool with a spreadsheet on her desktop and an intent: <em>"figure out who's about to leave us."</em> That's the level of specificity she has. She's fluent in the language of customers and contracts and uncomfortable with the language of features, encoders, and metrics. She has no predefined goal, no evaluation metric in mind, and no patience for empty configuration screens that ask her to decide things before she's seen anything.<br><br>The first surface she sees should ask her nothing structured, only invite her to talk.</dd>
+            <dt>The idea</dt>
+            <dd>The dialog <em>is</em> the workflow. There is no stage rail, no spec form, no "configure your task" gate. Everything the system needs — the goal, the data, a handful of example customers, the domain assumptions — is elicited through conversation. The right pane doesn't collect input; it mirrors what the system has understood so far. Four knowledge cards (Data, Domain, Examples, Goal) start as hatched empty placeholders and fill in, one at a time, as Maya talks with the system. She can shift topics, double back, or skip ahead. When the system's confidence is high enough to be useful, a single sage-tinted card at the bottom of the right pane invites her to run it — labelled, deliberately, <em>"let's go."</em><br><br>The hypothesis under test combines three findings from the CoAutoML study:
+              <ul>
+                <li>novices rarely arrive with a predefined ML goal</li>
+                <li>they struggle to identify evaluation metrics on their own</li>
+                <li>they learn what features matter only by watching their effect.</li>
+              </ul>
+              A structured spec form asks them to commit to all three before they have the footing to do so. Removing the form forces elicitation into a back-and-forth where the system can scaffold one question at a time, in user-language, and where the user is never blocked on a decision they're not yet equipped to make.</dd>
+          </dl>
+          <div class="extras">
+            <a href="glamli_dialog/glamli_dialog.html">→ open prototype</a>
+          </div>
+        </li>
+
+        <li>
+          <a class="title" href="glamli_examples/glamli_examples.html">GLAMLI / examples</a>
+          <span class="slug">glamli_examples/</span>
+          <p>An example-driven flow where the user drops a CSV and teaches the model by labelling three to five rows. The system predicts the rest and surfaces the cases that didn't match cleanly.</p>
+          <dl>
+            <dt>Scenario</dt>
+            <dd>Same churn dataset (7,043 rows · 21 columns). Instead of picking a target column, the user describes a few real customers in plain prose — <em>"a customer on a month-to-month plan paying about $90/month"</em> — and labels each as <em>will churn</em> or <em>will stay</em>. The system maps the descriptions to columns, trains, and reports which of the user's own examples it got right.</dd>
+            <dt>Idea</dt>
+            <dd>Teach by example, not by schema. The user never has to know the column names; the LLM grounds their language in the data and uses the examples both as training signal and as the test the model must pass.</dd>
+          </dl>
+          <div class="extras">
+            <a href="glamli_examples/glamli_examples.html">→ open prototype</a>
+          </div>
+        </li>
+
+        <li>
+          <a class="title" href="glamli_live/glamli_live.html">GLAMLI / live</a>
+          <span class="slug">glamli_live/</span>
+          <p>A two-pane workspace where the model is always running. Every edit produces a visible delta on the live model — pass-rate, sparkline, and test cells update as the user works. Refuses the configuration-first metaphor.</p>
+          <dl>
+            <dt>Scenario (classification)</dt>
+            <dd>Maya is a domain analyst at a telco. She opens the tool with a spreadsheet on her desktop and an intent: <em>"figure out who's about to leave us."</em> She's fluent in the language of customers and contracts and uncomfortable with the language of features, encoders, and metrics. She has no predefined goal, no evaluation metric in mind, and no patience for empty configuration screens that ask her to decide things before she's seen anything.<br><br>She drops her CSV in. Within seconds, before she's done anything else, the system has trained a model on naive defaults and is showing her: <em>"using everything in your data, my best guess on these 5 example customers is 3 right, 2 wrong."</em> From this moment on, every change she makes produces a visible delta on the live model. She is never <em>configuring</em>; she is always <em>steering</em>.</dd>
+
+            <dt>The idea</dt>
+            <dd>The model is always running. There are no stages, no spec form, no "configure now, run later" gate — a sensible baseline trains the moment data exists, and every subsequent action retrains it. The workspace is a two-pane shell: a knowledge inbox on the left where the system surfaces suggestions as actionable cards (<em>"split tenure into first 12 months vs after"</em>, <em>"is contract categorical or ordinal?"</em>), and a live panel on the right showing the current model, the five test cases passing or failing, and what's driving its predictions. Accept a card and the live pulse flips to <em>retraining</em>; three seconds later a test cell flips from rust to sage, the pass-rate ticks up, and the timeline gains a new entry. The user sees their decision produce a measurable improvement in real time.<br><br>The hypothesis under test combines two CoAutoML findings. First: novices recognise the value of features only by observing their impact — so the prototype makes that impact the central, continuous artifact, not a downstream report. Second, and more pointed: when a model is underperforming, novices' overwhelming instinct is to <em>add more data</em>; none in the study attempted feature engineering. Live counters this directly. When Maya types <em>"can I add more data?"</em> into the free-chat input, the system surfaces an amber-tagged card that gently disagrees: <em>"honestly, probably not much — the bottleneck is which columns we feed it, not how many rows."</em> The prototype's thesis is that you teach the mental model not by explaining feature engineering but by letting the user feel a single accepted suggestion move the pass-rate from 3/5 to 4/5.</dd>
+
+            <dt>Scenario (regression)</dt>
+            <dd>Dana runs operations at a regional HVAC contractor. She has a spreadsheet of past service tickets — furnace repairs, AC maintenance, same-day diagnostics, full system installs — and a fuzzy intent: <em>"figure out what each new job is going to be worth before we send a tech out."</em> Some tickets are $200 tune-ups; others are $8,000 commercial installs. She wants to estimate the dollar value of incoming jobs as they land in her inbox, without learning the word <em>regression</em> or thinking about evaluation metrics.<br><br>She drops her ticket history in. Within seconds, before she's done anything else, the system has trained a baseline on the 14 columns it found and is showing her: <em>"predicting <code>ticket_value</code> from 14 other columns — on these 5 example tickets, I'm landing within ±20% on 3 of them. The two I'm missing on are big jobs I'm under-pricing badly."</em> From this moment on, every change she makes produces a visible delta on the live model.</dd>
+
+            <dt>The idea (regression)</dt>
+            <dd>Structurally identical to Live's churn version: a baseline that trains on upload, an inbox of suggestions on the left, a live panel on the right, no stages, no configuration. The thesis is the same — you teach the mental model by letting the user feel a single accepted change move the dial. What changes is the readout, and the readout is most of what Dana looks at.<br><br>Pass/fail becomes within-tolerance. Each test cell shows the predicted dollar value next to the expected one and marks ✓ if the prediction lands inside a ±20% band, × otherwise. Failing cells display the gap explicitly — <em>predicted $3,100 / expected $8,400, 63% under</em> — so Dana sees not just <em>that</em> it missed but <em>by how much</em> and <em>in which direction</em>. Direction matters here: a model that systematically under-prices urgent commercial installs is a different problem from one that's noisy in both directions, and the cells make that legible at a glance. The hero readout keeps the same Source Serif 4 typography (<em>3/5 within ±20%</em>), but the sparkline beneath it inverts: it tracks the model's average miss as a percentage, trending <em>down</em> as Dana accepts suggestions. Lower is better; the line descending is the visual analogue of cells flipping from rust to sage. The "what's driving predictions" panel surfaces the columns actually carrying the signal — <code>equipment_type</code> and <code>service_type</code> strong, <code>urgency</code> and <code>equipment_age</code> medium, <code>building_type</code> weak — so the next intervention is obvious: the model is doing well on routine residential work and badly on the kind of job where commercial-vs-residential and urgency interact. The signature interaction is otherwise unchanged: <em>suggestion accepted → retrain → one more ticket in the band → average miss drops a few points</em>. The add-more-data counter lands the same way too — when Dana asks if more rows would help, the system gently disagrees and proposes a feature-engineering move instead, almost certainly something that captures the commercial-install-under-pricing pattern the failing tests are surfacing.</dd>
+          </dl>
+          <div class="extras">
+            <a href="glamli_live/glamli_live.html">→ classification (customer churn)</a>
+            <a href="glamli_live/glamli_live_regression.html">→ regression (service-ticket value)</a>
+          </div>
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>

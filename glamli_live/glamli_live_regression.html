@@ -1,0 +1,2676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GLAMLI/live — service ticket value</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* =====================================================================
+     GLAMLI/live — single-file interactive prototype (regression variant)
+     Design system per spec §1.  No deviations introduced.
+     Scenario: HVAC service ticket value prediction.
+     Adapts the canonical prototype per the adaptation brief; only
+     content, copy, animation values and microcopy diverge from the
+     baseline. Visual system, layout, motion timings, components,
+     state-switcher, and tech constraints are unchanged.
+     ===================================================================== */
+
+  :root{
+    --paper:#f7f4ee;
+    --paper-2:#fbf9f4;
+    --paper-3:#f1ece1;
+    --ink:#2b2a25;
+    --ink-2:#4a473f;
+    --ink-3:#807a6c;
+    --rule:#e6e0d4;
+    --rule-2:#d8d0bf;
+    --sage:#6f8a6a;
+    --sage-tint:#e3ebde;
+    --sage-deep:#4f6a4a;
+    --amber:#c08a3c;
+    --amber-tint:#f4ebd4;
+    --amber-deep:#8a5a1f;
+    --rust:#b86244;
+    --rust-tint:#f1dcd2;
+    --rust-deep:#7e3a23;
+
+    --serif: "Source Serif 4", Georgia, serif;
+    --sans: "Inter", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{font-size:14px}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+  textarea{font:inherit;color:inherit}
+  ::selection{background:var(--sage-tint);color:var(--ink)}
+
+  /* ---- Top bar ------------------------------------------------------- */
+  .topbar{
+    height:56px;
+    background:var(--paper-2);
+    border-bottom:1px solid var(--rule);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    position:sticky;top:0;z-index:50;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand-mark{
+    width:28px;height:28px;border-radius:6px;
+    background:var(--sage);color:var(--paper-2);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:18px;font-weight:500;
+    line-height:1;padding-bottom:2px;
+  }
+  .wordmark{
+    font-family:var(--serif);font-size:18px;font-weight:500;
+    letter-spacing:-0.01em;color:var(--ink);
+  }
+  .brand-rule{
+    width:1px;height:18px;background:var(--rule-2);margin:0 4px;
+  }
+  .mode-label{
+    font-family:var(--sans);font-size:13px;font-weight:400;
+    color:var(--ink-2);letter-spacing:0;
+  }
+  .top-right{display:flex;align-items:center;gap:14px}
+  .meta{
+    color:var(--ink-3);font-size:12px;
+  }
+  .meta strong{color:var(--ink-2);font-weight:500}
+
+  /* ---- Pills --------------------------------------------------------- */
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:3px 10px;border-radius:100px;
+    background:var(--paper-3);border:1px solid var(--rule);
+    font-size:11px;color:var(--ink-2);font-weight:500;
+    letter-spacing:0.02em;
+    transition:background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out;
+  }
+  .pill .dot{
+    width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+    flex:0 0 6px;
+  }
+  .pill--ready{background:var(--sage-tint);border-color:transparent;color:var(--sage-deep)}
+  .pill--ready .dot{background:var(--sage);animation:pulse 2s ease-in-out infinite}
+  .pill--retrain{background:var(--amber-tint);border-color:transparent;color:var(--amber-deep)}
+  .pill--retrain .dot{background:var(--amber);animation:pulse 2s ease-in-out infinite}
+  .pill--locked{background:var(--sage-tint);border-color:transparent;color:var(--sage-deep)}
+  .pill--locked .dot{background:var(--sage-deep);animation:none}
+  @keyframes pulse{
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:0.45;transform:scale(0.85)}
+  }
+
+  /* ---- Tags & chips -------------------------------------------------- */
+  .tag{
+    display:inline-block;
+    font-family:var(--mono);font-size:11px;
+    padding:1px 6px;border-radius:4px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    line-height:1.5;
+  }
+  .tag--amber{background:var(--amber-tint);color:var(--amber-deep)}
+  .tag--rust{background:var(--rust-tint);color:var(--rust-deep)}
+  .tag--paper{background:var(--paper-3);color:var(--ink-2)}
+
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:100px;
+    background:var(--paper-3);color:var(--ink-2);
+    font-size:12px;font-weight:500;
+    border:1px solid transparent;
+    transition:background 150ms ease-out;
+  }
+  .chip:hover{background:var(--rule)}
+
+  /* ---- Buttons ------------------------------------------------------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    padding:8px 14px;border-radius:8px;
+    font-size:13px;font-weight:500;
+    transition:background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+  }
+  .btn--primary{background:var(--sage);color:var(--paper-2)}
+  .btn--primary:hover{background:var(--sage-deep)}
+  .btn--ghost{
+    background:transparent;border:1px solid var(--rule-2);color:var(--ink-2);
+  }
+  .btn--ghost:hover{background:var(--paper-3)}
+  .btn--small{padding:6px 11px;font-size:12px;border-radius:7px}
+
+  /* ---- Layout -------------------------------------------------------- */
+  .shell{
+    display:grid;
+    grid-template-columns:1fr 1.3fr;
+    gap:0;
+    min-height:calc(100vh - 56px);
+  }
+  .pane{
+    padding:28px 32px;
+    min-width:0;
+  }
+  .pane--inbox{
+    border-right:1px solid var(--rule);
+    background:var(--paper);
+    display:flex;flex-direction:column;
+    max-height:calc(100vh - 56px);
+  }
+  .pane--live{
+    background:var(--paper-2);
+    overflow-y:auto;
+    max-height:calc(100vh - 56px);
+  }
+
+  /* ---- Inbox header & tabs ------------------------------------------ */
+  .inbox-head{margin-bottom:16px}
+  .inbox-title{
+    font-family:var(--serif);font-size:18px;font-weight:500;
+    letter-spacing:-0.01em;margin:0 0 4px;
+  }
+  .inbox-sub{font-size:12px;color:var(--ink-3);margin:0}
+  .tabs{
+    display:flex;gap:2px;margin-top:14px;
+    border-bottom:1px solid var(--rule);
+  }
+  .tab{
+    padding:8px 12px;font-size:12px;color:var(--ink-3);
+    border-bottom:1px solid transparent;margin-bottom:-1px;
+    font-weight:500;letter-spacing:0;
+  }
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+  .tab .count{
+    display:inline-block;margin-left:5px;
+    background:var(--paper-3);color:var(--ink-2);
+    font-family:var(--mono);font-size:10px;
+    padding:0 5px;border-radius:8px;
+  }
+
+  /* ---- Suggestion feed ---------------------------------------------- */
+  .feed{
+    flex:1;overflow-y:auto;
+    padding:14px 0 6px;
+    margin-right:-6px;padding-right:6px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .feed::-webkit-scrollbar{width:8px}
+  .feed::-webkit-scrollbar-thumb{background:var(--rule);border-radius:8px}
+  .feed::-webkit-scrollbar-track{background:transparent}
+
+  .card{
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:16px 18px;
+    transition:border-color 150ms ease-out, box-shadow 200ms ease-out, opacity 300ms ease-out, transform 300ms ease-out, background-color 600ms ease-out;
+  }
+  .card:hover{border-color:var(--rule-2)}
+  .card--priority{
+    border-left:3px solid var(--amber);
+    padding-left:15px;
+  }
+  .card--amber-pull{
+    animation:amberFlash 600ms ease-out 1;
+  }
+  @keyframes amberFlash{
+    0%{background:var(--paper-2)}
+    25%{background:var(--amber-tint)}
+    100%{background:var(--paper-2)}
+  }
+
+  .card-head{
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;
+    flex-wrap:wrap;
+  }
+  .card-meta{
+    margin-left:auto;font-size:11px;color:var(--ink-3);
+    font-family:var(--mono);
+  }
+  .card-body{
+    font-size:13.5px;color:var(--ink);line-height:1.55;
+    margin:0 0 14px;
+    text-wrap:pretty;
+  }
+  .card-body code, .card-body .col{
+    font-family:var(--mono);font-size:12px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    padding:1px 5px;border-radius:4px;
+  }
+  .card-foot{
+    display:flex;align-items:center;gap:10px;
+    flex-wrap:wrap;
+  }
+  .card-foot .impact{
+    margin-left:auto;font-size:11px;color:var(--sage-deep);
+    font-family:var(--mono);
+  }
+  .card.exiting{opacity:0;transform:translateY(-4px)}
+  .card.entering{
+    animation:cardIn 360ms ease-out both;
+  }
+  @keyframes cardIn{
+    from{opacity:0;transform:translateY(-12px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* ---- Composer ------------------------------------------------------ */
+  .composer{
+    margin-top:14px;
+    background:var(--paper-2);
+    border:1px solid var(--rule-2);
+    border-radius:14px;
+    padding:12px 14px 10px;
+    transition:border-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+  .composer:focus-within{
+    border-color:var(--sage);
+    box-shadow:0 0 0 3px var(--sage-tint);
+  }
+  .composer textarea{
+    width:100%;border:0;background:transparent;outline:none;resize:none;
+    font-family:var(--sans);font-size:13.5px;line-height:1.5;color:var(--ink);
+    min-height:22px;max-height:120px;display:block;
+  }
+  .composer textarea::placeholder{color:var(--ink-3)}
+  .composer-row{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:8px;
+  }
+  .composer-hint{font-size:11px;color:var(--ink-3)}
+  .composer-send{
+    width:28px;height:28px;border-radius:8px;
+    background:var(--paper-3);color:var(--ink-2);
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:background 150ms ease-out, color 150ms ease-out;
+  }
+  .composer-send:hover{background:var(--sage);color:var(--paper-2)}
+
+  /* ---- Live pane ----------------------------------------------------- */
+  .live-stack{display:flex;flex-direction:column;gap:20px;max-width:760px}
+
+  .hero{
+    position:relative;overflow:hidden;
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:16px;
+    padding:24px 26px;
+    box-shadow:0 1px 0 rgba(43,42,37,0.02);
+  }
+  .hero::before{
+    content:"";position:absolute;top:-60px;right:-60px;
+    width:280px;height:280px;
+    background:radial-gradient(circle at center, var(--sage-tint) 0%, transparent 70%);
+    opacity:0.5;pointer-events:none;
+  }
+  .hero-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    position:relative;
+  }
+  .model-name{
+    font-family:var(--serif);font-size:22px;font-weight:500;
+    letter-spacing:-0.01em;margin:0 0 4px;
+  }
+  .retrained{font-size:12px;color:var(--ink-3);margin:0}
+  .hero-eyebrow{
+    font-size:10px;font-weight:500;text-transform:uppercase;
+    letter-spacing:0.07em;color:var(--ink-3);margin:0 0 6px;
+  }
+  .hero-mid{
+    margin-top:18px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    position:relative;
+  }
+  .passrate{
+    font-family:var(--serif);font-size:60px;font-weight:400;
+    letter-spacing:-0.03em;line-height:1;color:var(--ink);
+    display:flex;align-items:baseline;
+  }
+  .passrate .accent{font-style:italic;color:var(--sage-deep)}
+  .passrate .slash{color:var(--ink-3);margin:0 2px;font-style:normal}
+  .passrate .denom{color:var(--ink-2);font-style:normal}
+  .passrate-label{
+    font-size:12px;color:var(--ink-3);margin-top:6px;
+  }
+  .num-flip{display:inline-block;position:relative;overflow:hidden;width:0.55em;height:0.92em;vertical-align:baseline}
+  .num-flip span{
+    position:absolute;left:0;top:0;width:100%;
+    transition:transform 200ms ease-out, opacity 200ms ease-out;
+  }
+  .num-flip span.out{transform:translateY(-100%);opacity:0}
+  .num-flip span.in-from-below{transform:translateY(100%);opacity:0}
+
+  .sparkline{
+    width:200px;height:64px;flex:0 0 200px;
+  }
+  .sparkline path.line{fill:none;stroke:var(--sage);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+  .sparkline path.fill{fill:var(--sage-tint);opacity:0.55;stroke:none}
+  .sparkline circle{fill:var(--sage-deep);transition:opacity 200ms ease-out}
+
+  /* section heading above the 5 cells */
+  .cells-head{
+    display:flex;align-items:center;gap:8px;
+    margin-top:22px;margin-bottom:10px;
+    position:relative;
+  }
+  .cells-title{
+    font-family:var(--serif);font-size:14px;font-weight:500;
+    letter-spacing:-0.005em;color:var(--ink-2);
+    margin:0;line-height:1;
+  }
+
+  /* info glyph + tooltip (reusable) */
+  .info-trigger{
+    position:relative;
+    display:inline-flex;align-items:center;justify-content:center;
+    width:14px;height:14px;
+    color:var(--ink-3);
+    cursor:help;
+    outline:none;
+  }
+  .info-trigger:hover,
+  .info-trigger:focus-visible,
+  .info-trigger.show{color:var(--ink-2)}
+  .info-glyph{display:block}
+  .info-tip{
+    position:absolute;
+    top:calc(100% + 8px);
+    left:-6px;
+    width:280px;max-width:78vw;
+    background:var(--paper-2);
+    color:var(--ink-2);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:10px 12px;
+    font-family:var(--sans);font-size:12px;line-height:1.5;
+    box-shadow:0 4px 14px rgba(43,42,37,0.10);
+    opacity:0;
+    transform:translateY(-2px);
+    pointer-events:none;
+    transition:opacity 150ms ease-out, transform 150ms ease-out;
+    z-index:60;
+    text-wrap:pretty;
+  }
+  .info-tip::before{
+    content:"";position:absolute;
+    top:-5px;left:10px;width:8px;height:8px;
+    background:var(--paper-2);
+    border-left:1px solid var(--rule);
+    border-top:1px solid var(--rule);
+    transform:rotate(45deg);
+  }
+  .info-trigger:hover .info-tip,
+  .info-trigger:focus-visible .info-tip,
+  .info-trigger.show .info-tip{
+    opacity:1;transform:translateY(0);
+    pointer-events:auto;
+  }
+
+  .test-cells{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+    position:relative;
+  }
+  .model-row{display:flex;align-items:center;gap:8px;margin:0 0 4px}
+  .model-row .model-name{margin:0}
+  .info-trigger--model{transform:translateY(1px)}
+
+  /* Hero "use this version" ghost + confirm popover */
+  .hero-version{text-align:right}
+  .version-row{
+    display:inline-flex;align-items:center;gap:10px;
+    margin-top:4px;position:relative;
+  }
+  .version-row #versionTxt{
+    font-family:var(--mono);font-size:13px;color:var(--ink-2);
+  }
+  .ship-btn{
+    color:var(--sage-deep);
+    border:1px solid var(--rule-2);
+    padding:5px 10px;border-radius:7px;
+    font-size:12px;
+  }
+  .ship-btn:hover{
+    background:var(--sage-tint);
+    border-color:transparent;
+  }
+  body[data-state="locked"] .ship-btn{display:none}
+
+  .ship-pop{
+    position:absolute;
+    top:calc(100% + 8px);right:0;
+    width:260px;max-width:80vw;
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:12px 14px;
+    box-shadow:0 4px 14px rgba(43,42,37,0.10);
+    text-align:left;
+    opacity:0;transform:translateY(-2px);
+    pointer-events:none;
+    transition:opacity 150ms ease-out, transform 150ms ease-out;
+    z-index:60;
+  }
+  .ship-pop.show{opacity:1;transform:translateY(0);pointer-events:auto}
+  .ship-pop::before{
+    content:"";position:absolute;
+    top:-5px;right:18px;width:8px;height:8px;
+    background:var(--paper-2);
+    border-left:1px solid var(--rule);
+    border-top:1px solid var(--rule);
+    transform:rotate(45deg);
+  }
+  .ship-pop-text{
+    font-size:12.5px;color:var(--ink-2);
+    margin:0 0 10px;line-height:1.5;
+  }
+  .ship-pop-text strong{font-weight:500;color:var(--ink)}
+  .ship-pop-actions{
+    display:flex;gap:6px;justify-content:flex-end;
+  }
+  .cell{
+    background:var(--sage-tint);border:1px solid transparent;
+    border-radius:10px;padding:10px 11px;
+    display:flex;flex-direction:column;gap:6px;
+    transition:background-color 400ms ease-out, border-color 400ms ease-out;
+    min-height:104px;
+  }
+  .cell--fail{background:var(--rust-tint)}
+  .cell{cursor:pointer}
+  .cell:hover{border-color:var(--rule-2)}
+  .cell:focus{outline:2px solid var(--sage);outline-offset:2px}
+
+  /* ---- Edit modal ---------------------------------------------------- */
+  .modal-backdrop{
+    position:fixed;inset:0;z-index:200;
+    background:rgba(43,42,37,0.34);
+    display:none;align-items:center;justify-content:center;
+    padding:24px;
+    opacity:0;
+    transition:opacity 180ms ease-out;
+  }
+  .modal-backdrop.show{display:flex;opacity:1}
+  .modal{
+    width:min(460px, 100%);
+    background:var(--paper-2);
+    border:1px solid var(--rule);
+    border-radius:16px;
+    padding:24px 26px 20px;
+    box-shadow:0 8px 28px rgba(43,42,37,0.18);
+    transform:translateY(8px) scale(0.98);
+    transition:transform 200ms ease-out, opacity 180ms ease-out;
+    opacity:0;
+    position:relative;overflow:hidden;
+  }
+  .modal-backdrop.show .modal{transform:translateY(0) scale(1);opacity:1}
+  .modal::before{
+    content:"";position:absolute;top:-60px;right:-60px;
+    width:240px;height:240px;
+    background:radial-gradient(circle at center, var(--sage-tint) 0%, transparent 70%);
+    opacity:0.5;pointer-events:none;
+  }
+  .modal-eyebrow{
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    letter-spacing:0.06em;margin:0 0 6px;
+  }
+  .modal-title{
+    font-family:var(--serif);font-size:20px;font-weight:500;
+    letter-spacing:-0.01em;margin:0 0 4px;line-height:1.2;
+  }
+  .modal-sub{
+    font-size:12px;color:var(--ink-3);margin:0 0 18px;
+  }
+  .modal-field{margin-bottom:14px;position:relative}
+  .modal-field label{
+    display:block;font-size:11px;color:var(--ink-3);
+    margin-bottom:5px;letter-spacing:0.02em;
+  }
+  .modal-input,
+  .modal-textarea{
+    width:100%;
+    background:var(--paper);
+    border:1px solid var(--rule-2);
+    border-radius:8px;
+    padding:9px 11px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+  .modal-input:focus,
+  .modal-textarea:focus{
+    border-color:var(--sage);
+    box-shadow:0 0 0 3px var(--sage-tint);
+  }
+  .modal-textarea{
+    font-family:var(--sans);font-size:13px;line-height:1.5;
+    resize:none;min-height:64px;
+  }
+  .modal-input{
+    font-family:var(--mono);font-size:13.5px;
+  }
+  .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-money{position:relative}
+  .modal-money .money-prefix{
+    position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    font-family:var(--mono);font-size:13.5px;color:var(--ink-3);
+    pointer-events:none;
+  }
+  .modal-money .modal-input{padding-left:22px}
+  .modal-actions{
+    display:flex;align-items:center;gap:8px;
+    margin-top:18px;
+  }
+  .modal-hint{
+    font-size:11px;color:var(--ink-3);
+    flex:1;
+  }
+  .cell-num{
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    letter-spacing:0.04em;
+  }
+  .cell-desc{
+    font-size:11.5px;color:var(--ink-2);line-height:1.35;
+    flex:1;
+    text-wrap:pretty;
+  }
+  .cell-pred{
+    font-size:11px;color:var(--sage-deep);font-weight:500;
+    display:flex;align-items:center;gap:5px;
+  }
+  .cell--fail .cell-pred{color:var(--rust-deep)}
+  .cell-expected{font-size:10px;color:var(--rust-deep);opacity:0.85}
+
+  /* Regression: predicted/expected dollar rows + status line ----------- */
+  .cell-vals{
+    display:grid;grid-template-columns:auto 1fr;
+    column-gap:10px;row-gap:2px;
+    border-top:1px dashed var(--rule);padding-top:6px;margin-top:2px;
+  }
+  .cell-vals .vk{
+    font-family:var(--sans);font-size:10.5px;color:var(--ink-3);
+    letter-spacing:0.02em;
+  }
+  .cell-vals .vv{
+    font-family:var(--mono);font-size:13px;color:var(--ink-2);
+    text-align:right;
+  }
+  .cell-vals .vv--pred{color:var(--sage-deep);font-weight:500}
+  .cell--fail .cell-vals .vv--pred{color:var(--rust);font-weight:600}
+  .cell-status{
+    font-size:11px;color:var(--sage-deep);font-weight:500;
+    display:flex;align-items:center;gap:5px;
+    transition:opacity 200ms ease-out;
+  }
+  .cell--fail .cell-status{color:var(--rust)}
+  .pred-flip{display:inline-block;position:relative;overflow:hidden;height:1.05em;vertical-align:baseline}
+  .pred-flip span{
+    display:inline-block;
+    transition:transform 220ms ease-out, opacity 220ms ease-out;
+  }
+  .pred-flip span.out{transform:translateY(-110%);opacity:0}
+  .pred-flip span.in-from-below{transform:translateY(110%);opacity:0}
+  .cell.flip{animation:cellFlip 600ms ease-out 1}
+  @keyframes cellFlip{
+    0%{transform:rotateX(0)}
+    50%{transform:rotateX(90deg)}
+    100%{transform:rotateX(0)}
+  }
+
+  /* What's driving predictions */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:16px;
+    padding:20px 22px;
+  }
+  .panel-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .panel-title{
+    font-family:var(--serif);font-size:17px;font-weight:500;
+    letter-spacing:-0.01em;margin:0;
+  }
+  .panel-sub{font-size:11px;color:var(--ink-3)}
+
+  .impact-list{display:flex;flex-direction:column;gap:11px}
+  .impact-row{
+    display:grid;grid-template-columns:130px 1fr 70px;
+    align-items:center;gap:12px;
+  }
+  .impact-row .col-label{
+    font-family:var(--mono);font-size:12px;color:var(--ink);
+  }
+  .impact-bar{
+    height:8px;background:var(--paper-3);border-radius:100px;overflow:hidden;
+    position:relative;
+  }
+  .impact-bar > i{
+    display:block;height:100%;border-radius:100px;
+    background:var(--sage);
+    transition:width 600ms ease-out;
+  }
+  .impact-bar.lvl-strong > i{background:var(--sage-deep)}
+  .impact-bar.lvl-medium > i{background:var(--sage)}
+  .impact-bar.lvl-weak > i{background:#a8b8a3}
+  .impact-tag{
+    font-size:11px;color:var(--ink-3);text-align:right;
+    font-weight:500;letter-spacing:0;
+  }
+
+  /* What's changed timeline */
+  .timeline{
+    display:flex;flex-direction:column;
+  }
+  .tl-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:11px 0;
+    border-bottom:1px dashed var(--rule);
+    animation:cardIn 360ms ease-out both;
+  }
+  .tl-row:last-child{border-bottom:0}
+  .tl-text{font-size:13px;color:var(--ink-2);text-wrap:pretty}
+  .tl-text .col, .tl-text code{
+    font-family:var(--mono);font-size:11.5px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    padding:1px 5px;border-radius:4px;
+  }
+  .tl-delta{
+    font-family:var(--mono);font-size:11px;color:var(--sage-deep);
+    white-space:nowrap;flex:0 0 auto;
+  }
+  .tl-delta.neutral{color:var(--ink-3)}
+  .tl-time{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-right:10px}
+
+  /* ---- Empty state -------------------------------------------------- */
+  .empty-shell{
+    grid-column:1 / -1;
+    display:flex;align-items:center;justify-content:center;
+    min-height:calc(100vh - 56px);
+    padding:40px;
+    background:var(--paper-2);
+  }
+  .invite{
+    width:min(560px, 100%);
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:18px;
+    padding:36px 38px;
+    text-align:left;position:relative;overflow:hidden;
+    box-shadow:0 1px 0 rgba(43,42,37,0.02);
+  }
+  .invite::before{
+    content:"";position:absolute;top:-80px;right:-80px;
+    width:320px;height:320px;
+    background:radial-gradient(circle at center, var(--sage-tint) 0%, transparent 70%);
+    opacity:0.6;pointer-events:none;
+  }
+  .invite-eyebrow{
+    font-size:10px;text-transform:uppercase;letter-spacing:0.08em;
+    color:var(--ink-3);margin:0 0 14px;font-weight:500;
+  }
+  .invite-headline{
+    font-family:var(--serif);font-size:30px;font-weight:400;
+    letter-spacing:-0.02em;margin:0 0 12px;line-height:1.2;
+    text-wrap:balance;
+  }
+  .invite-sub{
+    font-size:14px;color:var(--ink-2);margin:0 0 24px;line-height:1.55;
+    max-width:42ch;text-wrap:pretty;
+  }
+  .invite-drop{
+    border:1.5px dashed var(--rule-2);border-radius:14px;
+    padding:22px;background:var(--paper-2);
+    display:flex;align-items:center;gap:14px;
+    transition:border-color 200ms ease-out, background 200ms ease-out;
+  }
+  .invite-drop:hover{border-color:var(--sage);background:var(--sage-tint)}
+  .invite-icon{
+    width:36px;height:36px;border-radius:9px;
+    background:var(--paper-3);
+    display:flex;align-items:center;justify-content:center;
+    flex:0 0 36px;
+  }
+  .invite-drop-txt{flex:1}
+  .invite-drop-title{font-size:13px;font-weight:500;color:var(--ink)}
+  .invite-drop-sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+  .invite-foot{
+    margin-top:14px;display:flex;align-items:center;gap:10px;
+    font-size:12px;color:var(--ink-3);
+  }
+  .invite-foot .sample{
+    color:var(--sage-deep);font-weight:500;text-decoration:underline;
+    text-decoration-color:var(--rule-2);text-underline-offset:3px;
+    cursor:pointer;
+  }
+  .invite-foot .sample:hover{text-decoration-color:var(--sage)}
+
+  /* file parse tiny progress */
+  .parse-bar{
+    margin-top:18px;height:4px;background:var(--rule);border-radius:100px;overflow:hidden;
+    display:none;
+  }
+  .parse-bar.show{display:block}
+  .parse-bar i{display:block;height:100%;background:var(--sage);width:0%;transition:width 800ms ease-out}
+
+  /* ---- Locked ribbon banner ----------------------------------------- */
+  .lock-banner{
+    display:none;
+    background:var(--sage-tint);
+    border:1px solid transparent;border-left:3px solid var(--sage-deep);
+    border-radius:12px;padding:14px 18px;
+    align-items:center;justify-content:space-between;gap:16px;
+  }
+  .lock-banner.show{display:flex}
+  .lock-banner-text{font-size:13px;color:var(--sage-deep)}
+  .lock-banner-text strong{font-weight:500;color:var(--ink)}
+
+  /* ---- Lock prompt card (in inbox) ---------------------------------- */
+  .card--lock{
+    background:var(--sage-tint);
+    border-color:transparent;
+  }
+  .card--lock .card-body{color:var(--sage-deep)}
+
+  /* ---- State switcher ----------------------------------------------- */
+  .switcher{
+    position:fixed;bottom:16px;right:16px;z-index:100;
+    background:var(--ink);
+    border-radius:100px;
+    padding:6px;
+    display:inline-flex;gap:2px;align-items:center;
+    box-shadow:0 4px 16px rgba(43,42,37,0.18);
+    transition:opacity 150ms ease-out, transform 150ms ease-out;
+  }
+  .switcher.hidden{opacity:0;transform:translateY(8px) scale(0.96);pointer-events:none}
+  .switcher-btn{
+    font-family:var(--mono);font-size:11px;
+    padding:6px 12px;border-radius:100px;
+    color:rgba(251,249,244,0.6);
+    transition:color 120ms ease-out, background 120ms ease-out;
+  }
+  .switcher-btn:hover{color:var(--paper-2)}
+  .switcher-btn.active{background:var(--sage);color:var(--paper-2)}
+  .switcher-hint{
+    font-family:var(--mono);font-size:10px;
+    color:rgba(251,249,244,0.4);padding:0 8px 0 4px;
+  }
+
+  /* ---- Hidden state helper ------------------------------------------ */
+  main[data-state], section[data-state]{display:none}
+  body[data-state="empty"] section[data-state="empty"]{display:flex}
+  body[data-state="initial"] main[data-state="workspace"],
+  body[data-state="baseline"] main[data-state="workspace"],
+  body[data-state="active"] main[data-state="workspace"],
+  body[data-state="data-trap"] main[data-state="workspace"],
+  body[data-state="locked"] main[data-state="workspace"]{display:grid}
+
+  /* ---- Responsive ---------------------------------------------------- */
+  @media (max-width:1024px){
+    .pane{padding:22px 24px}
+    .passrate{font-size:48px}
+    .test-cells{grid-template-columns:repeat(5,1fr)}
+    .impact-row{grid-template-columns:110px 1fr 60px}
+  }
+  @media (max-width:760px){
+    .shell{
+      grid-template-columns:1fr;
+      max-height:none;
+    }
+    .pane--inbox, .pane--live{
+      max-height:none;border-right:0;
+    }
+    /* live pane first on mobile per spec */
+    .pane--live{order:1}
+    .pane--inbox{order:2;border-top:1px solid var(--rule)}
+    .test-cells{grid-template-columns:repeat(2,1fr)}
+    .passrate{font-size:44px}
+    .topbar{padding:0 16px}
+    .meta{display:none}
+    .switcher{bottom:auto;top:8px;right:8px}
+    .impact-row{grid-template-columns:100px 1fr 56px}
+  }
+
+  /* ---- Orientation card (initial state) ----------------------------- */
+  .orient-title{
+    font-family:var(--serif);font-size:17px;font-weight:500;
+    letter-spacing:-0.01em;margin:0 0 10px;line-height:1.3;
+  }
+  .orient-title code{
+    font-family:var(--mono);font-size:13px;
+    background:var(--sage-tint);color:var(--sage-deep);
+    padding:1px 6px;border-radius:4px;
+  }
+  .orient-actions{flex-wrap:wrap;gap:8px}
+  .orient-expand{
+    height:0;overflow:hidden;
+    transition:height 250ms ease-out;
+  }
+  .orient-expand.open{margin-top:14px}
+  .orient-picker{
+    border-top:1px dashed var(--rule);
+    padding-top:14px;
+  }
+  .orient-picker-head{
+    font-size:12px;color:var(--ink-3);margin:0 0 10px;
+  }
+  .orient-picker-foot{
+    display:flex;align-items:center;gap:8px;justify-content:flex-end;
+    margin-top:12px;
+  }
+
+  /* column picker rows */
+  .col-list{display:flex;flex-direction:column}
+  .col-row{
+    display:grid;
+    grid-template-columns:1fr auto auto;
+    align-items:center;gap:10px;
+    padding:8px 0;
+    border-bottom:1px dashed var(--rule);
+  }
+  .col-row:last-child{border-bottom:0}
+  .col-row .col-name code{
+    font-family:var(--mono);font-size:12px;
+    background:transparent;color:var(--ink);
+    padding:0;border-radius:0;
+  }
+  .col-row .col-dtype{
+    font-size:12px;color:var(--ink-3);
+    justify-self:end;text-align:right;
+  }
+  .col-row .col-use{
+    font-family:var(--mono);font-size:11px;
+    padding:5px 10px;border-radius:6px;
+  }
+  .col-row--skip .col-name code{color:var(--ink-3)}
+  .col-row--skip .col-dtype{color:var(--ink-3);font-style:italic}
+  .col-row--skip .col-skip-note{color:var(--ink-3);font-size:11px}
+
+  /* example picker rows */
+  .ex-list{display:flex;flex-direction:column}
+  .ex-row{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    align-items:center;gap:10px;
+    padding:8px 2px;
+    border-bottom:1px dashed var(--rule);
+    cursor:pointer;
+  }
+  .ex-row:last-child{border-bottom:0}
+  .ex-row .ex-desc{font-size:13px;color:var(--ink-2);text-wrap:pretty}
+  .ex-row .ex-val{
+    font-family:var(--mono);font-size:12px;color:var(--ink-2);
+    text-align:right;justify-self:end;
+  }
+  .ex-check{position:relative;display:inline-flex;width:14px;height:14px}
+  .ex-check input{
+    position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;
+  }
+  .ex-box{
+    width:14px;height:14px;border-radius:3px;
+    border:1.5px solid var(--rule-2);background:var(--paper-2);
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:background 120ms ease-out, border-color 120ms ease-out;
+  }
+  .ex-check input:checked + .ex-box{
+    background:var(--sage);border-color:var(--sage);
+  }
+  .ex-check input:checked + .ex-box::after{
+    content:"";display:block;width:8px;height:5px;
+    border-left:1.6px solid var(--paper-2);
+    border-bottom:1.6px solid var(--paper-2);
+    transform:rotate(-45deg) translate(0px,-1px);
+  }
+  .ex-foot .ex-counter{
+    margin-right:auto;font-size:11px;
+    color:var(--sage-deep);
+  }
+  .btn--disabled{opacity:0.45;pointer-events:none}
+</style>
+</head>
+<body data-state="empty">
+
+<!-- ============================ TOP BAR ================================ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">G</div>
+    <div class="wordmark">GLAMLI</div>
+    <div class="brand-rule" aria-hidden="true"></div>
+    <div class="mode-label">live</div>
+  </div>
+  <div class="top-right">
+    <div class="meta">
+      <strong id="metaFile">service_tickets.csv</strong> · 8,247 rows · 15 cols
+    </div>
+    <div class="pill pill--ready" id="livePill" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="pill-text">ready</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ EMPTY STATE ============================= -->
+<section data-state="empty" class="empty-shell">
+  <div class="invite" id="invite" role="button" tabindex="0" aria-label="Drop a CSV to start">
+    <p class="invite-eyebrow">step zero — there is no step zero</p>
+    <h1 class="invite-headline">Drop a CSV. I'll have a working model on it within seconds.</h1>
+    <p class="invite-sub">No setup. No questions about goals or metrics. The model trains on what's there. From the first second, every change you make will move the needle, and you'll see it move.</p>
+    <div class="invite-drop">
+      <div class="invite-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a473f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+      </div>
+      <div class="invite-drop-txt">
+        <div class="invite-drop-title">Drop a CSV anywhere on this card</div>
+        <div class="invite-drop-sub">or click to browse — anything with a header row works</div>
+      </div>
+      <span class="tag" style="font-size:10px">CSV · TSV</span>
+    </div>
+    <div class="parse-bar" id="parseBar"><i></i></div>
+    <div class="invite-foot">
+      <span>Don't have one handy?</span>
+      <span class="sample" id="useSample">use sample · service_tickets.csv</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ WORKSPACE =============================== -->
+<main data-state="workspace" class="shell">
+
+  <!-- ===== INBOX (left) ===== -->
+  <section class="pane pane--inbox">
+    <div class="inbox-head">
+      <h2 class="inbox-title">Suggestions</h2>
+      <p class="inbox-sub">things I'd try next, ranked by how much I think they'll help.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="for-you">for you <span class="count" id="forYouCount">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="history">history <span class="count" id="historyCount">0</span></button>
+      </div>
+    </div>
+
+    <div class="feed" id="feed" aria-label="suggestion feed">
+      <!-- cards injected by JS -->
+    </div>
+
+    <form class="composer" id="composer" autocomplete="off" onsubmit="return false">
+      <textarea id="composerInput" rows="1" placeholder="Tell me anything about your data, or ask a question…"></textarea>
+      <div class="composer-row">
+        <span class="composer-hint">enter to send · shift + enter for a new line</span>
+        <button type="submit" class="composer-send" aria-label="send" id="composerSend">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== LIVE (right) ===== -->
+  <section class="pane pane--live">
+    <div class="live-stack">
+
+      <div class="lock-banner" id="lockBanner">
+        <div class="lock-banner-text">
+          Locked <strong>Gradient Boosting · v7</strong> — 5 of 5 example tickets within ±20%, stable across 3 versions.
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn--ghost btn--small">view spec</button>
+          <button class="btn btn--primary btn--small">use this model</button>
+        </div>
+      </div>
+
+      <article class="hero">
+        <div class="hero-head">
+          <div>
+            <p class="hero-eyebrow">live model</p>
+            <div class="model-row">
+              <h2 class="model-name">Gradient Boosting</h2>
+              <span class="info-trigger info-trigger--model" tabindex="0" aria-label="why Gradient Boosting" data-info="model-info">
+                <svg class="info-glyph" viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
+                  <circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1"></circle>
+                  <text x="7" y="10.2" text-anchor="middle" font-family="var(--serif)" font-size="9" font-style="italic" fill="currentColor">i</text>
+                </svg>
+                <span class="info-tip" role="tooltip" id="model-info">
+                  Gradient Boosting does well on files like yours — rows of mixed columns (categories, numbers, dates) where the price depends on combinations of things, not just one. It's a strong default for predicting dollar values from ticket details. You can switch to something else later if it stops working for you.
+                </span>
+              </span>
+            </div>
+            <p class="retrained" id="retrainedCaption">retrained 4 seconds ago · v1</p>
+          </div>
+          <div class="hero-version">
+            <p class="hero-eyebrow" style="margin-bottom:0">version</p>
+            <div class="version-row">
+              <div id="versionTxt">v1</div>
+              <button type="button" class="btn btn--ghost btn--small ship-btn" id="shipBtn" data-ship-act="open" aria-haspopup="dialog" aria-expanded="false">use this version</button>
+              <div class="ship-pop" id="shipPop" role="dialog" aria-modal="false" aria-label="ship this version">
+                <p class="ship-pop-text" id="shipPopText">ship <strong>v1</strong> with <strong>3/5</strong> within band?</p>
+                <div class="ship-pop-actions">
+                  <button type="button" class="btn btn--ghost btn--small" data-ship-act="cancel">keep tinkering</button>
+                  <button type="button" class="btn btn--primary btn--small" data-ship-act="confirm">use it</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-mid">
+          <div>
+            <div class="passrate" aria-label="pass rate">
+              <span class="accent" id="passNum">3</span><span class="slash">/</span><span class="denom">5</span>
+            </div>
+            <div class="passrate-label">within ±20%</div>
+          </div>
+          <svg class="sparkline" id="sparkline" viewBox="0 0 200 64" preserveAspectRatio="none" aria-hidden="true">
+            <path class="fill" d=""></path>
+            <path class="line" d=""></path>
+            <circle cx="0" cy="0" r="3"></circle>
+          </svg>
+        </div>
+
+        <div class="cells-head">
+          <h3 class="cells-title">5 example tickets</h3>
+          <span class="info-trigger" tabindex="0" aria-label="why these 5 tickets" data-info="cells-info">
+            <svg class="info-glyph" viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
+              <circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1"></circle>
+              <text x="7" y="10.2" text-anchor="middle" font-family="var(--serif)" font-size="9" font-style="italic" fill="currentColor">i</text>
+            </svg>
+            <span class="info-tip" role="tooltip" id="cells-info">
+              These are 5 tickets I pulled from your file as a quick sanity check. I already know what they were actually worth, so I can grade my own predictions against the real numbers. If most of them land within ±20% of the real value, I'm doing alright. If not, I have work to do.
+            </span>
+          </span>
+        </div>
+        <div class="test-cells" id="testCells">
+          <!-- 5 cells injected by JS -->
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title">What's driving predictions</h3>
+          <span class="panel-sub">top columns by impact</span>
+        </div>
+        <div class="impact-list" id="impactList">
+          <!-- bars injected by JS -->
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h3 class="panel-title">What's changed</h3>
+          <span class="panel-sub">your last few moves &amp; their effect</span>
+        </div>
+        <div class="timeline" id="timeline">
+          <!-- timeline injected by JS -->
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================ EDIT MODAL ============================== -->
+<div class="modal-backdrop" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle" hidden>
+  <form class="modal" id="editModalForm" onsubmit="return false" autocomplete="off">
+    <p class="modal-eyebrow" id="editModalEyebrow">test 0?</p>
+    <h2 class="modal-title" id="editModalTitle">Edit example ticket</h2>
+    <p class="modal-sub">Adjust the description and dollar values. The model re-checks the band on save.</p>
+
+    <div class="modal-field">
+      <label for="editDesc">description</label>
+      <textarea class="modal-textarea" id="editDesc" rows="2" maxlength="240"></textarea>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field modal-money">
+        <label for="editPred">predicted</label>
+        <span class="money-prefix">$</span>
+        <input class="modal-input" id="editPred" type="text" inputmode="numeric">
+      </div>
+      <div class="modal-field modal-money">
+        <label for="editExp">expected</label>
+        <span class="money-prefix">$</span>
+        <input class="modal-input" id="editExp" type="text" inputmode="numeric">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <span class="modal-hint">enter to save · esc to cancel</span>
+      <button type="button" class="btn btn--ghost btn--small" data-modal-act="cancel">cancel</button>
+      <button type="submit" class="btn btn--primary btn--small" data-modal-act="save">save</button>
+    </div>
+  </form>
+</div>
+
+<!-- ============================ STATE SWITCHER ========================== -->
+<nav class="switcher" id="switcher" aria-label="state switcher">
+  <button class="switcher-btn" data-go="empty">empty</button>
+  <button class="switcher-btn" data-go="initial">initial</button>
+  <button class="switcher-btn" data-go="baseline">baseline</button>
+  <button class="switcher-btn" data-go="active">active</button>
+  <button class="switcher-btn" data-go="data-trap">data-trap</button>
+  <button class="switcher-btn" data-go="locked">locked</button>
+  <span class="switcher-hint" title="press D to toggle">D</span>
+</nav>
+
+<script>
+/* =====================================================================
+   GLAMLI/live — prototype state engine
+   No frameworks; vanilla JS.  All state in window.__glamli for inspect.
+   ===================================================================== */
+
+window.__glamliDev = true;
+
+// -- canonical assets (regression brief §1) -----------------------------
+// Tolerance band: ±20%. Expected/predicted values in USD.
+const TOL = 0.20;
+const CANON_EXAMPLES = [
+  { n:1, desc:"Standard furnace repair, 12-year-old residential unit, scheduled",       expected:420  },
+  { n:2, desc:"Annual AC maintenance, residential, returning customer",                  expected:180  },
+  { n:3, desc:"Same-day diagnostic, commercial heat pump, new customer",                 expected:340  },
+  { n:4, desc:"Same-day install on a commercial boiler, urgent replacement",             expected:8400 },
+  { n:5, desc:"Maintenance on a 22-year-old residential mini-split, returning customer", expected:650  },
+];
+// snapshot for restoring after a column-target retarget on #initial
+const CANON_EXAMPLES_DEFAULT = CANON_EXAMPLES.map(ex => ({...ex}));
+function restoreCanonicalExamples(){
+  CANON_EXAMPLES_DEFAULT.forEach((src, i)=>{
+    CANON_EXAMPLES[i].n = src.n;
+    CANON_EXAMPLES[i].desc = src.desc;
+    CANON_EXAMPLES[i].expected = src.expected;
+  });
+  liveUnit = "$";
+}
+
+// baseline prediction state — examples 4 & 5 are outside band
+const BASELINE_PREDS = [
+  { predicted:390  },  // within band
+  { predicted:165  },  // within band
+  { predicted:290  },  // within band
+  { predicted:3100 },  // 63% under -> FAIL
+  { predicted:240  },  // 63% under -> FAIL
+];
+
+// active state — example 4 fixed by urgency × service_type combo. Example 5 still off.
+const ACTIVE_PREDS = [
+  { predicted:390  },
+  { predicted:165  },
+  { predicted:290  },
+  { predicted:7400 },  // within band after combo-feature accepted
+  { predicted:240  },  // still off — fixed by next hint (equipment_age split)
+];
+
+// locked state — both fixes accepted, all five within ±20%
+const LOCKED_PREDS = [
+  { predicted:390  },
+  { predicted:165  },
+  { predicted:290  },
+  { predicted:7400 },
+  { predicted:580  },  // after equipment_age split
+];
+
+// derive pass/under/over for any prediction array
+function withBand(preds){
+  return preds.map((p, i) => {
+    const exp = CANON_EXAMPLES[i].expected;
+    const diff = p.predicted - exp;
+    const ratio = diff / exp;
+    const pass = Math.abs(ratio) <= TOL;
+    const pct  = Math.round(Math.abs(ratio) * 100);
+    const dir  = diff < 0 ? "under" : "over";
+    return { ...p, pass, pct, dir };
+  });
+}
+
+function fmtUSD(n){
+  return "$" + n.toLocaleString("en-US");
+}
+
+// active unit for cell rendering — defaults to USD, swapped when the
+// orientation card retargets to a non-dollar column. fmtUnit() handles
+// the formatting for any non-USD unit.
+let liveUnit = "$";
+function fmtUnit(n){
+  if(liveUnit === "$") return fmtUSD(n);
+  // strip trailing zeros for fractional values, append unit
+  const s = (Math.round(n * 10) / 10).toString();
+  return s + " " + liveUnit;
+}
+
+// suggestion templates -------------------------------------------------
+const BASELINE_CARDS = [
+  {
+    id:"sug-feat-combo",
+    priority:true,
+    tags:[ {kind:"sage", label:"feature hint"}, {kind:"rust", label:"test 4 off"} ],
+    body:`<strong>Test 4 is way off</strong> — predicted <code>$3,100</code>, expected <code>$8,400</code> (63% under). I notice <code>urgency=same-day</code> + <code>service_type=install</code> together is uncommon in your data — want me to treat that combination as its own pattern?`,
+    impact:"+1 ticket within band",
+    primary:"try it",
+    actionId:"accept-combo",
+  },
+  {
+    id:"sug-domain-urgency",
+    tags:[ {kind:"sage", label:"domain hint"} ],
+    body:`Quick question — for <code>urgency</code>, is "same-day" just <em>faster</em>, or does it actually cost more in a way that scales with the job? If it's the latter, I should treat it as ordered, not as a category.`,
+    impact:"clearer signal",
+    primary:"it costs more",
+    secondary:"just faster",
+    actionId:"accept-urgency",
+  },
+  {
+    id:"sug-feat-age",
+    tags:[ {kind:"sage", label:"feature hint"} ],
+    body:`<strong>Test 5 is way off.</strong> Older equipment usually doesn't get more expensive in a straight line — there's a step somewhere around 15–20 years where parts get hard to find. Want me to split <code>equipment_age</code> at 15 years and let those behave differently?`,
+    impact:"+1 ticket within band",
+    primary:"split it",
+    actionId:"accept-age",
+  },
+  {
+    id:"sug-examples",
+    tags:[ {kind:"paper", label:"examples"} ],
+    body:`Got a few more tickets where the price came in much higher than the rest? I'm under-predicting on the big jobs and a couple more would tell me why.`,
+    impact:"better confidence",
+    primary:"add a ticket",
+    actionId:"add-example",
+  },
+];
+
+const ABOUT_DATA_CARD = {
+  id:"sug-about-data",
+  tags:[ {kind:"amber", label:"about your data"} ],
+  body:`You asked if more data would help. Honestly — probably not much. Your model is already learning from 8,247 tickets; the bottleneck is which columns we feed it. I'd rather try splitting <code>equipment_age</code> at a threshold — older equipment usually doesn't degrade in a straight line, and your prices probably reflect that.`,
+  impact:"reframe the move",
+  primary:"try splitting it",
+  secondary:"maybe later",
+  actionId:"accept-age",
+  attentionPull:true,
+};
+
+const LOCK_CARD = {
+  id:"sug-lock",
+  isLock:true,
+  tags:[ {kind:"sage", label:"all clear"} ],
+  body:`I think we've reached a good place — 5 of 5 example tickets within ±20%, stable across the last 3 versions. Want to lock this in?`,
+  impact:"freeze v7",
+  primary:"lock model v7",
+  secondary:"keep tinkering",
+  actionId:"lock",
+};
+
+// timeline entries by state -------------------------------------------
+const BASELINE_TIMELINE = [
+  { time:"4s ago", text:`trained baseline on <code>service_tickets.csv</code> — 8,247 rows, target inferred as <code>ticket_value</code>`, delta:"3 of 5 within band", neutral:true },
+];
+const ACTIVE_TIMELINE = [
+  { time:"12s ago", text:`combined <code>urgency</code> × <code>service_type</code> as a feature`, delta:"+1 ticket within band ↑" },
+  { time:"38s ago", text:`marked <code>urgency</code> as ordered (it costs more)`, delta:"clearer signal", neutral:true },
+  { time:"2m ago",  text:`trained baseline on <code>service_tickets.csv</code>`, delta:"3 of 5 within band", neutral:true },
+];
+const LOCKED_TIMELINE = [
+  { time:"just now", text:`locked <code>Gradient Boosting v7</code>`, delta:"5 of 5 ✓" },
+  { time:"22s ago", text:`split <code>equipment_age</code> at 15 years`, delta:"+1 ticket within band ↑" },
+  { time:"50s ago", text:`combined <code>urgency</code> × <code>service_type</code> as a feature`, delta:"+1 ticket within band ↑" },
+  { time:"1m ago",  text:`marked <code>urgency</code> as ordered`, delta:"clearer signal", neutral:true },
+  { time:"2m ago",  text:`trained baseline on <code>service_tickets.csv</code>`, delta:"3 of 5 within band", neutral:true },
+];
+
+// impact bars per state ------------------------------------------------
+const INITIAL_IMPACT = [
+  { col:"equipment_type",   pct:72, level:"strong", label:"strong"  },
+  { col:"service_type",     pct:64, level:"strong", label:"strong"  },
+  { col:"urgency",          pct:46, level:"medium", label:"medium"  },
+  { col:"equipment_age",    pct:38, level:"medium", label:"medium"  },
+  { col:"building_type",    pct:22, level:"weak",   label:"weak"    },
+];
+const BASELINE_IMPACT = [
+  { col:"equipment_type",   pct:74, level:"strong", label:"strong"  },
+  { col:"service_type",     pct:66, level:"strong", label:"strong"  },
+  { col:"square_footage",   pct:48, level:"medium", label:"medium"  },
+  { col:"equipment_age",    pct:38, level:"medium", label:"medium"  },
+  { col:"urgency",          pct:24, level:"weak",   label:"weak"    },
+];
+
+// Column catalogue for the orientation card's "predict something else"
+// picker. dtype labels follow §3.3 of the initial-state brief.
+const COLUMN_CATALOGUE = [
+  { name:"ticket_value",     dtype:"numeric · target", current:true },
+  { name:"equipment_type",   dtype:"categorical · 5 values" },
+  { name:"equipment_age",    dtype:"numeric · 0–47 years" },
+  { name:"service_type",     dtype:"categorical · 4 values" },
+  { name:"urgency",          dtype:"categorical · 2 values" },
+  { name:"building_type",    dtype:"categorical · 2 values" },
+  { name:"square_footage",   dtype:"numeric · 600–48000" },
+  { name:"season",           dtype:"categorical · 3 values" },
+  { name:"customer_type",    dtype:"categorical · 2 values" },
+  { name:"region",           dtype:"categorical · 8 values" },
+  { name:"technician_id",    dtype:"id-like · skip",   skip:true },
+  { name:"scheduled_date",   dtype:"datetime · skip",  skip:true },
+  { name:"labor_hours",      dtype:"numeric · 0.5–14" },
+  { name:"parts_replaced",   dtype:"categorical · 23 values" },
+  { name:"customer_zip",     dtype:"id-like · skip",   skip:true },
+];
+
+// Candidate paraphrased tickets for the "pick different examples" picker.
+// First five mirror the canonical CANON_EXAMPLES (pre-checked).
+const EXAMPLE_CANDIDATES = [
+  { desc:"Standard furnace repair, 12-year-old residential unit, scheduled",                  value:420  },
+  { desc:"Annual AC maintenance, residential, returning customer",                            value:180  },
+  { desc:"Same-day diagnostic, commercial heat pump, new customer",                           value:340  },
+  { desc:"Same-day install on a commercial boiler, urgent replacement",                       value:8400 },
+  { desc:"Maintenance on a 22-year-old residential mini-split, returning customer",           value:650  },
+  { desc:"Scheduled AC install, mid-size residential, new construction",                      value:4200 },
+  { desc:"Diagnostic on a commercial fridge unit, returning customer",                        value:280  },
+  { desc:"Emergency repair on a residential furnace, after-hours weekend",                    value:890  },
+  { desc:"Routine maintenance, light commercial HVAC, annual contract",                       value:320  },
+  { desc:"Heat pump replacement, large residential, mid-winter",                              value:6100 },
+];
+const ACTIVE_IMPACT = [
+  { col:"equipment_type",                 pct:78, level:"strong", label:"strong"  },
+  { col:"service_type",                   pct:70, level:"strong", label:"strong"  },
+  { col:"urgency × service_type",         pct:58, level:"medium", label:"medium"  },
+  { col:"square_footage",                 pct:46, level:"medium", label:"medium"  },
+  { col:"equipment_age",                  pct:36, level:"weak",   label:"weak"    },
+];
+const LOCKED_IMPACT = [
+  { col:"equipment_type",                 pct:82, level:"strong", label:"strong"  },
+  { col:"service_type",                   pct:73, level:"strong", label:"strong"  },
+  { col:"urgency × service_type",         pct:62, level:"medium", label:"medium"  },
+  { col:"equipment_age (≥15y)",           pct:55, level:"medium", label:"medium"  },
+  { col:"square_footage",                 pct:44, level:"medium", label:"medium"  },
+];
+
+// sparkline series -----------------------------------------------------
+// each y is pass count out of 5 (0..5).  We map to viewBox.
+const SPARK_BASELINE = [3];
+const SPARK_ACTIVE   = [3, 3, 4, 4];   // ascent — clear up trend
+const SPARK_LOCKED   = [3, 3, 4, 4, 5, 5, 5];
+
+// ---------------------------------------------------------------------
+// State machine
+// ---------------------------------------------------------------------
+const STATES = ["empty","initial","baseline","active","data-trap","locked"];
+let currentState = null;
+let cardsInFeed = []; // ids currently shown
+let acceptedActions = new Set();
+let historyCount = 0;
+
+function $(s, root){return (root||document).querySelector(s)}
+function $$(s, root){return Array.from((root||document).querySelectorAll(s))}
+
+function setHash(state){
+  if(location.hash.replace("#","") !== state){
+    history.replaceState(null,"","#"+state);
+  }
+}
+
+function setPill(mode){
+  const pill = $("#livePill");
+  pill.classList.remove("pill--ready","pill--retrain","pill--locked");
+  const txt = pill.querySelector(".pill-text");
+  if(mode==="ready"){pill.classList.add("pill--ready"); txt.textContent="ready"}
+  else if(mode==="retrain"){pill.classList.add("pill--retrain"); txt.textContent="retraining"}
+  else if(mode==="locked"){pill.classList.add("pill--locked"); txt.textContent="locked v7"}
+}
+
+function setPass(n, animate){
+  const el = $("#passNum");
+  if(!animate){ el.textContent = String(n); return }
+  // num-flip animation
+  const wrap = document.createElement("span");
+  wrap.className = "num-flip accent";
+  const oldVal = el.textContent;
+  el.outerHTML = `<span class="num-flip"><span class="cur" style="font-style:italic;color:var(--sage-deep)">${oldVal}</span></span>`;
+  // Actually simpler: just animate a fade swap
+  setTimeout(()=>{
+    const wrapEl = $(".num-flip");
+    if(!wrapEl) return;
+    const cur = wrapEl.querySelector(".cur");
+    const incoming = document.createElement("span");
+    incoming.className = "next";
+    incoming.style.cssText = "font-style:italic;color:var(--sage-deep)";
+    incoming.textContent = String(n);
+    wrapEl.appendChild(incoming);
+    requestAnimationFrame(()=>{
+      cur.classList.add("out");
+      incoming.classList.add("in-from-below");
+      requestAnimationFrame(()=>{
+        incoming.classList.remove("in-from-below");
+      });
+    });
+    setTimeout(()=>{
+      wrapEl.outerHTML = `<span class="accent" id="passNum" style="font-style:italic">${n}</span>`;
+    }, 450);
+  }, 0);
+}
+
+// pointer to whichever pred array is currently on screen — used by the
+// click-to-edit handler so saved changes flow back into state.
+let livePreds = null;
+
+function renderTestCells(predsRaw, opts){
+  livePreds = predsRaw;
+  if(opts && opts.unit) liveUnit = opts.unit; else liveUnit = "$";
+  const preds = withBand(predsRaw);
+  const wrap = $("#testCells");
+  wrap.innerHTML = "";
+  preds.forEach((p, idx)=>{
+    const ex = CANON_EXAMPLES[idx];
+    const cell = document.createElement("div");
+    cell.className = "cell" + (p.pass ? "" : " cell--fail");
+    cell.dataset.idx = String(idx);
+    cell.setAttribute("role","button");
+    cell.setAttribute("tabindex","0");
+    cell.setAttribute("aria-label","click to edit test "+ex.n);
+    cell.innerHTML = cellInnerHTML(ex, p);
+    wrap.appendChild(cell);
+  });
+}
+
+function cellInnerHTML(ex, p){
+  const status = p.pass
+    ? `<div class="cell-status">${sageCheck()}<span>within ±20%</span></div>`
+    : `<div class="cell-status">${rustX()}<span>${p.pct}% ${p.dir}</span></div>`;
+  return `
+    <div class="cell-num">test 0${ex.n}</div>
+    <div class="cell-desc">${ex.desc}</div>
+    <div class="cell-vals">
+      <span class="vk">predicted</span><span class="vv vv--pred" data-role="pred">${fmtUnit(p.predicted)}</span>
+      <span class="vk">expected</span><span class="vv">${fmtUnit(ex.expected)}</span>
+    </div>
+    ${status}
+  `;
+}
+
+function sageCheck(){
+  return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+}
+function rustX(){
+  return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>`;
+}
+
+function renderSparkline(series, animateNew){
+  const svg = $("#sparkline");
+  const W = 200, H = 64, padX = 4, padY = 8;
+  if(series.length === 0){ return }
+  const maxX = Math.max(series.length - 1, 1);
+  const xAt = i => padX + (W - padX*2) * (i / maxX);
+  const yAt = v => H - padY - (H - padY*2) * (v / 5);
+
+  const linePath = svg.querySelector("path.line");
+  const fillPath = svg.querySelector("path.fill");
+  const dot = svg.querySelector("circle");
+
+  let d = "";
+  series.forEach((v, i) => {
+    d += (i===0 ? "M" : " L") + xAt(i).toFixed(1) + " " + yAt(v).toFixed(1);
+  });
+  let fill = d + ` L ${xAt(maxX).toFixed(1)} ${H-padY} L ${padX} ${H-padY} Z`;
+  if(series.length === 1){
+    // tiny flat line
+    const y = yAt(series[0]).toFixed(1);
+    d = `M ${padX} ${y} L ${W-padX} ${y}`;
+    fill = `${d} L ${W-padX} ${H-padY} L ${padX} ${H-padY} Z`;
+  }
+  linePath.setAttribute("d", d);
+  fillPath.setAttribute("d", fill);
+
+  // dot at end
+  const lastX = series.length === 1 ? W - padX : xAt(maxX);
+  const lastY = yAt(series[series.length-1]);
+  dot.setAttribute("cx", lastX);
+  dot.setAttribute("cy", lastY);
+  dot.style.opacity = "1";
+
+  if(animateNew){
+    // simple draw animation via stroke-dasharray
+    const len = linePath.getTotalLength ? linePath.getTotalLength() : 200;
+    linePath.style.transition = "none";
+    linePath.style.strokeDasharray = len;
+    linePath.style.strokeDashoffset = len;
+    dot.style.opacity = "0";
+    requestAnimationFrame(()=>{
+      linePath.style.transition = "stroke-dashoffset 600ms ease-out";
+      linePath.style.strokeDashoffset = "0";
+      setTimeout(()=>{ dot.style.opacity = "1" }, 500);
+    });
+  }
+}
+
+function renderImpact(rows){
+  const wrap = $("#impactList");
+  wrap.innerHTML = "";
+  rows.forEach((r, i)=>{
+    const row = document.createElement("div");
+    row.className = "impact-row";
+    row.innerHTML = `
+      <div class="col-label">${r.col}</div>
+      <div class="impact-bar lvl-${r.level}"><i style="width:0%"></i></div>
+      <div class="impact-tag">${r.label}</div>
+    `;
+    wrap.appendChild(row);
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{
+        row.querySelector("i").style.width = r.pct + "%";
+      }, 60 * i);
+    });
+  });
+}
+
+function renderTimeline(rows){
+  const wrap = $("#timeline");
+  wrap.innerHTML = "";
+  if(!rows || rows.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "tl-empty";
+    empty.style.cssText = "font-size:12px;color:var(--ink-3);font-style:italic;padding:8px 0";
+    empty.textContent = "your changes will show up here";
+    wrap.appendChild(empty);
+    return;
+  }
+  rows.forEach(r=>{
+    const row = document.createElement("div");
+    row.className = "tl-row";
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0;flex:1;min-width:0">
+        <span class="tl-time">${r.time}</span>
+        <span class="tl-text">${r.text}</span>
+      </div>
+      <span class="tl-delta ${r.neutral?'neutral':''}">${r.delta}</span>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function prependTimeline(entry){
+  const wrap = $("#timeline");
+  const placeholder = wrap.querySelector(".tl-empty");
+  if(placeholder) placeholder.remove();
+  const row = document.createElement("div");
+  row.className = "tl-row";
+  row.style.opacity = "0";
+  row.innerHTML = `
+    <div style="display:flex;align-items:center;gap:0;flex:1;min-width:0">
+      <span class="tl-time">${entry.time}</span>
+      <span class="tl-text">${entry.text}</span>
+    </div>
+    <span class="tl-delta ${entry.neutral?'neutral':''}">${entry.delta}</span>
+  `;
+  wrap.insertBefore(row, wrap.firstChild);
+  requestAnimationFrame(()=>{
+    row.style.transition = "opacity 300ms ease-out, transform 300ms ease-out";
+    row.style.transform = "translateY(-8px)";
+    requestAnimationFrame(()=>{
+      row.style.transform = "translateY(0)";
+      row.style.opacity = "1";
+    });
+  });
+}
+
+function makeCard(c){
+  const el = document.createElement("article");
+  el.className = "card" + (c.priority ? " card--priority" : "") + (c.isLock ? " card--lock" : "") + (c.attentionPull ? " card--amber-pull" : "");
+  el.dataset.id = c.id;
+  el.classList.add("entering");
+  setTimeout(()=>el.classList.remove("entering"), 400);
+
+  const tagsHtml = c.tags.map(t=>`<span class="tag tag--${t.kind==='sage'?'':t.kind}">${t.label}</span>`).join("");
+
+  const secondary = c.secondary
+    ? `<button class="btn btn--ghost btn--small" data-act="${c.actionId === 'accept-urgency' ? 'accept-urgency-scale' : (c.actionId==='accept-age' ? 'dismiss-data-still' : 'skip')}" data-id="${c.id}">${c.secondary}</button>`
+    : `<button class="btn btn--ghost btn--small" data-act="skip" data-id="${c.id}">skip</button>`;
+
+  el.innerHTML = `
+    <div class="card-head">
+      ${tagsHtml}
+      <span class="card-meta">just now</span>
+    </div>
+    <p class="card-body">${c.body}</p>
+    <div class="card-foot">
+      <button class="btn btn--primary btn--small" data-act="${c.actionId}" data-id="${c.id}">${c.primary}</button>
+      ${secondary}
+      <span class="impact">${c.impact}</span>
+    </div>
+  `;
+  return el;
+}
+
+// ---------------------------------------------------------------------
+// Orientation card (used only on #initial). Single domain-hint card with
+// three ghost-button paths: looks right (lazy), predict something else
+// (column picker, inline expand), pick different examples (example
+// picker, inline expand). Composes the existing card primitive — no new
+// component or motion pattern.
+// ---------------------------------------------------------------------
+const ORIENTATION_CARD = { id:"sug-orientation", isOrientation:true };
+
+function makeOrientationCard(){
+  const el = document.createElement("article");
+  el.className = "card entering";
+  el.dataset.id = ORIENTATION_CARD.id;
+  setTimeout(()=>el.classList.remove("entering"), 400);
+  el.innerHTML = `
+    <div class="card-head">
+      <span class="tag">domain hint</span>
+      <span class="card-meta">just now</span>
+    </div>
+    <h3 class="orient-title">predicting <code>ticket_value</code> from 14 other columns</h3>
+    <p class="card-body">I'm treating each row as a job and predicting how much it'll be worth, in dollars. I pulled 5 example tickets from your file to grade myself against — you can see them on the right.</p>
+    <div class="card-foot orient-actions">
+      <button class="btn btn--ghost btn--small" data-orient-act="confirm">looks right</button>
+      <button class="btn btn--ghost btn--small" data-orient-act="open-cols">predict something else</button>
+      <button class="btn btn--ghost btn--small" data-orient-act="open-examples">pick different examples</button>
+    </div>
+    <div class="orient-expand" data-orient-expand>
+      <!-- column picker or example picker mounts here -->
+    </div>
+  `;
+  return el;
+}
+
+function orientCard(){ return $(`.card[data-id="${ORIENTATION_CARD.id}"]`, $("#feed")); }
+
+function orientCollapse(){
+  const card = orientCard();
+  if(!card) return;
+  const wrap = card.querySelector("[data-orient-expand]");
+  if(!wrap || !wrap.classList.contains("open")) return;
+  // height transition back to 0
+  wrap.style.height = wrap.scrollHeight + "px";
+  requestAnimationFrame(()=>{
+    wrap.style.height = "0px";
+  });
+  setTimeout(()=>{
+    wrap.classList.remove("open");
+    wrap.innerHTML = "";
+    wrap.style.height = "";
+  }, 260);
+}
+
+function orientOpen(html, mount){
+  const card = orientCard();
+  if(!card) return;
+  const wrap = card.querySelector("[data-orient-expand]");
+  if(!wrap) return;
+  wrap.innerHTML = html;
+  wrap.classList.add("open");
+  // set height from 0 to scrollHeight, then unset for natural sizing
+  wrap.style.height = "0px";
+  requestAnimationFrame(()=>{
+    const target = wrap.scrollHeight;
+    wrap.style.height = target + "px";
+    setTimeout(()=>{ if(wrap.classList.contains("open")) wrap.style.height = "auto"; }, 260);
+  });
+  if(typeof mount === "function") mount(wrap);
+}
+
+function handleOrientAction(act){
+  const card = orientCard();
+  if(!card) return;
+  if(act === "confirm"){
+    // dismiss orientation card and advance to baseline
+    card.classList.add("exiting");
+    card.style.height = card.offsetHeight + "px";
+    setTimeout(()=>{
+      card.style.transition = "height 240ms ease-out, margin 240ms ease-out, padding 240ms ease-out, opacity 240ms ease-out";
+      card.style.height = "0px";
+      card.style.marginTop = "0";
+      card.style.marginBottom = "0";
+      card.style.paddingTop = "0";
+      card.style.paddingBottom = "0";
+      card.style.borderWidth = "0";
+      card.style.overflow = "hidden";
+      setTimeout(()=>{
+        gotoState("baseline");
+      }, 260);
+    }, 280);
+    return;
+  }
+  if(act === "open-cols"){
+    orientCollapse();
+    setTimeout(()=>{
+      orientOpen(renderColumnPickerHTML());
+    }, orientCard().querySelector("[data-orient-expand].open") ? 270 : 0);
+    return;
+  }
+  if(act === "open-examples"){
+    orientCollapse();
+    setTimeout(()=>{
+      orientOpen(renderExamplePickerHTML(), wireExamplePicker);
+    }, orientCard().querySelector("[data-orient-expand].open") ? 270 : 0);
+    return;
+  }
+  if(act === "cancel"){
+    orientCollapse();
+    return;
+  }
+}
+
+function renderColumnPickerHTML(){
+  const rows = COLUMN_CATALOGUE
+    .filter(c => !c.current)
+    .map(c => `
+      <div class="col-row${c.skip?' col-row--skip':''}">
+        <span class="col-name"><code>${c.name}</code></span>
+        <span class="col-dtype">${c.dtype}</span>
+        ${c.skip
+          ? `<span class="col-skip-note">—</span>`
+          : `<button class="btn btn--ghost btn--small col-use" data-orient-act="use-col" data-col="${c.name}">use this instead</button>`}
+      </div>
+    `).join("");
+  return `
+    <div class="orient-picker">
+      <p class="orient-picker-head">pick a different target column — I'll retrain on it.</p>
+      <div class="col-list">${rows}</div>
+      <div class="orient-picker-foot">
+        <button class="btn btn--ghost btn--small" data-orient-act="cancel">cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderExamplePickerHTML(){
+  const rows = EXAMPLE_CANDIDATES.map((e, i) => `
+    <label class="ex-row" data-ex-idx="${i}">
+      <span class="ex-check" aria-hidden="true">
+        <input type="checkbox" ${i < 5 ? "checked" : ""} data-ex-checkbox>
+        <span class="ex-box"></span>
+      </span>
+      <span class="ex-desc">${e.desc}</span>
+      <span class="ex-val">${fmtUSD(e.value)}</span>
+    </label>
+  `).join("");
+  return `
+    <div class="orient-picker">
+      <p class="orient-picker-head">pick a different set of 5 — these are the ones I'll grade myself against.</p>
+      <div class="ex-list">${rows}</div>
+      <div class="orient-picker-foot ex-foot">
+        <span class="ex-counter" data-ex-counter>5 selected · need exactly 5</span>
+        <button class="btn btn--ghost btn--small" data-orient-act="cancel">cancel</button>
+        <button class="btn btn--primary btn--small" data-orient-act="use-examples" data-ex-confirm>use these</button>
+      </div>
+    </div>
+  `;
+}
+
+function wireExamplePicker(wrap){
+  const cbs = $$('input[data-ex-checkbox]', wrap);
+  const counter = wrap.querySelector('[data-ex-counter]');
+  const confirm = wrap.querySelector('[data-ex-confirm]');
+  function update(){
+    const n = cbs.filter(cb => cb.checked).length;
+    counter.textContent = n + " selected · need exactly 5";
+    if(n === 5){
+      counter.style.color = "var(--sage-deep)";
+      confirm.removeAttribute("disabled");
+      confirm.classList.remove("btn--disabled");
+    } else {
+      counter.style.color = "var(--rust)";
+      confirm.setAttribute("disabled","");
+      confirm.classList.add("btn--disabled");
+    }
+  }
+  cbs.forEach(cb => cb.addEventListener("change", update));
+  update();
+}
+
+// Mocked retrain after column-target change. Stays plausible without
+// pretending the numbers are real.
+function runColumnRetrain(colName){
+  setPill("retrain");
+  setTimeout(()=>{
+    setPill("ready");
+    // refresh hero, cells, impact bars to plausible new values for the new
+    // target. Keep dollars only for ticket_value; otherwise switch units.
+    const refreshed = mockPredsForTarget(colName);
+    livePreds = refreshed.preds;
+    setPass(refreshed.passCount, false);
+    renderTestCells(refreshed.preds, { unit: refreshed.unit });
+    renderImpact(refreshed.impact);
+    prependTimeline({
+      time:"just now",
+      text:`changed target to <code>${colName}</code>`,
+      delta:"new model",
+      neutral:true,
+    });
+    setTimeout(()=>{
+      // restore canonical examples + USD before advancing to #baseline so
+      // the canonical workspace renders cleanly.
+      restoreCanonicalExamples();
+      gotoState("baseline");
+    }, 600);
+  }, 2500);
+}
+
+function mockPredsForTarget(colName){
+  // Keep predicted/expected pairs plausible for the new target. The
+  // tolerance check (±20%) reuses withBand without modification.
+  const profiles = {
+    equipment_age:    { unit:"yrs", base:[{e:12,p:11},{e:8,p:9},{e:5,p:7},{e:22,p:18},{e:3,p:4}], impact:[
+      { col:"equipment_type", pct:62, level:"strong", label:"strong" },
+      { col:"service_type",   pct:50, level:"medium", label:"medium" },
+      { col:"region",         pct:40, level:"medium", label:"medium" },
+      { col:"customer_type",  pct:30, level:"medium", label:"medium" },
+      { col:"season",         pct:18, level:"weak",   label:"weak"   },
+    ]},
+    labor_hours:      { unit:"hrs", base:[{e:2.5,p:2.0},{e:1.0,p:1.1},{e:1.5,p:1.4},{e:6.0,p:3.0},{e:3.5,p:1.5}], impact:[
+      { col:"service_type",   pct:70, level:"strong", label:"strong" },
+      { col:"equipment_type", pct:58, level:"medium", label:"medium" },
+      { col:"urgency",        pct:38, level:"medium", label:"medium" },
+      { col:"square_footage", pct:30, level:"medium", label:"medium" },
+      { col:"building_type",  pct:20, level:"weak",   label:"weak"   },
+    ]},
+  };
+  const fallback = { unit:"$", base:[{e:420,p:390},{e:180,p:165},{e:340,p:290},{e:8400,p:3100},{e:650,p:240}], impact: BASELINE_IMPACT };
+  const prof = profiles[colName] || fallback;
+  const preds = prof.base.map((b,i)=>({ predicted: b.p }));
+  // mutate CANON_EXAMPLES.expected so withBand checks the right target
+  prof.base.forEach((b,i)=>{ CANON_EXAMPLES[i].expected = b.e; });
+  const passCount = withBand(preds).filter(x=>x.pass).length;
+  return { preds, impact: prof.impact, unit: prof.unit, passCount };
+}
+
+// Mocked example-set swap. Keep the prototype's single-transition rule:
+// the new pass-rate is 3/5 regardless of which 5 the user picks.
+function runExampleSwap(checkedIndices){
+  // pick the descriptions/values from EXAMPLE_CANDIDATES for the chosen
+  // indices, write them into CANON_EXAMPLES, and refresh the cells in a
+  // staggered animation (60ms each, 200ms ease-out per cell).
+  const chosen = checkedIndices.slice(0, 5);
+  // count how many slots actually changed vs. CANON_EXAMPLES (the first
+  // five candidates are the canonical ones)
+  const before = CANON_EXAMPLES.map(ex => ex.desc);
+  chosen.forEach((srcIdx, dst)=>{
+    const cand = EXAMPLE_CANDIDATES[srcIdx];
+    CANON_EXAMPLES[dst].desc = cand.desc;
+    CANON_EXAMPLES[dst].expected = cand.value;
+  });
+  const swappedCount = chosen.reduce((acc, srcIdx, dst)=> acc + (before[dst] !== EXAMPLE_CANDIDATES[srcIdx].desc ? 1 : 0), 0);
+
+  // keep passrate at 3/5 regardless — see brief §3.4 "keep it simple"
+  livePreds = BASELINE_PREDS.slice();
+  setPass(3, false);
+  // re-render with stagger
+  const wrap = $("#testCells");
+  const cells = $$(".cell", wrap);
+  cells.forEach((c,i)=>{
+    c.style.transition = "opacity 200ms ease-out, transform 200ms ease-out";
+    setTimeout(()=>{
+      c.style.opacity = "0";
+      c.style.transform = "translateY(4px)";
+    }, i * 60);
+  });
+  setTimeout(()=>{
+    renderTestCells(BASELINE_PREDS);
+    const fresh = $$(".cell");
+    fresh.forEach((c,i)=>{
+      c.style.opacity = "0";
+      c.style.transform = "translateY(4px)";
+      setTimeout(()=>{
+        c.style.transition = "opacity 200ms ease-out, transform 200ms ease-out";
+        c.style.opacity = "1";
+        c.style.transform = "translateY(0)";
+      }, i * 60);
+    });
+    prependTimeline({
+      time:"just now",
+      text:`swapped ${swappedCount} example ticket${swappedCount===1?'':'s'}`,
+      delta:"new test set",
+      neutral:true,
+    });
+    setTimeout(()=>gotoState("baseline"), 600);
+  }, 360);
+}
+
+function renderFeed(cards){
+  const feed = $("#feed");
+  feed.innerHTML = "";
+  cards.forEach(c => feed.appendChild(c.isOrientation ? makeOrientationCard() : makeCard(c)));
+  cardsInFeed = cards.map(c=>c.id);
+  $("#forYouCount").textContent = cards.filter(c=>!c.isLock).length || cards.length;
+  $("#historyCount").textContent = historyCount;
+}
+
+function exitCard(id, then){
+  const el = $(`.card[data-id="${id}"]`, $("#feed"));
+  if(!el){ if(then) then(); return }
+  el.style.height = el.offsetHeight + "px";
+  el.classList.add("exiting");
+  setTimeout(()=>{
+    el.style.transition = "height 240ms ease-out, margin 240ms ease-out, padding 240ms ease-out, opacity 240ms ease-out";
+    el.style.height = "0px";
+    el.style.marginTop = "0";
+    el.style.marginBottom = "0";
+    el.style.paddingTop = "0";
+    el.style.paddingBottom = "0";
+    el.style.borderWidth = "0";
+    el.style.overflow = "hidden";
+    setTimeout(()=>{ el.remove(); historyCount++; $("#historyCount").textContent = historyCount; if(then) then() }, 260);
+  }, 280);
+}
+
+function prependCard(c){
+  const feed = $("#feed");
+  const el = makeCard(c);
+  feed.insertBefore(el, feed.firstChild);
+  feed.scrollTo({top:0, behavior:"smooth"});
+}
+
+// ---------------------------------------------------------------------
+// State renderers
+// ---------------------------------------------------------------------
+function gotoState(state, opts){
+  opts = opts || {};
+  if(!STATES.includes(state)) state = "empty";
+  currentState = state;
+  document.body.dataset.state = state;
+  setHash(state);
+
+  // switcher highlight
+  $$(".switcher-btn").forEach(b=>{
+    b.classList.toggle("active", b.dataset.go === state);
+  });
+
+  // lock banner
+  $("#lockBanner").classList.toggle("show", state === "locked");
+
+  if(state === "empty"){
+    setPill("ready");
+    return;
+  }
+
+  if(state === "initial"){
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained 4 seconds ago · v1";
+    $("#versionTxt").textContent = "v1";
+    setPass(3, false);
+    renderTestCells(BASELINE_PREDS);
+    renderSparkline(SPARK_BASELINE, false);
+    renderImpact(INITIAL_IMPACT);
+    renderTimeline([]); // empty — placeholder shown
+    historyCount = 0;
+    renderFeed([ORIENTATION_CARD]);
+    return;
+  }
+
+  if(state === "baseline"){
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained 4 seconds ago · v1";
+    $("#versionTxt").textContent = "v1";
+    setPass(3, false);
+    renderTestCells(BASELINE_PREDS);
+    renderSparkline(SPARK_BASELINE, false);
+    renderImpact(BASELINE_IMPACT);
+    renderTimeline(BASELINE_TIMELINE);
+    historyCount = 0;
+    renderFeed(BASELINE_CARDS);
+    return;
+  }
+
+  if(state === "active"){
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained 12 seconds ago · v3";
+    $("#versionTxt").textContent = "v3";
+    setPass(4, false);
+    renderTestCells(ACTIVE_PREDS);
+    renderSparkline(SPARK_ACTIVE, false);
+    renderImpact(ACTIVE_IMPACT);
+    renderTimeline(ACTIVE_TIMELINE);
+    historyCount = 2;
+    // remaining inbox: 2 cards
+    renderFeed([ BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+    return;
+  }
+
+  if(state === "data-trap"){
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained 12 seconds ago · v3";
+    $("#versionTxt").textContent = "v3";
+    setPass(4, false);
+    renderTestCells(ACTIVE_PREDS);
+    renderSparkline(SPARK_ACTIVE, false);
+    renderImpact(ACTIVE_IMPACT);
+    renderTimeline(ACTIVE_TIMELINE);
+    historyCount = 2;
+    // amber card on top + remaining
+    renderFeed([ ABOUT_DATA_CARD, BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+    // composer should show the user's question
+    const composer = $("#composerInput");
+    composer.value = "can I add more tickets?";
+    autoResize(composer);
+    return;
+  }
+
+  if(state === "locked"){
+    setPill("locked");
+    $("#retrainedCaption").textContent = "5 of 5 within ±20% · last retrained 4 minutes ago";
+    $("#versionTxt").textContent = "v7 ✓";
+    setPass(5, false);
+    renderTestCells(LOCKED_PREDS);
+    renderSparkline(SPARK_LOCKED, false);
+    renderImpact(LOCKED_IMPACT);
+    renderTimeline(LOCKED_TIMELINE);
+    historyCount = 6;
+    // history view in inbox
+    renderHistoryFeed();
+    return;
+  }
+}
+
+function renderHistoryFeed(){
+  const feed = $("#feed");
+  feed.innerHTML = "";
+  $$('.tab').forEach(t => t.setAttribute("aria-selected", t.dataset.tab === "history" ? "true" : "false"));
+  const items = [
+    { tags:[{kind:"sage",label:"feature hint"}], body:`Combined <code>urgency</code> × <code>service_type</code> as a feature.`, when:"22 seconds ago", outcome:"+1 ticket within band ↑" },
+    { tags:[{kind:"sage",label:"domain hint"}], body:`Marked <code>urgency</code> as ordered.`, when:"50 seconds ago", outcome:"clearer signal" },
+    { tags:[{kind:"sage",label:"feature hint"}], body:`Split <code>equipment_age</code> at 15 years.`, when:"1m ago", outcome:"+1 ticket within band ↑" },
+    { tags:[{kind:"amber",label:"about your data"}], body:`Reframed an "add more tickets" question — tried column work first.`, when:"1m ago", outcome:"useful detour" },
+    { tags:[{kind:"paper",label:"examples"}], body:`Logged 5 canonical example tickets as the standing test set.`, when:"2m ago", outcome:"baseline" },
+  ];
+  items.forEach(it=>{
+    const el = document.createElement("article");
+    el.className = "card";
+    el.style.opacity = "0.92";
+    const tagsHtml = it.tags.map(t=>`<span class="tag tag--${t.kind==='sage'?'':t.kind}">${t.label}</span>`).join("");
+    el.innerHTML = `
+      <div class="card-head">${tagsHtml}<span class="card-meta">${it.when}</span></div>
+      <p class="card-body">${it.body}</p>
+      <div class="card-foot"><span class="impact" style="margin-left:0">${it.outcome}</span></div>
+    `;
+    feed.appendChild(el);
+  });
+  $("#forYouCount").textContent = "0";
+  $("#historyCount").textContent = String(items.length);
+}
+
+// ---------------------------------------------------------------------
+// Action handlers
+// ---------------------------------------------------------------------
+function autoResize(ta){
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+}
+
+function handleAction(act, id){
+  if(act === "skip"){
+    exitCard(id);
+    return;
+  }
+  if(act === "lock"){
+    gotoState("locked");
+    return;
+  }
+  if(act === "accept-combo"){
+    // priority feature hint: urgency × service_type — triggers signature retrain
+    runSignatureRetrain(id);
+    return;
+  }
+  if(act === "accept-urgency" || act === "accept-urgency-scale"){
+    exitCard(id);
+    setTimeout(()=>{
+      prependTimeline({
+        time:"just now",
+        text:`marked <code>urgency</code> as ${act==='accept-urgency-scale' ? 'a category (just faster)' : 'ordered (it costs more)'}`,
+        delta:"clearer signal",
+        neutral:true,
+      });
+    }, 320);
+    return;
+  }
+  if(act === "accept-age"){
+    // second feature hint: split equipment_age at 15y. Fix test 5 in active.
+    exitCard(id);
+    runMiniRetrain(()=>{
+      // flip cell 5 from rust -> sage with predicted $240 -> $580
+      const cell = $(`.cell[data-idx="4"]`);
+      if(cell && cell.classList.contains("cell--fail")){
+        cell.classList.remove("cell--fail");
+        animatePredictedValue(cell, 240, 580);
+        const status = cell.querySelector(".cell-status");
+        if(status){
+          status.style.opacity = "0";
+          setTimeout(()=>{
+            status.innerHTML = `${sageCheck()}<span>within ±20%</span>`;
+            status.style.opacity = "1";
+          }, 320);
+        }
+        flipPassNumber(4, 5);
+        setTimeout(()=>renderSparkline([3,3,4,4,5], true), 200);
+      }
+      prependTimeline({
+        time:"just now",
+        text:`split <code>equipment_age</code> at 15 years`,
+        delta:"+1 ticket within band ↑",
+      });
+      // surface lock prompt shortly after
+      setTimeout(()=>{
+        const feed = $("#feed");
+        if(!$(`.card[data-id="sug-lock"]`)){
+          const el = makeCard(LOCK_CARD);
+          feed.insertBefore(el, feed.firstChild);
+          feed.scrollTo({top:0, behavior:"smooth"});
+        }
+      }, 800);
+    });
+    return;
+  }
+  if(act === "dismiss-data-still"){
+    // user insists on adding data — log a neutral entry, exit card
+    exitCard(id);
+    setTimeout(()=>{
+      prependTimeline({ time:"just now", text:`flagged "wants to add more tickets" — i'll surface this if column work stalls`, delta:"noted", neutral:true });
+    }, 320);
+    return;
+  }
+  if(act === "add-example"){
+    exitCard(id);
+    setTimeout(()=>{
+      prependTimeline({ time:"just now", text:`opened the example-ticket composer`, delta:"+0 tickets", neutral:true });
+    }, 320);
+    return;
+  }
+}
+
+// the signature retrain — must be the centerpiece animation
+function runSignatureRetrain(cardId){
+  // 1. card exits
+  exitCard(cardId);
+  // 2. pill flips to retraining (after card has begun exiting)
+  setTimeout(()=> setPill("retrain"), 320);
+  // 3. pause ~2.5s
+  setTimeout(()=>{
+    // 4. pill back to ready
+    setPill("ready");
+    $("#retrainedCaption").textContent = "retrained just now · v2";
+    $("#versionTxt").textContent = "v2";
+
+    // 5. flip example 4 cell: rust -> sage. Animate $3,100 -> $7,400 and
+    //    swap "63% under" line for "within ±20%" line.
+    const cell = $(`.cell[data-idx="3"]`);
+    if(cell){
+      // background/border transition is handled by .cell base transition
+      cell.classList.remove("cell--fail");
+      animatePredictedValue(cell, 3100, 7400);
+      const status = cell.querySelector(".cell-status");
+      if(status){
+        // fade out "% under" line, then fade in "within ±20%" line below
+        status.style.opacity = "0";
+        setTimeout(()=>{
+          status.innerHTML = `${sageCheck()}<span>within ±20%</span>`;
+          status.style.opacity = "1";
+        }, 320);
+      }
+    }
+
+    // 6. hero pass-rate 3 -> 4 with flip
+    flipPassNumber(3, 4);
+
+    // 7. sparkline new point
+    setTimeout(()=>{
+      renderSparkline([3,3,4], true);
+    }, 200);
+
+    // 8. timeline new entry
+    setTimeout(()=>{
+      prependTimeline({
+        time:"just now",
+        text:`combined <code>urgency</code> × <code>service_type</code> as a feature`,
+        delta:"+1 ticket within band ↑",
+      });
+    }, 600);
+
+    // After this retrain, surface a follow-up suggestion
+    setTimeout(()=>{
+      // change url state to active without re-rendering full feed
+      currentState = "active";
+      document.body.dataset.state = "active";
+      setHash("active");
+      $$(".switcher-btn").forEach(b => b.classList.toggle("active", b.dataset.go === "active"));
+    }, 1000);
+  }, 2800);
+}
+
+function animatePredictedValue(cell, from, to){
+  const span = cell.querySelector('[data-role="pred"]');
+  if(!span) return;
+  // wrap in a flip box with the current value, then slide in the new one
+  span.classList.add("pred-flip");
+  span.innerHTML = `<span class="cur">${fmtUSD(from)}</span>`;
+  setTimeout(()=>{
+    const incoming = document.createElement("span");
+    incoming.textContent = fmtUSD(to);
+    incoming.className = "in-from-below";
+    span.appendChild(incoming);
+    const cur = span.querySelector(".cur");
+    requestAnimationFrame(()=>{
+      cur.classList.add("out");
+      requestAnimationFrame(()=>incoming.classList.remove("in-from-below"));
+    });
+    setTimeout(()=>{
+      span.classList.remove("pred-flip");
+      span.innerHTML = fmtUSD(to);
+    }, 480);
+  }, 80);
+}
+
+function flipPassNumber(from, to){
+  const el = $("#passNum");
+  if(!el) return;
+  // wrap in a flipping container
+  const flipBox = document.createElement("span");
+  flipBox.className = "accent num-flip";
+  flipBox.style.cssText = "font-style:italic;color:var(--sage-deep)";
+  flipBox.innerHTML = `<span class="cur">${from}</span>`;
+  el.replaceWith(flipBox);
+
+  setTimeout(()=>{
+    const incoming = document.createElement("span");
+    incoming.textContent = String(to);
+    incoming.className = "in-from-below";
+    incoming.style.cssText = "color:var(--sage-deep)";
+    flipBox.appendChild(incoming);
+    const cur = flipBox.querySelector(".cur");
+    requestAnimationFrame(()=>{
+      cur.classList.add("out");
+      requestAnimationFrame(()=>{
+        incoming.classList.remove("in-from-below");
+      });
+    });
+    setTimeout(()=>{
+      // settle to a normal span#passNum
+      const settled = document.createElement("span");
+      settled.id = "passNum";
+      settled.className = "accent";
+      settled.textContent = String(to);
+      settled.style.fontStyle = "italic";
+      flipBox.replaceWith(settled);
+    }, 500);
+  }, 100);
+}
+
+function runMiniRetrain(after){
+  setPill("retrain");
+  setTimeout(()=>{
+    setPill("ready");
+    if(after) after();
+  }, 1600);
+}
+
+// add-more-data counter ------------------------------------------------
+function triggerAddMoreDataCounter(question){
+  // already in inbox? skip
+  if($(`.card[data-id="sug-about-data"]`)) return;
+  // type the user's q into composer if not already; clear input
+  const composer = $("#composerInput");
+  composer.value = "";
+  autoResize(composer);
+
+  // surface the amber card at top
+  const cardEl = makeCard(ABOUT_DATA_CARD);
+  cardEl.classList.add("card--amber-pull");
+  const feed = $("#feed");
+  feed.insertBefore(cardEl, feed.firstChild);
+  feed.scrollTo({top:0, behavior:"smooth"});
+
+  // also write the user's question as a tiny passive note above
+  // (light, unobtrusive — preserves their phrasing in italics)
+  const note = document.createElement("div");
+  note.style.cssText = "font-size:11px;color:var(--ink-3);padding:0 4px 4px;font-style:italic";
+  note.textContent = `you · ${question}`;
+  feed.insertBefore(note, cardEl);
+  setTimeout(()=>{ note.style.transition="opacity 800ms ease-out 6s"; note.style.opacity="0" }, 50);
+
+  // route to data-trap state
+  currentState = "data-trap";
+  document.body.dataset.state = "data-trap";
+  setHash("data-trap");
+  $$(".switcher-btn").forEach(b => b.classList.toggle("active", b.dataset.go === "data-trap"));
+}
+
+// ---------------------------------------------------------------------
+// Edit modal — click any test cell to open a modal with description /
+// predicted / expected. Saving recomputes within-band, updates the cell,
+// and flips the hero n/5 if the pass count changed.
+// ---------------------------------------------------------------------
+let editingIdx = null;
+let lastFocusBeforeModal = null;
+
+function openEditModal(idx){
+  if(editingIdx !== null) return;
+  if(currentState === "empty" || currentState === "locked") return;
+  if(!livePreds) return;
+
+  editingIdx = idx;
+  lastFocusBeforeModal = document.activeElement;
+  const ex = CANON_EXAMPLES[idx];
+  const pred = livePreds[idx].predicted;
+
+  $("#editModalEyebrow").textContent = `test 0${ex.n}`;
+  $("#editDesc").value = ex.desc;
+  $("#editPred").value = String(pred);
+  $("#editExp").value  = String(ex.expected);
+
+  const modal = $("#editModal");
+  modal.hidden = false;
+  // next frame for transition
+  requestAnimationFrame(()=>modal.classList.add("show"));
+
+  // focus the description after the transition starts
+  setTimeout(()=>{
+    const ta = $("#editDesc");
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }, 60);
+}
+
+function closeEditModal(save){
+  if(editingIdx === null) return;
+  const idx = editingIdx;
+  const cell = $(`.cell[data-idx="${idx}"]`);
+
+  if(save && cell){
+    const desc    = $("#editDesc").value.trim() || CANON_EXAMPLES[idx].desc;
+    const predRaw = $("#editPred").value.replace(/[$,\s]/g,"");
+    const expRaw  = $("#editExp").value.replace(/[$,\s]/g,"");
+    const predNum = Number(predRaw);
+    const expNum  = Number(expRaw);
+    if(Number.isFinite(predNum) && predNum >= 0) livePreds[idx].predicted = predNum;
+    if(Number.isFinite(expNum)  && expNum  >  0) CANON_EXAMPLES[idx].expected = expNum;
+    CANON_EXAMPLES[idx].desc = desc;
+  }
+
+  const passCountBefore = Number($("#passNum") ? $("#passNum").textContent : "0");
+  editingIdx = null;
+
+  // close the modal
+  const modal = $("#editModal");
+  modal.classList.remove("show");
+  setTimeout(()=>{ modal.hidden = true; }, 200);
+
+  if(!cell){
+    if(lastFocusBeforeModal && lastFocusBeforeModal.focus) lastFocusBeforeModal.focus();
+    return;
+  }
+
+  // re-render the cell from updated state
+  const ex = CANON_EXAMPLES[idx];
+  const p  = withBand(livePreds)[idx];
+  cell.classList.toggle("cell--fail", !p.pass);
+  cell.innerHTML = cellInnerHTML(ex, p);
+
+  if(save){
+    const passCountAfter = withBand(livePreds).filter(x=>x.pass).length;
+    if(passCountAfter !== passCountBefore){
+      flipPassNumber(passCountBefore, passCountAfter);
+      const diff = passCountAfter - passCountBefore;
+      const word = Math.abs(diff) === 1 ? "ticket" : "tickets";
+      prependTimeline({
+        time:"just now",
+        text:`edited <code>test 0${ex.n}</code>`,
+        delta: (diff > 0 ? "+" : "") + diff + " " + word + " within band",
+        neutral: diff <= 0,
+      });
+    } else {
+      prependTimeline({
+        time:"just now",
+        text:`edited <code>test 0${ex.n}</code>`,
+        delta:"noted",
+        neutral:true,
+      });
+    }
+  }
+
+  // restore focus to the cell that opened the modal
+  cell.focus();
+}
+
+// ---------------------------------------------------------------------
+// Wire-up
+// ---------------------------------------------------------------------
+document.addEventListener("click", (e)=>{
+  // info-glyph tooltip — tap toggles on touch devices; hover handles desktop
+  const info = e.target.closest(".info-trigger");
+  if(info){
+    $$(".info-trigger.show").forEach(el => { if(el !== info) el.classList.remove("show"); });
+    info.classList.toggle("show");
+    e.stopPropagation();
+    return;
+  }
+  $$(".info-trigger.show").forEach(el => el.classList.remove("show"));
+
+  // hero "use this version" → confirm popover → #locked
+  const shipAct = e.target.closest("[data-ship-act]");
+  if(shipAct){
+    e.preventDefault();
+    e.stopPropagation();
+    const pop = $("#shipPop");
+    const btn = $("#shipBtn");
+    const act = shipAct.dataset.shipAct;
+    if(act === "open"){
+      // populate with current numbers
+      const n = ($("#passNum") && $("#passNum").textContent) || "?";
+      const v = ($("#versionTxt") && $("#versionTxt").textContent) || "v?";
+      $("#shipPopText").innerHTML = `ship <strong>${v}</strong> with <strong>${n}/5</strong> within band?`;
+      const isOpen = pop.classList.toggle("show");
+      btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    } else if(act === "cancel"){
+      pop.classList.remove("show");
+      btn.setAttribute("aria-expanded", "false");
+    } else if(act === "confirm"){
+      pop.classList.remove("show");
+      btn.setAttribute("aria-expanded", "false");
+      gotoState("locked");
+    }
+    return;
+  }
+  // click outside the popover closes it
+  if(!e.target.closest("#shipPop") && !e.target.closest("#shipBtn")){
+    const pop = $("#shipPop");
+    if(pop && pop.classList.contains("show")){
+      pop.classList.remove("show");
+      const btn = $("#shipBtn");
+      if(btn) btn.setAttribute("aria-expanded","false");
+    }
+  }
+
+  // orientation card actions (initial state)
+  const orientAct = e.target.closest("[data-orient-act]");
+  if(orientAct){
+    e.preventDefault();
+    const act = orientAct.dataset.orientAct;
+    if(act === "use-col"){
+      const col = orientAct.dataset.col;
+      orientCollapse();
+      setTimeout(()=>runColumnRetrain(col), 270);
+      return;
+    }
+    if(act === "use-examples"){
+      if(orientAct.hasAttribute("disabled")) return;
+      const cbs = $$('input[data-ex-checkbox]');
+      const checked = cbs.map((cb,i)=> cb.checked ? i : -1).filter(i=>i>=0);
+      if(checked.length !== 5) return;
+      orientCollapse();
+      setTimeout(()=>runExampleSwap(checked), 270);
+      return;
+    }
+    handleOrientAction(act);
+    return;
+  }
+
+  // modal action buttons
+  const modalAct = e.target.closest("[data-modal-act]");
+  if(modalAct){
+    e.preventDefault();
+    closeEditModal(modalAct.dataset.modalAct === "save");
+    return;
+  }
+
+  // click on the modal backdrop (outside the modal panel) cancels
+  if(editingIdx !== null && e.target.id === "editModal"){
+    closeEditModal(false);
+    return;
+  }
+
+  // click on a test cell -> open modal
+  const cell = e.target.closest(".cell[data-idx]");
+  if(cell){
+    openEditModal(Number(cell.dataset.idx));
+    return;
+  }
+
+  const sw = e.target.closest(".switcher-btn");
+  if(sw){ gotoState(sw.dataset.go); return; }
+
+  const tab = e.target.closest(".tab");
+  if(tab){
+    $$('.tab').forEach(t => t.setAttribute("aria-selected", t === tab ? "true" : "false"));
+    if(tab.dataset.tab === "history"){ renderHistoryFeed() }
+    else { /* re-render for-you for current state */
+      if(currentState === "initial") renderFeed([ORIENTATION_CARD]);
+      else if(currentState === "baseline") renderFeed(BASELINE_CARDS);
+      else if(currentState === "active") renderFeed([ BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+      else if(currentState === "data-trap") renderFeed([ ABOUT_DATA_CARD, BASELINE_CARDS[2], BASELINE_CARDS[3] ]);
+    }
+    return;
+  }
+
+  const action = e.target.closest("[data-act]");
+  if(action){
+    handleAction(action.dataset.act, action.dataset.id);
+    return;
+  }
+
+  // empty state — invite or sample
+  if(e.target.closest("#useSample") || e.target.closest("#invite")){
+    runUploadFlow();
+    return;
+  }
+});
+
+document.addEventListener("keydown", (e)=>{
+  // close any open info tooltip + ship popover on Esc
+  if(e.key === "Escape"){
+    const open = $$(".info-trigger.show");
+    if(open.length){ open.forEach(el => el.classList.remove("show")); }
+    const pop = $("#shipPop");
+    if(pop && pop.classList.contains("show")){
+      pop.classList.remove("show");
+      const btn = $("#shipBtn");
+      if(btn) btn.setAttribute("aria-expanded","false");
+    }
+  }
+  // modal keys: Esc cancels, Enter (without Shift) saves
+  if(editingIdx !== null){
+    if(e.key === "Escape"){ closeEditModal(false); e.preventDefault(); return; }
+    if(e.key === "Enter" && !e.shiftKey){
+      // allow Shift+Enter for newline in textarea; plain Enter saves
+      if(e.target && e.target.id === "editDesc" && e.shiftKey) return;
+      closeEditModal(true);
+      e.preventDefault();
+      return;
+    }
+    return; // suppress other shortcuts while modal is open
+  }
+
+  // keyboard activation of focused test cell
+  if((e.key === "Enter" || e.key === " ") && e.target && e.target.classList && e.target.classList.contains("cell") && e.target.dataset.idx !== undefined){
+    openEditModal(Number(e.target.dataset.idx));
+    e.preventDefault();
+    return;
+  }
+
+  if(e.key === "d" || e.key === "D"){
+    if(e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")) return;
+    const sw = $("#switcher");
+    sw.classList.toggle("hidden");
+    window.__glamliDev = !sw.classList.contains("hidden");
+    e.preventDefault();
+  }
+});
+
+// composer
+const composer = $("#composerInput");
+composer.addEventListener("input", ()=>autoResize(composer));
+composer.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    const v = composer.value.trim();
+    if(!v) return;
+    if(/data|more rows|bigger dataset|more samples|more tickets|more jobs|more history/i.test(v)){
+      triggerAddMoreDataCounter(v);
+    } else {
+      // generic acknowledgement: prepend a small note to feed, mark in timeline
+      const note = document.createElement("div");
+      note.style.cssText = "font-size:11px;color:var(--ink-3);padding:0 4px 4px;font-style:italic";
+      note.textContent = `you · ${v}`;
+      const feed = $("#feed");
+      feed.insertBefore(note, feed.firstChild);
+      feed.scrollTo({top:0, behavior:"smooth"});
+      composer.value = "";
+      autoResize(composer);
+      setTimeout(()=>{ note.style.transition="opacity 800ms ease-out 4s"; note.style.opacity="0" }, 50);
+    }
+  }
+});
+
+$("#composerSend").addEventListener("click", ()=>{
+  const ev = new KeyboardEvent("keydown", {key:"Enter"});
+  composer.dispatchEvent(ev);
+});
+
+// upload flow from empty -> initial
+function runUploadFlow(){
+  const bar = $("#parseBar");
+  bar.classList.add("show");
+  const inner = bar.querySelector("i");
+  requestAnimationFrame(()=>{ inner.style.width = "100%"; });
+  setTimeout(()=>{
+    // transition to initial (orientation card visible, model already trained)
+    gotoState("initial");
+    setPill("retrain");
+    const cells = $$(".cell");
+    cells.forEach((c)=>{
+      c.style.opacity = "0";
+      c.style.transform = "translateY(6px)";
+    });
+    setTimeout(()=>{
+      cells.forEach((c, i)=>{
+        setTimeout(()=>{
+          c.style.transition = "opacity 300ms ease-out, transform 300ms ease-out";
+          c.style.opacity = "1";
+          c.style.transform = "translateY(0)";
+        }, i * 120);
+      });
+      renderSparkline(SPARK_BASELINE, true);
+      setTimeout(()=>setPill("ready"), 1600);
+    }, 200);
+    bar.classList.remove("show");
+    inner.style.width = "0%";
+  }, 900);
+}
+
+// ---------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------
+function boot(){
+  const initial = (location.hash || "#empty").replace("#","");
+  gotoState(STATES.includes(initial) ? initial : "empty");
+}
+window.addEventListener("hashchange", ()=>{
+  const target = (location.hash || "#empty").replace("#","");
+  if(target !== currentState) gotoState(STATES.includes(target) ? target : "empty");
+});
+boot();
+</script>
+
+</body>
+</html>
