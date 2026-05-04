@@ -156,21 +156,6 @@
         </li>
 
         <li>
-          <a class="title" href="glamli_examples/glamli_examples.html">GLAMLI / examples</a>
-          <span class="slug">glamli_examples/</span>
-          <p>An example-driven flow where the user drops a CSV and teaches the model by labelling three to five rows. The system predicts the rest and surfaces the cases that didn't match cleanly.</p>
-          <dl>
-            <dt>Scenario</dt>
-            <dd>Same churn dataset (7,043 rows · 21 columns). Instead of picking a target column, the user describes a few real customers in plain prose — <em>"a customer on a month-to-month plan paying about $90/month"</em> — and labels each as <em>will churn</em> or <em>will stay</em>. The system maps the descriptions to columns, trains, and reports which of the user's own examples it got right.</dd>
-            <dt>Idea</dt>
-            <dd>Teach by example, not by schema. The user never has to know the column names; the LLM grounds their language in the data and uses the examples both as training signal and as the test the model must pass.</dd>
-          </dl>
-          <div class="extras">
-            <a href="glamli_examples/glamli_examples.html">→ open prototype</a>
-          </div>
-        </li>
-
-        <li>
           <a class="title" href="glamli_live/glamli_live.html">GLAMLI / live</a>
           <span class="slug">glamli_live/</span>
           <p>A two-pane workspace where the model is always running. Every edit produces a visible delta on the live model — pass-rate, sparkline, and test cells update as the user works. Refuses the configuration-first metaphor.</p>
@@ -190,6 +175,21 @@
           <div class="extras">
             <a href="glamli_live/glamli_live.html">→ classification (customer churn)</a>
             <a href="glamli_live/glamli_live_regression.html">→ regression (service-ticket value)</a>
+          </div>
+        </li>
+
+        <li>
+          <a class="title" href="glamli_examples/glamli_examples.html">GLAMLI / examples</a>
+          <span class="slug">glamli_examples/</span>
+          <p>An example-driven flow where the user drops a CSV and teaches the model by labelling three to five rows. The system predicts the rest and surfaces the cases that didn't match cleanly.</p>
+          <dl>
+            <dt>Scenario</dt>
+            <dd>Same churn dataset (7,043 rows · 21 columns). Instead of picking a target column, the user describes a few real customers in plain prose — <em>"a customer on a month-to-month plan paying about $90/month"</em> — and labels each as <em>will churn</em> or <em>will stay</em>. The system maps the descriptions to columns, trains, and reports which of the user's own examples it got right.</dd>
+            <dt>Idea</dt>
+            <dd>Teach by example, not by schema. The user never has to know the column names; the LLM grounds their language in the data and uses the examples both as training signal and as the test the model must pass.</dd>
+          </dl>
+          <div class="extras">
+            <a href="glamli_examples/glamli_examples.html">→ open prototype</a>
           </div>
         </li>
       </ul>
