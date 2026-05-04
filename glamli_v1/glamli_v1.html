@@ -1,0 +1,1861 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GLAMLI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ee;
+    --bg-elev: #fbf9f4;
+    --surface: #ffffff;
+    --surface-2: #f1ede5;
+    --border: #e6e0d4;
+    --border-strong: #d8d0bf;
+    --text: #2a2825;
+    --text-2: #6b6760;
+    --text-3: #9a9388;
+    --accent: #6f8a6a;
+    --accent-soft: #e3ebde;
+    --accent-ink: #43583f;
+    --warn: #b8763a;
+    --danger: #b65a4f;
+    --good: #6f8a6a;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 0 rgba(40,30,15,.04), 0 1px 2px rgba(40,30,15,.04);
+    --shadow-md: 0 1px 0 rgba(40,30,15,.04), 0 4px 14px rgba(40,30,15,.06);
+    --pad: 20px;
+    --gap: 16px;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Source Serif 4', Georgia, serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #1a1916;
+    --bg-elev: #211f1b;
+    --surface: #26241f;
+    --surface-2: #2e2b25;
+    --border: #36322b;
+    --border-strong: #44403a;
+    --text: #ebe7df;
+    --text-2: #a8a297;
+    --text-3: #75716a;
+    --accent-soft: #2d3a2a;
+    --accent-ink: #b6c8b1;
+  }
+  [data-density="compact"] {
+    --pad: 14px;
+    --gap: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  #root { height: 100vh; }
+  button { font-family: inherit; font-size: inherit; cursor: pointer; }
+  input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 12px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn-primary {
+    background: var(--accent);
+    color: #fbf9f4;
+    border-color: transparent;
+  }
+  .btn-primary:hover { background: var(--accent-ink); }
+  .btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-2);
+  }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+  .btn-sm { height: 26px; padding: 0 9px; font-size: 12.5px; border-radius: 7px; }
+  .btn-icon {
+    width: 30px; height: 30px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+  }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .panel {
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    min-width: 0;
+    height: 100%;
+  }
+  .panel:last-child { border-right: none; }
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .panel-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+  .panel-body {
+    flex: 1; min-height: 0; overflow: auto;
+  }
+
+  .app-shell {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100% - 48px);
+  }
+  @media (max-width: 1280px) {
+    .app-shell { grid-template-columns: 280px 1fr; }
+  }
+  .view-toggle {
+    display: inline-flex;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .view-toggle button {
+    border: none; background: transparent;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-2);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .view-toggle button.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+  .view-toggle button:hover:not(.active) { color: var(--text); }
+  .view-header {
+    height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+    position: relative;
+  }
+  .view-header-meta {
+    position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+    font-size: 12px; color: var(--text-3);
+  }
+
+  .topbar {
+    height: 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; letter-spacing: -.01em;
+  }
+  .brand-mark {
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fbf9f4;
+    font-size: 11px; font-weight: 700;
+    font-family: var(--font-serif);
+  }
+  .topbar-meta { font-size: 12.5px; color: var(--text-2); display: flex; gap: 14px; align-items: center; }
+
+  .chat-feed { padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+  .msg { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+  .msg-meta { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+  .msg-bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    line-height: 1.6;
+    font-size: 13.5px;
+  }
+  .msg-bubble p { margin: 0 0 8px; }
+  .msg-bubble p:last-child { margin: 0; }
+  .msg-bubble strong { color: var(--text); font-weight: 600; }
+  .msg-bubble code, .msg-bubble .ref {
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent-ink);
+  }
+  .msg.user .msg-bubble {
+    background: transparent;
+    border-color: transparent;
+    padding: 0;
+    color: var(--text-2);
+    font-style: italic;
+  }
+  .msg.user .msg-meta { color: var(--text-3); }
+  .typing-dot {
+    display: inline-block; width: 5px; height: 5px;
+    background: var(--text-3); border-radius: 50%;
+    margin-right: 3px;
+    animation: blink 1.2s infinite ease-in-out;
+  }
+  .typing-dot:nth-child(2) { animation-delay: .15s; }
+  .typing-dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink { 0%,80%,100% { opacity: .25; } 40% { opacity: 1; } }
+
+  .composer {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+  .composer-box {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 10px 10px 8px 12px;
+    transition: border-color .15s;
+  }
+  .composer-box:focus-within { border-color: var(--accent); }
+  .composer textarea {
+    width: 100%; min-height: 40px; max-height: 140px;
+    border: none; outline: none; resize: none;
+    background: transparent;
+    font-size: 13.5px; line-height: 1.5;
+  }
+  .composer-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 6px;
+  }
+  .composer-tools { display: flex; gap: 4px; }
+
+  .workflow-body { padding: 28px 36px 60px; max-width: 760px; margin: 0 auto; }
+  .workflow-rail {
+    display: flex; gap: 4px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .rail-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: var(--text-2);
+    background: transparent;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .rail-item:hover:not(:disabled) { background: var(--surface-2); }
+  .rail-item:disabled { opacity: .45; cursor: not-allowed; }
+  .rail-item.active { background: var(--surface); border-color: var(--border); color: var(--text); font-weight: 500; }
+  .rail-item.complete .rail-num { background: var(--accent); color: #fbf9f4; border-color: transparent; }
+  .rail-num {
+    width: 20px; height: 20px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    font-size: 11px; font-weight: 600;
+    color: var(--text-2);
+  }
+  .rail-item.active .rail-num {
+    background: var(--text);
+    color: var(--bg-elev);
+    border-color: transparent;
+  }
+
+  .stage-eyebrow {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+  h1.stage-title {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.15;
+    letter-spacing: -.015em;
+    margin: 6px 0 6px;
+    color: var(--text);
+  }
+  .stage-lede {
+    color: var(--text-2);
+    font-size: 15px;
+    margin: 0 0 24px;
+    max-width: 60ch;
+    text-wrap: pretty;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .card-pad { padding: 18px 20px; }
+  .card-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-row:last-child { border-bottom: none; }
+
+  .dropzone {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    padding: 40px;
+    text-align: center;
+    transition: background .15s, border-color .15s;
+    cursor: pointer;
+  }
+  .dropzone:hover { background: var(--bg-elev); border-color: var(--accent); }
+  .dropzone.uploaded { border-style: solid; cursor: default; padding: 18px 22px; text-align: left; }
+
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface);
+  }
+  table.preview { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  table.preview th, table.preview td {
+    text-align: left; padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.preview th {
+    font-weight: 600; color: var(--text-2);
+    background: var(--bg-elev);
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em;
+  }
+  table.preview tbody tr:last-child td { border-bottom: none; }
+  table.preview tbody tr:hover { background: var(--bg-elev); }
+
+  .col-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+  }
+  .col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .col-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    padding: 2px 8px; border-radius: 5px;
+    display: inline-block;
+  }
+  .col-type { font-size: 11.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+  .assumption {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 0;
+    border-top: 1px dashed var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+  .assumption:first-of-type { border-top: none; }
+  .assumption .a-bullet { color: var(--text-3); flex-shrink: 0; line-height: 1.6; }
+  .assumption .a-text { flex: 1; line-height: 1.55; }
+  .assumption-edit { width: 100%; background: transparent; border: none; outline: none; resize: none; font-size: 13px; line-height: 1.55; padding: 0; }
+  .assumption-actions { opacity: 0; display: flex; gap: 2px; transition: opacity .15s; }
+  .assumption:hover .assumption-actions { opacity: 1; }
+
+  .spec-field {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .spec-field:last-child { border-bottom: none; }
+  .spec-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-weight: 600; margin-bottom: 4px; }
+  .spec-value {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 8px; margin: -6px -8px;
+    width: calc(100% + 16px);
+    font-size: 13.5px; color: var(--text);
+    line-height: 1.5;
+    resize: none;
+  }
+  .spec-value:hover { border-color: var(--border); background: var(--bg-elev); }
+  .spec-value:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+
+  .progress-track { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); transition: width .4s ease; }
+
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 10px 14px;
+    border: none; background: transparent;
+    color: var(--text-2);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 11.5px; font-weight: 500;
+    background: var(--surface-2);
+    color: var(--text-2);
+  }
+  .pill.good { background: var(--accent-soft); color: var(--accent-ink); }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .skel { background: linear-gradient(90deg, var(--surface-2), var(--bg-elev), var(--surface-2)); background-size: 200% 100%; animation: skel 1.6s linear infinite; border-radius: 5px; }
+  @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .flow-canvas {
+    flex: 1;
+    position: relative;
+    background:
+      radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 1px) 0 0/22px 22px,
+      var(--bg);
+    overflow: hidden;
+  }
+  .flow-svg { position: absolute; inset: 0; pointer-events: none; }
+  .node {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 10px 12px;
+    width: 152px;
+    box-shadow: var(--shadow-sm);
+    font-size: 12px;
+    cursor: grab;
+    user-select: none;
+  }
+  .node:active { cursor: grabbing; }
+  .node-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-3);
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .node-name { font-family: var(--font-mono); color: var(--accent-ink); font-size: 11.5px; font-weight: 500; }
+  .node-value { font-size: 13px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+  .node-input input {
+    width: 100%;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 12.5px;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .node-input input:focus { border-color: var(--accent); }
+  .node.model {
+    width: 168px;
+    background: var(--surface);
+    text-align: center;
+    border: 1.5px solid var(--border-strong);
+  }
+  .node.model.lit {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .node.model.lit .node-name { color: var(--accent-ink); }
+  .node.output { background: var(--bg-elev); }
+  .node.output.predicted { background: var(--accent-soft); border-color: var(--accent); }
+  .node-handle {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: var(--surface);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 50%;
+    top: 50%; transform: translateY(-50%);
+  }
+  .node-handle.left { left: -5px; }
+  .node-handle.right { right: -5px; }
+
+  .case-tabs {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 4px; overflow-x: auto;
+    background: var(--bg-elev);
+  }
+  .case-tab {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 7px;
+    font-size: 12px;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+  .case-tab.active { background: var(--text); color: var(--bg-elev); border-color: transparent; }
+  .case-tab.add { border-style: dashed; color: var(--text-3); background: transparent; }
+
+  .loading-stage { text-align: center; padding: 40px 20px; }
+  .loader {
+    width: 56px; height: 56px;
+    margin: 0 auto 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-line {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-2);
+    margin-bottom: 6px;
+  }
+  .status-line.done { color: var(--text); }
+  .status-line.active { background: var(--accent-soft); color: var(--accent-ink); }
+  .status-icon { width: 16px; flex-shrink: 0; }
+
+  .plan-row {
+    display: grid;
+    grid-template-columns: 24px 1fr auto auto;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    align-items: center;
+  }
+  .plan-row:last-child { border-bottom: none; }
+  .plan-row.best { background: var(--accent-soft); }
+  .plan-name { font-family: var(--font-mono); font-size: 12.5px; }
+  .plan-score { font-variant-numeric: tabular-nums; font-weight: 500; }
+
+  .row { display: flex; gap: 8px; align-items: center; }
+  .col { display: flex; flex-direction: column; }
+  .grow { flex: 1; }
+  .muted { color: var(--text-2); }
+  .small { font-size: 12px; }
+  .mono { font-family: var(--font-mono); }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .kbd {
+    display: inline-block; font-family: var(--font-mono);
+    font-size: 11px; padding: 1px 5px;
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    color: var(--text-2);
+    background: var(--surface);
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; border: 2px solid var(--bg-elev); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+// ── Tweaks panel shell ────────────────────────────────────────────────────
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    background:rgba(250,249,247,.92);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(0,0,0,.08);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:pointer;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+  .twk-field{appearance:none;width:100%;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:pointer;padding:4px 6px;line-height:1.2}
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:pointer}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-fab{position:fixed;right:16px;bottom:16px;z-index:2147483645;
+    width:40px;height:40px;border-radius:50%;border:.5px solid rgba(0,0,0,.1);
+    background:rgba(250,249,247,.92);color:#29261b;cursor:pointer;
+    box-shadow:0 6px 20px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;
+    font-size:16px}
+  .twk-fab:hover{background:#fff}
+`;
+
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+  }, []);
+  return [values, setTweak];
+}
+
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  if (!open) {
+    return (
+      <>
+        <style>{__TWEAKS_STYLE}</style>
+        <button className="twk-fab" title="Tweaks" onClick={() => setOpen(true)}>⚙</button>
+      </>
+    );
+  }
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div className="twk-panel">
+        <div className="twk-hd">
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks" onClick={() => setOpen(false)}>✕</button>
+        </div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+function TweakSection({ title, children }) {
+  return (
+    <>
+      <div className="twk-sect">{title}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children }) {
+  return (
+    <div className="twk-row">
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+  return (
+    <TweakRow label={label}>
+      <div className="twk-seg" role="radiogroup">
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}
+                  onClick={() => onChange(o.value)}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakButton({ children, onClick }) {
+  return (
+    <button type="button" className="twk-btn" onClick={onClick}>{children}</button>
+  );
+}
+
+// ── Mock data ─────────────────────────────────────────────────────────────
+const DATASET = {
+  filename: 'customer_churn.csv',
+  size: '847 KB',
+  rows: 4271,
+  cols: 8,
+  blurb: "A customer subscription dataset with 4,271 rows and 8 columns. Each row represents one customer, including their tenure, monthly charges, contract type, and whether they churned. Looks like a binary classification problem.",
+  columns: [
+    { name: 'tenure_months', type: 'numeric' },
+    { name: 'monthly_charges', type: 'numeric' },
+    { name: 'contract_type', type: 'categorical' },
+    { name: 'payment_method', type: 'categorical' },
+    { name: 'support_tickets', type: 'numeric' },
+    { name: 'avg_session_min', type: 'numeric' },
+    { name: 'plan_tier', type: 'categorical' },
+    { name: 'churned', type: 'boolean' },
+  ],
+  preview: [
+    [14, 79.95, 'Month-to-month', 'Credit card', 3, 22.4, 'Standard', 'Yes'],
+    [62, 104.20, 'Two year', 'Bank transfer', 0, 41.7, 'Premium', 'No'],
+    [3, 49.50, 'Month-to-month', 'Mailed check', 5, 8.2, 'Basic', 'Yes'],
+    [38, 89.80, 'One year', 'Credit card', 1, 33.9, 'Standard', 'No'],
+    [27, 115.30, 'Two year', 'Credit card', 0, 52.1, 'Premium', 'No'],
+    [9, 62.40, 'Month-to-month', 'Electronic check', 4, 14.8, 'Basic', 'Yes'],
+    [49, 98.10, 'Two year', 'Bank transfer', 1, 38.6, 'Premium', 'No'],
+    [21, 71.20, 'One year', 'Credit card', 2, 26.3, 'Standard', 'No'],
+    [6, 54.80, 'Month-to-month', 'Mailed check', 6, 11.5, 'Basic', 'Yes'],
+    [55, 121.40, 'Two year', 'Bank transfer', 0, 47.9, 'Premium', 'No'],
+  ],
+};
+
+const INITIAL_ASSUMPTIONS = {
+  tenure_months: [
+    "How many months the customer has been subscribed.",
+    "Likely a strong predictor — long-tenured customers tend to stay.",
+  ],
+  monthly_charges: [
+    "What the customer pays per month, in dollars.",
+    "Higher charges may correlate with churn if value isn't perceived.",
+  ],
+  contract_type: [
+    "Length of the customer's contract commitment.",
+    "Month-to-month customers historically churn more than annual.",
+  ],
+  payment_method: [
+    "How the customer pays each cycle.",
+    "Electronic check users have shown higher churn in similar datasets.",
+  ],
+  support_tickets: [
+    "Number of support tickets opened in the last 90 days.",
+    "Frustration signal — many tickets often precedes churn.",
+  ],
+  avg_session_min: [
+    "Average minutes spent in-product per session.",
+    "Engagement proxy; lower values suggest disengagement.",
+  ],
+  plan_tier: [
+    "Subscription tier (Basic, Standard, Premium).",
+    "Premium users often have stickier usage patterns.",
+  ],
+  churned: [
+    "The target variable — did this customer cancel?",
+    "Yes/No outcome. This is what the model should predict.",
+  ],
+};
+
+const INITIAL_TEST_CASES = [
+  {
+    id: 1,
+    name: 'Long-tenured, low charges',
+    inputs: { tenure_months: 48, monthly_charges: 65, contract_type: 'Two year', support_tickets: 0, avg_session_min: 38 },
+    expected: 'No', predicted: null, confidence: null,
+  },
+  {
+    id: 2,
+    name: 'New customer, many tickets',
+    inputs: { tenure_months: 4, monthly_charges: 88, contract_type: 'Month-to-month', support_tickets: 5, avg_session_min: 9 },
+    expected: 'Yes', predicted: null, confidence: null,
+  },
+  {
+    id: 3,
+    name: 'Premium, mid-tenure',
+    inputs: { tenure_months: 18, monthly_charges: 110, contract_type: 'One year', support_tickets: 1, avg_session_min: 31 },
+    expected: 'No', predicted: null, confidence: null,
+  },
+];
+
+const INITIAL_SPEC = {
+  task_type: 'Binary classification',
+  input_description: '7 customer features: tenure (months), monthly charges (USD), contract type, payment method, support tickets in last 90 days, average session length, and plan tier.',
+  output_description: 'A single label predicting whether the customer will churn within the next billing cycle. Values: "Yes" or "No".',
+  objective: 'Predict customer churn before it happens, so the retention team can prioritize outreach to at-risk accounts.',
+  metric: 'F1-score on the "churned = Yes" class — balances precision and recall, suitable given class imbalance (~26% positive rate).',
+};
+
+const AUTOML_STEPS = [
+  { label: 'Profiling data and detecting types', t: 1200 },
+  { label: 'Generating data preparation plan', t: 1600 },
+  { label: 'Training candidate models', t: 3500 },
+  { label: 'Hyperparameter optimization (32 trials)', t: 3000 },
+  { label: 'Evaluating on hold-out set', t: 1400 },
+  { label: 'Selecting best model', t: 800 },
+];
+
+const MODEL_PLANS = [
+  { name: 'GradientBoostingClassifier', score: 0.847, time: '12s', best: true },
+  { name: 'RandomForestClassifier', score: 0.831, time: '8s' },
+  { name: 'XGBoostClassifier', score: 0.829, time: '14s' },
+  { name: 'LogisticRegression', score: 0.792, time: '2s' },
+  { name: 'LightGBMClassifier', score: 0.838, time: '9s' },
+  { name: 'KNeighborsClassifier', score: 0.741, time: '4s' },
+];
+
+// ── Icons ─────────────────────────────────────────────────────────────────
+const Icon = ({ name, size = 16, ...rest }) => {
+  const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', ...rest };
+  switch (name) {
+    case 'send': return <svg {...props}><path d="M5 12h14M13 6l6 6-6 6"/></svg>;
+    case 'paperclip': return <svg {...props}><path d="M21 11l-9 9a5 5 0 1 1-7-7l9-9a3.5 3.5 0 1 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg>;
+    case 'plus': return <svg {...props}><path d="M12 5v14M5 12h14"/></svg>;
+    case 'check': return <svg {...props}><path d="M5 12l5 5L20 7"/></svg>;
+    case 'x': return <svg {...props}><path d="M6 6l12 12M6 18L18 6"/></svg>;
+    case 'edit': return <svg {...props}><path d="M3 21l3-1 11-11-2-2L4 18l-1 3z"/><path d="M14 7l3 3"/></svg>;
+    case 'trash': return <svg {...props}><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>;
+    case 'download': return <svg {...props}><path d="M12 4v12M6 12l6 6 6-6M4 20h16"/></svg>;
+    case 'sparkle': return <svg {...props}><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3zM19 14l.7 1.8L21.5 16.5l-1.8.7L19 19l-.7-1.8L16.5 16.5l1.8-.7L19 14z"/></svg>;
+    case 'play': return <svg {...props}><path d="M7 4l13 8-13 8z"/></svg>;
+    case 'arrow-right': return <svg {...props}><path d="M5 12h14M13 6l6 6-6 6"/></svg>;
+    case 'arrow-up': return <svg {...props}><path d="M12 19V5M6 11l6-6 6 6"/></svg>;
+    case 'flask': return <svg {...props}><path d="M9 3h6M10 3v5L4 19a2 2 0 0 0 1.7 3h12.6A2 2 0 0 0 20 19l-6-11V3"/><path d="M7 14h10"/></svg>;
+    case 'database': return <svg {...props}><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>;
+    case 'lightbulb': return <svg {...props}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.5c.6.6 1 1.5 1 2.5h6c0-1 .4-1.9 1-2.5A7 7 0 0 0 12 2z"/></svg>;
+    case 'cpu': return <svg {...props}><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>;
+    case 'document': return <svg {...props}><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13h6M9 17h6"/></svg>;
+    case 'sliders': return <svg {...props}><path d="M4 6h12M20 6h0M4 12h6M14 12h6M4 18h12M20 18h0"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>;
+    case 'refresh': return <svg {...props}><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M3 21v-5h5"/></svg>;
+    case 'circle': return <svg {...props}><circle cx="12" cy="12" r="9"/></svg>;
+    case 'circle-dot': return <svg {...props}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>;
+    default: return null;
+  }
+};
+
+// ── Chat panel ────────────────────────────────────────────────────────────
+const STAGE_INTROS = {
+  1: [{ who: 'assistant', text: "Hi! I'm here to help you build a machine-learning model — no code required. Let's start by getting your data in.\n\nDrop a CSV file into the **Data Upload** card on your right, or pick one of the samples. I'll take a quick look and tell you what I see." }],
+  2: [{ who: 'assistant', text: "Nice — I've parsed `customer_churn.csv`. 4,271 rows across 8 columns.\n\nNow here's where your expertise matters more than mine. For each column, I've drafted a couple of plain-language assumptions about what it means and why it matters. **Read through them, edit anything that's wrong, delete what doesn't apply, and add anything I missed.** The more accurate this is, the better the model behind the scenes." }],
+  3: [{ who: 'assistant', text: "Great — your domain knowledge is captured. Now, instead of asking you to define an ML objective in technical terms (which is hard!), I'd like you to give me **examples**.\n\nThink of it like teaching by demonstration: *\"For this kind of customer, I'd expect the model to predict X.\"* Add at least 2 test cases on the right side. You can edit values directly on the flowchart." }],
+  4: [{ who: 'assistant', text: "Perfect, that's enough to work with. Based on your assumptions and test cases, I've drafted a formal ML specification.\n\n**Review it carefully** — every field is editable. When it looks right, hit **Confirm & Run** and I'll start training models." }],
+  5: [{ who: 'assistant', text: "Training in progress. This usually takes 1–2 minutes. You can watch the **Overview** tab for a friendly status, or peek at **Advanced** to see the full optimization history.\n\nWhen it's done, you'll get a **Test it Out!** button — clicking it will run your test cases through the trained model and show predictions right next to your expected values." }],
+};
+
+function ChatPanel({ stage, messages, onSend, streaming }) {
+  const [draft, setDraft] = React.useState('');
+  const feedRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
+  }, [messages, streaming]);
+
+  const send = () => {
+    if (!draft.trim()) return;
+    onSend(draft.trim());
+    setDraft('');
+  };
+
+  return (
+    <aside className="panel" aria-label="Chat assistant">
+      <div className="panel-header">
+        <div className="row" style={{ gap: 10 }}>
+          <div className="brand-mark" style={{ width: 24, height: 24 }}>G</div>
+          <div className="col">
+            <div style={{ fontWeight: 600, fontSize: 13.5 }}>Assistant</div>
+            <div className="small muted">Stage {stage} of 5</div>
+          </div>
+        </div>
+        <button className="btn btn-ghost btn-icon" title="New conversation">
+          <Icon name="refresh" size={15} />
+        </button>
+      </div>
+      <div className="panel-body" ref={feedRef}>
+        <div className="chat-feed">
+          {messages.map((m, i) => (
+            <Message key={i} msg={m} streaming={streaming && i === messages.length - 1 && m.who === 'assistant'} />
+          ))}
+        </div>
+      </div>
+      <div className="composer">
+        <div className="composer-box">
+          <textarea
+            placeholder={'Ask anything — for example, “why F1-score?”'}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            rows={1}
+          />
+          <div className="composer-row">
+            <div className="composer-tools">
+              <button className="btn btn-ghost btn-icon btn-sm" title="Attach file"><Icon name="paperclip" size={14}/></button>
+            </div>
+            <button
+              className={"btn btn-icon btn-sm " + (draft.trim() ? "btn-primary" : "")}
+              disabled={!draft.trim()}
+              onClick={send}
+              title="Send (Enter)"
+            >
+              <Icon name="arrow-up" size={14}/>
+            </button>
+          </div>
+        </div>
+        <div className="row small muted" style={{ justifyContent: 'space-between', marginTop: 8, padding: '0 4px' }}>
+          <span>Press <span className="kbd">Enter</span> to send</span>
+          <span>Synced with workflow</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function Message({ msg, streaming }) {
+  const render = (text) => {
+    return text.split('\n\n').map((para, pi) => {
+      const parts = [];
+      let key = 0;
+      const re = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
+      let m, last = 0;
+      while ((m = re.exec(para)) !== null) {
+        if (m.index > last) parts.push(para.slice(last, m.index));
+        const tok = m[0];
+        if (tok.startsWith('**')) parts.push(<strong key={'k'+(key++)}>{tok.slice(2, -2)}</strong>);
+        else if (tok.startsWith('`')) parts.push(<code key={'k'+(key++)}>{tok.slice(1, -1)}</code>);
+        else parts.push(<em key={'k'+(key++)}>{tok.slice(1, -1)}</em>);
+        last = m.index + tok.length;
+      }
+      if (last < para.length) parts.push(para.slice(last));
+      return <p key={pi}>{parts}</p>;
+    });
+  };
+
+  return (
+    <div className={"msg " + msg.who}>
+      <div className="msg-meta">
+        {msg.who === 'assistant' ? <span style={{ fontWeight: 600, color: 'var(--text)' }}>GLAMLI</span> : <span>You</span>}
+        {msg.t && <span>· {msg.t}</span>}
+      </div>
+      <div className="msg-bubble">
+        {streaming && !msg.text ? (
+          <span><span className="typing-dot"></span><span className="typing-dot"></span><span className="typing-dot"></span></span>
+        ) : render(msg.text)}
+      </div>
+    </div>
+  );
+}
+
+// ── Workflow stages ───────────────────────────────────────────────────────
+const STAGES = [
+  { num: 1, key: 'upload', title: 'Data upload', short: 'Upload' },
+  { num: 2, key: 'domain', title: 'Domain knowledge', short: 'Domain' },
+  { num: 3, key: 'tests', title: 'Test cases', short: 'Tests' },
+  { num: 4, key: 'review', title: 'Custom ML task review', short: 'Review' },
+  { num: 5, key: 'run', title: 'AutoML execution', short: 'Run' },
+];
+
+function WorkflowRail({ stage, maxStage, setStage }) {
+  return (
+    <div className="workflow-rail">
+      {STAGES.map((s) => {
+        const complete = s.num < maxStage;
+        const active = s.num === stage;
+        const disabled = s.num > maxStage;
+        return (
+          <button
+            key={s.key}
+            className={"rail-item " + (active ? "active " : "") + (complete ? "complete" : "")}
+            onClick={() => !disabled && setStage(s.num)}
+            disabled={disabled}
+          >
+            <span className="rail-num">{complete ? <Icon name="check" size={11}/> : s.num}</span>
+            <span>{s.short}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function StageUpload({ uploaded, onUpload, onNext }) {
+  return (
+    <div>
+      <div className="stage-eyebrow">Stage 1 of 5</div>
+      <h1 className="stage-title">Let's start with your data.</h1>
+      <p className="stage-lede">Upload a CSV. I'll parse it, describe what's inside, and show you a quick preview.</p>
+
+      {!uploaded ? (
+        <div className="dropzone" onClick={onUpload}>
+          <div style={{ marginBottom: 12, color: 'var(--text-3)' }}>
+            <Icon name="database" size={28}/>
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>Drop a CSV file here</div>
+          <div className="muted small" style={{ marginBottom: 16 }}>or click to browse — up to 50&nbsp;MB</div>
+          <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); onUpload(); }}>
+            Use sample · customer_churn.csv
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="card" style={{ marginBottom: 18 }}>
+            <div className="card-row">
+              <div className="row" style={{ gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--accent-soft)', color: 'var(--accent-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="document" size={18}/>
+                </div>
+                <div className="col">
+                  <div style={{ fontWeight: 500 }}>{DATASET.filename}</div>
+                  <div className="small muted">{DATASET.size} · {DATASET.rows.toLocaleString()} rows · {DATASET.cols} columns</div>
+                </div>
+              </div>
+              <span className="pill good"><span className="pill-dot"/>Parsed</span>
+            </div>
+            <div className="card-pad" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
+              <div className="small muted" style={{ marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600, fontSize: 11 }}>What I see</div>
+              <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>{DATASET.blurb}</div>
+            </div>
+          </div>
+
+          <div className="small muted" style={{ marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600, fontSize: 11 }}>First 10 rows</div>
+          <div className="table-wrap">
+            <table className="preview">
+              <thead>
+                <tr>{DATASET.columns.map(c => <th key={c.name}>{c.name}</th>)}</tr>
+              </thead>
+              <tbody>
+                {DATASET.preview.map((row, i) => (
+                  <tr key={i}>{row.map((v, j) => <td key={j}>{v}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 24 }}>
+            <button className="btn btn-primary" onClick={onNext}>
+              Continue to domain knowledge <Icon name="arrow-right" size={14}/>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StageDomain({ assumptions, setAssumptions, onNext }) {
+  const updateAssumption = (col, idx, value) => {
+    setAssumptions(prev => ({ ...prev, [col]: prev[col].map((a, i) => i === idx ? value : a) }));
+  };
+  const removeAssumption = (col, idx) => {
+    setAssumptions(prev => ({ ...prev, [col]: prev[col].filter((_, i) => i !== idx) }));
+  };
+  const addAssumption = (col) => {
+    setAssumptions(prev => ({ ...prev, [col]: [...prev[col], 'New assumption — click to edit.'] }));
+  };
+
+  return (
+    <div>
+      <div className="stage-eyebrow">Stage 2 of 5</div>
+      <h1 className="stage-title">What do you know about these columns?</h1>
+      <p className="stage-lede">I've drafted plain-language assumptions for each column. Edit, delete, or add your own. This becomes the model's context.</p>
+
+      {DATASET.columns.map(col => (
+        <div className="col-card" key={col.name}>
+          <div className="col-head">
+            <div>
+              <span className="col-name">{col.name}</span>
+              <span className="col-type" style={{ marginLeft: 10 }}>{col.type}</span>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => addAssumption(col.name)}>
+              <Icon name="plus" size={13}/> Add
+            </button>
+          </div>
+          {(assumptions[col.name] || []).map((a, i) => (
+            <div className="assumption" key={i}>
+              <span className="a-bullet">·</span>
+              <textarea
+                className="assumption-edit a-text"
+                value={a}
+                rows={1}
+                onChange={(e) => {
+                  updateAssumption(col.name, i, e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+              />
+              <div className="assumption-actions">
+                <button className="btn btn-ghost btn-icon btn-sm" onClick={() => removeAssumption(col.name, i)} title="Delete">
+                  <Icon name="trash" size={13}/>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+
+      <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
+        <button className="btn btn-ghost btn-sm">
+          <Icon name="plus" size={13}/> Add a missing column
+        </button>
+        <button className="btn btn-primary" onClick={onNext}>
+          Continue to test cases <Icon name="arrow-right" size={14}/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StageTests({ testCases, onNext, onOpenCanvas }) {
+  const min = 2;
+  const have = testCases.length;
+  const pct = Math.min(100, Math.round((have / min) * 100));
+  const ok = have >= min;
+
+  return (
+    <div>
+      <div className="stage-eyebrow">Stage 3 of 5</div>
+      <h1 className="stage-title">Show me what you'd expect.</h1>
+      <p className="stage-lede">Instead of describing an ML objective, give me concrete examples. <em>"For this kind of customer, I'd expect this prediction."</em> Use the flowchart on the right to add and edit cases.</p>
+
+      <div className="card card-pad" style={{ marginBottom: 18 }}>
+        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 2 }}>Test cases provided</div>
+            <div className="small muted">Minimum {min} required to continue</div>
+          </div>
+          <div className="mono" style={{ fontSize: 18, fontWeight: 500 }}>{have} / {min}</div>
+        </div>
+        <div className="progress-track"><div className="progress-fill" style={{ width: pct + '%' }}/></div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="card-pad" style={{ paddingBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontWeight: 600 }}>Your cases so far</div>
+          <span className="small muted">Edit on the flowchart →</span>
+        </div>
+        {testCases.length === 0 && (
+          <div className="card-pad" style={{ paddingTop: 0, color: 'var(--text-3)', fontSize: 13 }}>
+            No cases yet. Add one from the flowchart on the right.
+          </div>
+        )}
+        {testCases.map((tc, i) => (
+          <div className="card-row" key={tc.id}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>Case {i + 1}: {tc.name}</div>
+              <div className="small muted" style={{ fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                tenure={tc.inputs.tenure_months}m, charges=${tc.inputs.monthly_charges}, contract={tc.inputs.contract_type}
+              </div>
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <span className="small muted">expected →</span>
+              <span className="pill good"><span className="pill-dot"/>{tc.expected}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
+        <button className="btn" onClick={onOpenCanvas}>
+          <Icon name="flask" size={13}/> Open canvas
+        </button>
+        <button className="btn btn-primary" disabled={!ok} onClick={onNext}>
+          Continue to review <Icon name="arrow-right" size={14}/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AutoTextarea({ value, onChange, className }) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+  }, [value]);
+  return (
+    <textarea ref={ref} className={className} value={value} onChange={onChange} rows={1} />
+  );
+}
+
+function StageReview({ spec, setSpec, onNext }) {
+  const update = (k) => (e) => setSpec(prev => ({ ...prev, [k]: e.target.value }));
+  const fields = [
+    { k: 'task_type', label: 'Task type' },
+    { k: 'input_description', label: 'Input description' },
+    { k: 'output_description', label: 'Output description' },
+    { k: 'objective', label: 'Objective' },
+    { k: 'metric', label: 'Evaluation metric' },
+  ];
+  return (
+    <div>
+      <div className="stage-eyebrow">Stage 4 of 5</div>
+      <h1 className="stage-title">Here's the ML spec I drafted.</h1>
+      <p className="stage-lede">I synthesized your assumptions and test cases into this. Every field is editable — fix anything that's off, then confirm.</p>
+
+      <div className="card">
+        {fields.map(f => (
+          <div className="spec-field" key={f.k}>
+            <div className="spec-label">{f.label}</div>
+            <AutoTextarea className="spec-value" value={spec[f.k]} onChange={update(f.k)} />
+          </div>
+        ))}
+      </div>
+
+      <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
+        <button className="btn btn-ghost btn-sm">
+          <Icon name="refresh" size={13}/> Regenerate from scratch
+        </button>
+        <button className="btn btn-primary" onClick={onNext}>
+          Confirm & run AutoML <Icon name="play" size={13}/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StageRun({ progress, done, activeIdx, onTestIt, hasTested }) {
+  const [tab, setTab] = React.useState('overview');
+
+  return (
+    <div>
+      <div className="stage-eyebrow">Stage 5 of 5</div>
+      <h1 className="stage-title">{done ? 'Your model is ready.' : 'Training your model.'}</h1>
+      <p className="stage-lede">
+        {done
+          ? "I tried 32 model configurations and picked the best one. Click below to test it on your cases."
+          : "AutoML is exploring data prep strategies and model families. This usually takes 1–2 minutes."}
+      </p>
+
+      <div className="tabs" style={{ marginBottom: 24 }}>
+        <button className={"tab " + (tab === 'overview' ? 'active' : '')} onClick={() => setTab('overview')}>Overview</button>
+        <button className={"tab " + (tab === 'advanced' ? 'active' : '')} onClick={() => setTab('advanced')}>Advanced</button>
+      </div>
+
+      {tab === 'overview' && (done ? (
+        <div className="loading-stage">
+          <div style={{ width: 56, height: 56, margin: '0 auto 24px', borderRadius: '50%', background: 'var(--accent-soft)', color: 'var(--accent-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="check" size={26}/>
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Best model: <span className="mono">GradientBoostingClassifier</span></div>
+          <div className="muted" style={{ marginBottom: 24 }}>F1-score on hold-out: <strong>0.847</strong> · trained in 12s</div>
+          <button className="btn btn-primary" style={{ height: 44, padding: '0 22px', fontSize: 15, borderRadius: 10 }} onClick={onTestIt}>
+            <Icon name="sparkle" size={16}/> {hasTested ? 'Re-run on test cases' : 'Test it Out!'}
+          </button>
+          {hasTested && <div className="muted small" style={{ marginTop: 16 }}>Predictions are showing on the flowchart →</div>}
+        </div>
+      ) : (
+        <div>
+          <div className="loading-stage" style={{ paddingBottom: 8 }}>
+            <div className="loader" />
+            <div className="muted">Running… {progress}%</div>
+          </div>
+          <div className="card card-pad">
+            {AUTOML_STEPS.map((step, i) => {
+              const state = i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'idle';
+              return (
+                <div className={"status-line " + state} key={i}>
+                  <span className="status-icon">
+                    {state === 'done' ? <Icon name="check" size={14}/>
+                      : state === 'active' ? <span className="typing-dot"/>
+                      : <Icon name="circle" size={14}/>}
+                  </span>
+                  <span>{step.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {tab === 'advanced' && (
+        <div className="col" style={{ gap: 18 }}>
+          <div className="card">
+            <div className="card-pad" style={{ paddingBottom: 10, fontWeight: 600 }}>Model leaderboard</div>
+            {(done ? MODEL_PLANS : []).slice().sort((a,b) => b.score - a.score).map((p, i) => (
+              <div className={"plan-row " + (p.best ? 'best' : '')} key={i}>
+                <span className="muted small mono">#{i + 1}</span>
+                <span className="plan-name">{p.name}</span>
+                <span className="muted small">{p.time}</span>
+                <span className="plan-score">{p.score.toFixed(3)}</span>
+              </div>
+            ))}
+            {!done && (
+              <div className="card-pad" style={{ paddingTop: 0 }}>
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="skel" style={{ height: 28, marginBottom: 8 }}/>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="card-pad" style={{ paddingBottom: 10, fontWeight: 600 }}>Data preparation plan</div>
+            <div className="card-pad" style={{ paddingTop: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-2)' }}>
+              <div>· Impute <span className="mono">support_tickets</span> missing values with median (n=12)</div>
+              <div>· One-hot encode <span className="mono">contract_type</span>, <span className="mono">payment_method</span>, <span className="mono">plan_tier</span></div>
+              <div>· Standardize <span className="mono">monthly_charges</span> and <span className="mono">avg_session_min</span></div>
+              <div>· Stratified 80/20 train/test split on <span className="mono">churned</span></div>
+            </div>
+          </div>
+
+          {done && (
+            <div className="row" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn btn-sm"><Icon name="download" size={13}/> Download source code</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Flowchart panel ───────────────────────────────────────────────────────
+function FlowchartPanel({ testCases, setTestCases, modelLit, predictionsShown, embedded }) {
+  const [activeId, setActiveId] = React.useState(testCases[0]?.id || null);
+
+  React.useEffect(() => {
+    if (!testCases.find(tc => tc.id === activeId) && testCases.length) setActiveId(testCases[0].id);
+  }, [testCases, activeId]);
+
+  const active = testCases.find(tc => tc.id === activeId);
+
+  const inputFields = active ? [
+    { k: 'tenure_months', label: 'tenure_months' },
+    { k: 'monthly_charges', label: 'monthly_charges' },
+    { k: 'contract_type', label: 'contract_type' },
+    { k: 'support_tickets', label: 'support_tickets' },
+    { k: 'avg_session_min', label: 'avg_session_min' },
+  ] : [];
+
+  const NODE_W_INPUT = 200;
+  const NODE_W_MODEL = 180;
+  const NODE_W_OUTPUT = 180;
+  const NODE_H = 88;
+
+  const W = 820;
+  const inputYStart = 60;
+  const inputYStep = 110;
+  const H = inputYStart + inputFields.length * inputYStep + 40;
+
+  const inputX = 60;
+  const modelX = 320;
+  const outputX = 580;
+  const modelY = inputYStart + (inputFields.length * inputYStep) / 2 - NODE_H / 2 + 10;
+  const expectedY = modelY - 90;
+  const predictedY = modelY + 90;
+
+  const updateInput = (k, v) => {
+    setTestCases(prev => prev.map(tc => tc.id === activeId ? { ...tc, inputs: { ...tc.inputs, [k]: v } } : tc));
+  };
+  const updateExpected = (v) => {
+    setTestCases(prev => prev.map(tc => tc.id === activeId ? { ...tc, expected: v } : tc));
+  };
+  const addCase = () => {
+    const id = (testCases.at(-1)?.id || 0) + 1;
+    const newCase = {
+      id, name: `Case ${testCases.length + 1}`,
+      inputs: { tenure_months: 12, monthly_charges: 70, contract_type: 'Month-to-month', support_tickets: 2, avg_session_min: 20 },
+      expected: 'Yes', predicted: null, confidence: null,
+    };
+    setTestCases(prev => [...prev, newCase]);
+    setActiveId(id);
+  };
+  const removeCase = (id) => {
+    setTestCases(prev => prev.filter(tc => tc.id !== id));
+  };
+
+  const ARROW_OFFSET = 6;
+  const trimEnd = (from, to) => {
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: to.x - (dx / len) * ARROW_OFFSET, y: to.y - (dy / len) * ARROW_OFFSET };
+  };
+
+  const edges = active ? [
+    ...inputFields.map((_, i) => {
+      const from = { x: inputX + NODE_W_INPUT, y: inputYStart + i * inputYStep + NODE_H / 2 };
+      const to = { x: modelX, y: modelY + NODE_H / 2 };
+      return { from, to: trimEnd(from, to), label: 'input' };
+    }),
+    (() => {
+      const from = { x: modelX + NODE_W_MODEL, y: modelY + NODE_H / 2 };
+      const to = { x: outputX, y: expectedY + NODE_H / 2 };
+      return { from, to: trimEnd(from, to), label: 'expected' };
+    })(),
+    ...(predictionsShown && active.predicted ? [(() => {
+      const from = { x: modelX + NODE_W_MODEL, y: modelY + NODE_H / 2 };
+      const to = { x: outputX, y: predictedY + NODE_H / 2 };
+      return { from, to: trimEnd(from, to), label: 'predicted' };
+    })()] : []),
+  ] : [];
+
+  return (
+    <aside className="panel" aria-label="Test cases flowchart" style={embedded ? { borderRight: 'none', flex: 1, minHeight: 0 } : null}>
+      <div className="panel-header">
+        <div className="col">
+          <div style={{ fontWeight: 600, fontSize: 13.5 }}>Test-case flowchart</div>
+          <div className="small muted">Inputs flow → model → expected output</div>
+        </div>
+        <button className="btn btn-sm" onClick={addCase}>
+          <Icon name="plus" size={13}/> New case
+        </button>
+      </div>
+
+      <div className="case-tabs">
+        {testCases.map((tc, i) => (
+          <button
+            key={tc.id}
+            className={"case-tab " + (tc.id === activeId ? 'active' : '')}
+            onClick={() => setActiveId(tc.id)}
+          >
+            Case {i + 1}
+          </button>
+        ))}
+        <button className="case-tab add" onClick={addCase}>+ add</button>
+      </div>
+
+      <div className="flow-canvas" style={{ overflow: 'auto' }}>
+        {!active ? (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--text-3)' }}>
+            <Icon name="flask" size={28} />
+            <div>No test cases yet. Click "New case" to start.</div>
+          </div>
+        ) : (
+          <div style={{ position: 'relative', width: W, height: H, margin: '24px auto' }}>
+            <svg className="flow-svg" style={{ position: 'absolute', inset: 0, width: W, height: H, pointerEvents: 'none', overflow: 'visible' }}>
+              <defs>
+                <marker id="arrow-default" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--border-strong)" />
+                </marker>
+                <marker id="arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--accent)" />
+                </marker>
+              </defs>
+              {edges.map((e, i) => {
+                const dx = (e.to.x - e.from.x) * 0.5;
+                const d = `M ${e.from.x} ${e.from.y} C ${e.from.x + dx} ${e.from.y}, ${e.to.x - dx} ${e.to.y}, ${e.to.x} ${e.to.y}`;
+                const isPred = e.label === 'predicted';
+                return (
+                  <path
+                    key={i}
+                    d={d}
+                    stroke={isPred ? 'var(--accent)' : 'var(--border-strong)'}
+                    strokeWidth={isPred ? 1.8 : 1.4}
+                    fill="none"
+                    markerEnd={isPred ? 'url(#arrow-accent)' : 'url(#arrow-default)'}
+                  />
+                );
+              })}
+            </svg>
+
+            {inputFields.map((f, i) => (
+              <div className="node node-input" key={f.k} style={{ left: inputX, top: inputYStart + i * inputYStep, width: NODE_W_INPUT }}>
+                <div className="node-label">
+                  <span>Input</span>
+                  <span style={{ color: 'var(--text-3)', fontSize: 9 }}>F{i+1}</span>
+                </div>
+                <div className="node-name" style={{ marginBottom: 6 }}>{f.label}</div>
+                {typeof active.inputs[f.k] === 'number' ? (
+                  <input
+                    type="number"
+                    value={active.inputs[f.k]}
+                    onChange={(e) => updateInput(f.k, parseFloat(e.target.value) || 0)}
+                  />
+                ) : (
+                  <select
+                    value={active.inputs[f.k]}
+                    onChange={(e) => updateInput(f.k, e.target.value)}
+                    style={{ width: '100%', background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 12.5 }}
+                  >
+                    <option>Month-to-month</option>
+                    <option>One year</option>
+                    <option>Two year</option>
+                  </select>
+                )}
+                <div className="node-handle right"/>
+              </div>
+            ))}
+
+            <div className={"node model " + (modelLit ? 'lit' : '')} style={{ left: modelX, top: modelY, width: NODE_W_MODEL }}>
+              <div className="node-label" style={{ justifyContent: 'center' }}>Model</div>
+              <div style={{ textAlign: 'center', padding: '8px 0 6px' }}>
+                <Icon name="cpu" size={24} />
+              </div>
+              <div className="node-name" style={{ textAlign: 'center' }}>
+                {modelLit ? 'GradientBoosting' : 'untrained'}
+              </div>
+              <div className="node-handle left"/>
+              <div className="node-handle right"/>
+            </div>
+
+            <div className="node output" style={{ left: outputX, top: expectedY, width: NODE_W_OUTPUT }}>
+              <div className="node-label">
+                <span>Expected</span>
+                <span style={{ color: 'var(--text-3)' }}>you</span>
+              </div>
+              <div className="node-name" style={{ marginBottom: 6 }}>churned</div>
+              <select
+                value={active.expected}
+                onChange={(e) => updateExpected(e.target.value)}
+                style={{ width: '100%', background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', fontSize: 12.5 }}
+              >
+                <option>Yes</option>
+                <option>No</option>
+              </select>
+              <div className="node-handle left"/>
+            </div>
+
+            {predictionsShown && active.predicted && (
+              <div className="node output predicted" style={{ left: outputX, top: predictedY, width: NODE_W_OUTPUT }}>
+                <div className="node-label">
+                  <span>Predicted</span>
+                  <span style={{ color: 'var(--accent-ink)' }}>model</span>
+                </div>
+                <div className="node-name" style={{ marginBottom: 6 }}>churned</div>
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <span className="node-value">{active.predicted}</span>
+                  <span className="small muted">{Math.round(active.confidence * 100)}%</span>
+                </div>
+                <div className="node-handle left"/>
+              </div>
+            )}
+
+            <div style={{ position: 'absolute', left: inputX, top: 20, width: NODE_W_INPUT, textAlign: 'center', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text-3)', fontWeight: 600 }}>Inputs (features)</div>
+            <div style={{ position: 'absolute', left: modelX, top: 20, width: NODE_W_MODEL, textAlign: 'center', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text-3)', fontWeight: 600 }}>ML model</div>
+            <div style={{ position: 'absolute', left: outputX, top: 20, width: NODE_W_OUTPUT, textAlign: 'center', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text-3)', fontWeight: 600 }}>Outputs</div>
+          </div>
+        )}
+      </div>
+
+      {active && (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg-elev)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="small muted">
+            {predictionsShown && active.predicted
+              ? (active.predicted === active.expected
+                  ? <span style={{ color: 'var(--good)' }}>✓ Prediction matches your expectation</span>
+                  : <span style={{ color: 'var(--warn)' }}>! Prediction differs — review case</span>)
+              : 'Edit values directly on each node.'}
+          </div>
+          {testCases.length > 1 && (
+            <button className="btn btn-ghost btn-sm" onClick={() => removeCase(active.id)}>
+              <Icon name="trash" size={13}/>
+            </button>
+          )}
+        </div>
+      )}
+    </aside>
+  );
+}
+
+// ── App root ──────────────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = { theme: 'light', density: 'comfortable', accent: 'sage' };
+
+const ACCENTS = {
+  sage: { '--accent': '#6f8a6a', '--accent-soft': '#e3ebde', '--accent-ink': '#43583f' },
+  clay: { '--accent': '#a86b50', '--accent-soft': '#f1e2d8', '--accent-ink': '#6e4633' },
+  slate: { '--accent': '#6a7a8c', '--accent-soft': '#dee3ea', '--accent-ink': '#3f4a58' },
+  plum: { '--accent': '#8a6a82', '--accent-soft': '#ebdde7', '--accent-ink': '#583f50' },
+};
+
+function nowTime() {
+  const d = new Date();
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function streamMessage(setMessages, fullText, onDone) {
+  setMessages((prev) => [...prev, { who: 'assistant', text: '', t: nowTime() }]);
+  let i = 0;
+  const chunkSize = 3;
+  const interval = setInterval(() => {
+    i += chunkSize;
+    setMessages((prev) => {
+      const copy = prev.slice();
+      copy[copy.length - 1] = { ...copy[copy.length - 1], text: fullText.slice(0, i) };
+      return copy;
+    });
+    if (i >= fullText.length) {
+      clearInterval(interval);
+      if (onDone) onDone();
+    }
+  }, 18);
+}
+
+function generateReply(text, stage) {
+  const lower = text.toLowerCase();
+  if (lower.includes('why') && lower.includes('f1')) {
+    return "Good question. **F1-score** balances precision and recall, which matters here because only ~26% of customers churn. If we used plain accuracy, a model could predict \"No\" for everyone and still score 74% — useless for retention. F1 forces the model to actually catch the churners.";
+  }
+  if (lower.includes('test') && lower.includes('case')) {
+    return "Test cases are the heart of this approach. Each one says: *given these inputs, expect this output.* The system uses them to (a) infer your objective, and (b) sanity-check the trained model. Two is the minimum, but **5–10 cases gives a much better picture**.";
+  }
+  if (lower.includes('column') || lower.includes('assumption')) {
+    return "Each assumption becomes part of the model's context. The AutoML backend uses them to pick reasonable feature transformations — for example, knowing `tenure_months` is *months* (not days) prevents weird scaling choices.";
+  }
+  if (lower.includes('stage') || lower.includes('next') || lower.includes('continue')) {
+    return "We're on **stage " + stage + "**. When you're done with this step, the **Continue** button at the bottom will unlock the next one. Anything you set here can still be edited later.";
+  }
+  return "Got it. I'll keep that in mind. If you'd like me to explain any part of the workflow — the assumptions, test cases, or how the AutoML backend uses them — just ask.";
+}
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [stage, setStage] = React.useState(3);
+  const [maxStage, setMaxStage] = React.useState(3);
+  const [view, setView] = React.useState('pipeline');
+  const [uploaded, setUploaded] = React.useState(true);
+  const [assumptions, setAssumptions] = React.useState(INITIAL_ASSUMPTIONS);
+  const [testCases, setTestCases] = React.useState(INITIAL_TEST_CASES.map((tc) => ({ ...tc, predicted: null, confidence: null })));
+  const [spec, setSpec] = React.useState(INITIAL_SPEC);
+  const [messages, setMessages] = React.useState([]);
+  const [streaming, setStreaming] = React.useState(false);
+  const [shownIntros, setShownIntros] = React.useState(new Set());
+
+  const [runProgress, setRunProgress] = React.useState(0);
+  const [runActive, setRunActive] = React.useState(0);
+  const [runDone, setRunDone] = React.useState(false);
+  const [hasTested, setHasTested] = React.useState(false);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = tweaks.theme;
+    root.dataset.density = tweaks.density;
+    const accent = ACCENTS[tweaks.accent] || ACCENTS.sage;
+    Object.entries(accent).forEach(([k, v]) => root.style.setProperty(k, v));
+  }, [tweaks]);
+
+  React.useEffect(() => {
+    if (shownIntros.has(stage)) return;
+    const intro = STAGE_INTROS[stage];
+    if (!intro) return;
+    setShownIntros((prev) => new Set(prev).add(stage));
+    setStreaming(true);
+    streamMessage(setMessages, intro[0].text, () => setStreaming(false));
+  }, [stage]);
+
+  const advance = (n) => {
+    setStage(n);
+    setMaxStage((prev) => Math.max(prev, n));
+  };
+
+  const onSend = (text) => {
+    setMessages((prev) => [...prev, { who: 'user', text, t: nowTime() }]);
+    setStreaming(true);
+    setTimeout(() => {
+      const reply = generateReply(text, stage);
+      streamMessage(setMessages, reply, () => setStreaming(false));
+    }, 500);
+  };
+
+  React.useEffect(() => {
+    if (stage !== 5 || runDone) return;
+    let i = 0;
+    let elapsed = 0;
+    const total = AUTOML_STEPS.reduce((s, x) => s + x.t, 0);
+    let cancelled = false;
+
+    function next() {
+      if (cancelled || i >= AUTOML_STEPS.length) {
+        if (!cancelled) {
+          setRunProgress(100);
+          setRunDone(true);
+        }
+        return;
+      }
+      setRunActive(i);
+      const step = AUTOML_STEPS[i];
+      const start = elapsed;
+      const startTime = Date.now();
+      const tick = setInterval(() => {
+        if (cancelled) { clearInterval(tick); return; }
+        const t = Date.now() - startTime;
+        const pct = Math.min(100, Math.round((start + Math.min(t, step.t)) / total * 100));
+        setRunProgress(pct);
+        if (t >= step.t) {
+          clearInterval(tick);
+          elapsed += step.t;
+          i++;
+          next();
+        }
+      }, 80);
+    }
+    next();
+    return () => { cancelled = true; };
+  }, [stage]);
+
+  const testItOut = () => {
+    setHasTested(true);
+    setTestCases((prev) => prev.map((tc) => ({
+      ...tc,
+      predicted: tc.expected,
+      confidence: 0.7 + Math.random() * 0.25,
+    })));
+  };
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="brand">
+          <div className="brand-mark">G</div>
+          <span>GLAMLI</span>
+          <span className="muted small" style={{ marginLeft: 6, fontWeight: 400 }}>· building <span className="mono">customer_churn</span></span>
+        </div>
+        <div className="topbar-meta">
+          <span className="row" style={{ gap: 6 }}>
+            <span className="pill-dot" style={{ background: 'var(--good)' }}></span>
+            session synced
+          </span>
+          <span>·</span>
+          <span>auto-saved</span>
+        </div>
+      </div>
+
+      <div className="app-shell">
+        <ChatPanel
+          stage={stage}
+          messages={messages}
+          onSend={onSend}
+          streaming={streaming}
+        />
+
+        <main className="panel" style={{ borderRight: 'none' }}>
+          <div className="view-header">
+            <div className="view-toggle" role="tablist" aria-label="Switch view">
+              <button
+                role="tab"
+                aria-selected={view === 'pipeline'}
+                className={view === 'pipeline' ? 'active' : ''}
+                onClick={() => setView('pipeline')}
+              >
+                <Icon name="sliders" size={13} /> Pipeline
+              </button>
+              <button
+                role="tab"
+                aria-selected={view === 'canvas'}
+                className={view === 'canvas' ? 'active' : ''}
+                onClick={() => setView('canvas')}
+              >
+                <Icon name="flask" size={13} /> Canvas
+              </button>
+            </div>
+            <div className="view-header-meta">
+              {view === 'pipeline'
+                ? <>Stage {stage} of 5</>
+                : <>{testCases.length} test case{testCases.length === 1 ? '' : 's'}</>}
+            </div>
+          </div>
+          {view === 'pipeline' ? (
+            <>
+              <WorkflowRail stage={stage} maxStage={maxStage} setStage={setStage} />
+              <div className="panel-body">
+                <div className="workflow-body">
+                  {stage === 1 && <StageUpload uploaded={uploaded} onUpload={() => setUploaded(true)} onNext={() => advance(2)} />}
+                  {stage === 2 && <StageDomain assumptions={assumptions} setAssumptions={setAssumptions} onNext={() => advance(3)} />}
+                  {stage === 3 && <StageTests testCases={testCases} onNext={() => advance(4)} onOpenCanvas={() => setView('canvas')} />}
+                  {stage === 4 && <StageReview spec={spec} setSpec={setSpec} onNext={() => advance(5)} />}
+                  {stage === 5 && <StageRun progress={runProgress} done={runDone} activeIdx={runActive} onTestIt={testItOut} hasTested={hasTested} />}
+                </div>
+              </div>
+            </>
+          ) : (
+            <FlowchartPanel
+              testCases={testCases}
+              setTestCases={setTestCases}
+              modelLit={runDone && hasTested}
+              predictionsShown={hasTested}
+              embedded
+            />
+          )}
+        </main>
+      </div>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="Appearance">
+          <TweakRadio
+            label="Theme"
+            value={tweaks.theme}
+            onChange={(v) => setTweak('theme', v)}
+            options={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]}
+          />
+          <TweakRadio
+            label="Density"
+            value={tweaks.density}
+            onChange={(v) => setTweak('density', v)}
+            options={[{ value: 'comfortable', label: 'Comfortable' }, { value: 'compact', label: 'Compact' }]}
+          />
+          <TweakSelect
+            label="Accent"
+            value={tweaks.accent}
+            onChange={(v) => setTweak('accent', v)}
+            options={[
+              { value: 'sage', label: 'Sage (default)' },
+              { value: 'clay', label: 'Clay' },
+              { value: 'slate', label: 'Slate' },
+              { value: 'plum', label: 'Plum' },
+            ]}
+          />
+        </TweakSection>
+        <TweakSection title="Demo controls">
+          <TweakButton onClick={() => {
+            setStage(1); setMaxStage(1); setShownIntros(new Set()); setMessages([]);
+            setRunDone(false); setRunActive(0); setRunProgress(0); setHasTested(false);
+            setTestCases(INITIAL_TEST_CASES.map((tc) => ({ ...tc, predicted: null, confidence: null })));
+          }}>
+            Restart from Stage 1
+          </TweakButton>
+          <TweakButton onClick={() => { advance(5); }}>Jump to AutoML run</TweakButton>
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

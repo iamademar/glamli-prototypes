@@ -147,6 +147,21 @@
 
       <ul>
         <li>
+          <a class="title" href="glamli_v1/glamli_v1.html">GLAMLI / v1</a>
+          <span class="slug">glamli_v1/</span>
+          <p>The original staged build: a five-step workflow (Data → Columns → Examples → Spec → Train) with a left-hand rail and an LLM chat sidebar that explains each stage in plain language.</p>
+          <dl>
+            <dt>Scenario</dt>
+            <dd>An analyst working on telco churn walks through the prototype stage by stage. They upload <code>customer_churn.csv</code>, read the LLM's plain-language assumptions about each column and edit any that look wrong, write a few test cases of customers they expect the model to get right, and review a drafted ML spec — target column, evaluation metric (F1 on the churned class, with a one-line justification), and feature treatments. They can ask the chat sidebar <em>"why F1-score?"</em> at any point. When the spec looks right, they hit <strong>Confirm &amp; Run</strong> and watch the model train.</dd>
+            <dt>Idea</dt>
+            <dd>Make the canonical AutoML workflow visible and explicable, but keep the user in the loop at every step. The rail enforces a deliberate sequence; the chat panel narrates and answers questions; the spec page makes the system's choices (especially the metric) editable rather than hidden. This is the baseline GLAMLI pattern — the reference point the other three prototypes (<em>dialog</em>, <em>live</em>, <em>examples</em>) react against, each removing or replacing one of its assumptions.</dd>
+          </dl>
+          <div class="extras">
+            <a href="glamli_v1/glamli_v1.html">→ open prototype</a>
+          </div>
+        </li>
+
+        <li>
           <a class="title" href="glamli_dialog/glamli_dialog.html">GLAMLI / dialog</a>
           <span class="slug">glamli_dialog/</span>
           <p>A conversational interface that enables model building through natural language, providing iterative feedback, queries, and results without structured workflows.</p>
