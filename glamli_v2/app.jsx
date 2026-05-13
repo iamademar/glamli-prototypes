@@ -12,9 +12,10 @@ const ACCENTS = {
   plum: { '--accent': '#8a6a82', '--accent-soft': '#ebdde7', '--accent-ink': '#583f50' }
 };
 
-function streamMessage(setMessages, fullText, onDone, chunkSize) {
-  // Append empty assistant message, then fill it in
-  setMessages((prev) => [...prev, { who: 'assistant', text: '', t: nowTime() }]);
+function streamMessage(setMessages, fullText, onDone, chunkSize, stage) {
+  // Append empty assistant message, then fill it in. `stage` is stamped
+  // onto the bubble so the chat feed can filter by current stage.
+  setMessages((prev) => [...prev, { who: 'assistant', text: '', t: nowTime(), stage: stage || null }]);
   let i = 0;
   // Default 3 chars/tick (~1s per 150-char reply); long pedagogical
   // replies can opt in to a larger chunk so the stream doesn't drag.
@@ -38,10 +39,39 @@ function nowTime() {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// Plain-language summary of the Stage 3 architecture, formatted for
+// the chat. Used by the stage-3 intro AND by onTargetChanged so the
+// chat always carries the current input list.
+function buildSetupSummary(schema, targetKey, opts) {
+  const flatCols = [
+    ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, role: 'normal', key: 'shared:' + c.name })),
+    ...schema.groups.flatMap(g => g.columns.map(c => ({
+      name: c.name, type: c.type, role: c.role || 'normal', key: g.fileId + ':' + c.name,
+    }))),
+  ];
+  if (flatCols.length === 0) return null;
+  const targetEntry = flatCols.find(c => c.key === targetKey) || flatCols[flatCols.length - 1];
+  const inputs = flatCols.filter(c => c.key !== targetEntry.key && c.role !== 'joinKey');
+  const task = (typeof inferTaskType === 'function') ? inferTaskType(targetEntry) : { phrase: 'a value' };
+  const prefix = (opts && opts.prefix) ? opts.prefix : '';
+  // The chat renderer splits paragraphs on \n\n. Each bullet gets its
+  // own paragraph so the column names stack vertically.
+  const bulletInputs = inputs.map(c => '· `' + c.name + '`').join('\n\n');
+  return (
+    prefix +
+    "It will look at **" + inputs.length + " things** about each row:" +
+    "\n\n" + bulletInputs +
+    "\n\nAnd it will predict: `" + targetEntry.name + "` (" + task.phrase + ")."
+  );
+}
+
 function App() {
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [stage, setStage] = React.useState(1);
-  const [maxStage, setMaxStage] = React.useState(1);
+  // Default landing: stage 3 (Setup) with the join preset already
+  // applied via the mount effect below. The grouped two-column
+  // diagram is the canonical view for first-paint demos.
+  const [stage, setStage] = React.useState(3);
+  const [maxStage, setMaxStage] = React.useState(3);
 
   // Multi-CSV state (replaces the old `uploaded` boolean)
   const [files, setFiles] = React.useState([]);
@@ -51,7 +81,6 @@ function App() {
 
   const [assumptions, setAssumptions] = React.useState({});
   const [testCases, setTestCases] = React.useState(INITIAL_TEST_CASES.map((tc) => ({ ...tc, predicted: null, confidence: null })));
-  const [spec, setSpec] = React.useState(INITIAL_SPEC);
   const [messages, setMessages] = React.useState([]);
   const [streaming, setStreaming] = React.useState(false);
   const [shownIntros, setShownIntros] = React.useState(new Set());
@@ -63,6 +92,15 @@ function App() {
   // Domain Sources collapse
   const [sourcesOpen, setSourcesOpen] = React.useState(true);
 
+  // Target column (used by Stage 2 picker + Stage 3 architecture overview).
+  // Keyed identically to assumption keys: `fileId:colName` or `shared:colName`.
+  const [targetCol, setTargetCol] = React.useState(null);
+
+  // Default landing has the join preset applied so the two-column
+  // grouped diagram is the canonical view. Ref-guarded so it never
+  // double-fires under StrictMode.
+  const mountedRef = React.useRef(false);
+
   // Run-stage state
   const [runProgress, setRunProgress] = React.useState(0);
   const [runActive, setRunActive] = React.useState(0);
@@ -72,6 +110,23 @@ function App() {
   // Derived: schema and topbar copy
   const schema = React.useMemo(() => mergedSchema(files, merges), [files, merges]);
   const topbarLabel = topbarSubtitle(files);
+
+  // Auto-default the target column whenever the schema changes. Also
+  // catches the case where the file holding the current target has
+  // been removed.
+  React.useEffect(() => {
+    if (schema.parsedCount === 0) {
+      if (targetCol !== null) setTargetCol(null);
+      return;
+    }
+    const flatKeys = new Set([
+      ...schema.sharedColumns.map(c => 'shared:' + c.name),
+      ...schema.groups.flatMap(g => g.columns.map(c => g.fileId + ':' + c.name)),
+    ]);
+    if (!targetCol || !flatKeys.has(targetCol)) {
+      setTargetCol(defaultTargetKey(schema));
+    }
+  }, [schema]);
 
   // Apply theme + density + accent to root
   React.useEffect(() => {
@@ -84,18 +139,36 @@ function App() {
 
   // Show stage intro on entering a new stage. Also captures the merge
   // revision the first time the user enters Domain (used for the
-  // stale-merge warning).
+  // stale-merge warning). Stage 3's intro is synthesized inline because
+  // it depends on the live schema + target.
   React.useEffect(() => {
     if (stage === 2 && mergeRevisionAtDomainEntry === 0) {
       setMergeRevisionAtDomainEntry(mergeRevision);
     }
     if (shownIntros.has(stage)) return;
+
+    if (stage === 3) {
+      // Synthesized intro — the full architecture summary. Fires once
+      // per session for stage 3; further changes re-stream via
+      // onTargetChanged below.
+      const summary = buildSetupSummary(schema, targetCol, {
+        prefix: "Here's how your model will work. ",
+      });
+      if (!summary) return;
+      const intro = summary +
+        "\n\nIf that's right, hit **continue**. If not, hit **Something's off** and tell me what to change.";
+      setShownIntros((prev) => new Set(prev).add(stage));
+      setStreaming(true);
+      streamMessage(setMessages, intro, () => setStreaming(false), 10, stage);
+      return;
+    }
+
     const intro = STAGE_INTROS[stage];
     if (!intro) return;
     setShownIntros((prev) => new Set(prev).add(stage));
     setStreaming(true);
-    streamMessage(setMessages, intro[0].text, () => setStreaming(false));
-  }, [stage]);
+    streamMessage(setMessages, intro[0].text, () => setStreaming(false), undefined, stage);
+  }, [stage, schema, targetCol]);
 
   const advance = (n) => {
     setStage(n);
@@ -200,7 +273,9 @@ function App() {
           streamMessage(
             setMessages,
             "I refused " + classifying.name + " — no shared columns with " + prevFile.name + ".",
-            () => setStreaming(false)
+            () => setStreaming(false),
+            undefined,
+            stage
           );
         });
       }
@@ -248,6 +323,11 @@ function App() {
       Object.keys(next).forEach(k => { if (k.startsWith(fileId + ':')) delete next[k]; });
       return next;
     });
+    // If the current target lived on the removed file, clear it so the
+    // schema effect re-defaults to a still-present column.
+    if (targetCol && targetCol.startsWith(fileId + ':')) {
+      setTargetCol(null);
+    }
     setMergeRevision(r => r + 1);
   };
 
@@ -273,15 +353,15 @@ function App() {
     const reply = explainRefusalCopy(prevFile, file, fileColList);
 
     pendingHintForFileId.current = fileId;
-    setMessages(prev => [...prev, { who: 'user', text: userQ, t: nowTime() }]);
+    setMessages(prev => [...prev, { who: 'user', text: userQ, t: nowTime(), stage }]);
     setStreaming(true);
     setTimeout(() => {
-      streamMessage(setMessages, reply, () => setStreaming(false), 10);
+      streamMessage(setMessages, reply, () => setStreaming(false), 10, stage);
     }, 400);
   };
 
   const onSend = (text) => {
-    setMessages((prev) => [...prev, { who: 'user', text, t: nowTime() }]);
+    setMessages((prev) => [...prev, { who: 'user', text, t: nowTime(), stage }]);
     setComposerDraft('');
 
     // Escape-hatch — re-classify the targeted file with the user's hint.
@@ -306,7 +386,9 @@ function App() {
             streamMessage(
               setMessages,
               "Got it — accepted " + candidate.name + " as a join on `" + keyStr + "`.",
-              () => setStreaming(false)
+              () => setStreaming(false),
+              undefined,
+              stage
             );
           }, 350);
           return;
@@ -318,7 +400,7 @@ function App() {
     setStreaming(true);
     setTimeout(() => {
       const reply = generateReply(text, stage);
-      streamMessage(setMessages, reply, () => setStreaming(false));
+      streamMessage(setMessages, reply, () => setStreaming(false), undefined, stage);
     }, 500);
   };
 
@@ -337,11 +419,47 @@ function App() {
     setStreaming(false);
     setComposerDraft('');
     pendingHintForFileId.current = null;
+    // Target defaults via the [schema] effect on next tick.
+    setTargetCol(null);
+  };
+
+  // Apply the join preset once on first mount so the user lands on
+  // Stage 3 with the grouped two-column diagram already populated.
+  React.useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    applyPreset('upload_join');
+    // applyPreset writes stage:1 from the preset snapshot; override
+    // to land directly on Setup.
+    setStage(3);
+    setMaxStage(3);
+  }, []);
+
+  // Chat narration for target changes. Streams a short ack, then the
+  // refreshed full architecture summary (same shape as the stage-3
+  // entry bubble) so the chat history always carries the current
+  // input list.
+  const onTargetChanged = (newKey, oldKey) => {
+    if (!newKey || newKey === oldKey) return;
+    const flatCols = [
+      ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, key: 'shared:' + c.name })),
+      ...schema.groups.flatMap(g => g.columns.map(c => ({ name: c.name, type: c.type, key: g.fileId + ':' + c.name }))),
+    ];
+    const newCol = flatCols.find(c => c.key === newKey);
+    if (!newCol) return;
+    const t = inferTaskType(newCol);
+    const summary = buildSetupSummary(schema, newKey, {
+      prefix: "Got it — predicting **" + newCol.name + "** instead. This is now a **" + t.kind + "** task, so I'll use **" + t.metric + "** as the metric.\n\n",
+    });
+    setStreaming(true);
+    setTimeout(() => {
+      streamMessage(setMessages, summary, () => setStreaming(false), 10, stage);
+    }, 200);
   };
 
   // AutoML run animation
   React.useEffect(() => {
-    if (stage !== 5 || runDone) return;
+    if (stage !== 4 || runDone) return;
     let i = 0;
     let elapsed = 0;
     const total = AUTOML_STEPS.reduce((s, x) => s + x.t, 0);
@@ -419,52 +537,46 @@ function App() {
 
         <main className="panel" style={{ borderRight: 'none' }}>
           <WorkflowRail stage={stage} maxStage={maxStage} setStage={setStage} />
-          {stage === 3 ? (
-            // Stage 3 (Tests) renders the Canvas full-width — bypass the
-            // .workflow-body wrapper so the 820-wide canvas can breathe.
-            <StageTests
-              testCases={testCases}
-              setTestCases={setTestCases}
-              modelLit={runDone && hasTested}
-              predictionsShown={hasTested}
-              onNext={() => advance(4)} />
-          ) : (
-            <div className="panel-body">
-              <div className="workflow-body">
-                {stage === 1 &&
-                  <StageUpload
-                    files={files}
-                    merges={merges}
-                    onUpload={startUploadFixture}
-                    onChangeMergeKeys={onChangeMergeKeys}
-                    onRemoveFile={onRemoveFile}
-                    onExplainInChat={onExplainInChat}
-                    onNext={() => advance(2)} />
-                }
-                {stage === 2 &&
-                  <StageDomain
-                    schema={schema}
-                    assumptions={assumptions}
-                    setAssumptions={setAssumptions}
-                    onNext={() => advance(3)} />
-                }
-                {stage === 4 &&
-                  <StageReview
-                    spec={spec}
-                    setSpec={setSpec}
-                    onNext={() => advance(5)} />
-                }
-                {stage === 5 &&
-                  <StageRun
-                    progress={runProgress}
-                    done={runDone}
-                    activeIdx={runActive}
-                    onTestIt={testItOut}
-                    hasTested={hasTested} />
-                }
-              </div>
+          <div className="panel-body">
+            <div className={"workflow-body" + (stage === 3 ? ' wide' : '')}>
+              {stage === 1 &&
+                <StageUpload
+                  files={files}
+                  merges={merges}
+                  onUpload={startUploadFixture}
+                  onChangeMergeKeys={onChangeMergeKeys}
+                  onRemoveFile={onRemoveFile}
+                  onExplainInChat={onExplainInChat}
+                  onNext={() => advance(2)} />
+              }
+              {stage === 2 &&
+                <StageDomain
+                  schema={schema}
+                  assumptions={assumptions}
+                  setAssumptions={setAssumptions}
+                  targetCol={targetCol}
+                  setTargetCol={setTargetCol}
+                  onNext={() => advance(3)} />
+              }
+              {stage === 3 &&
+                <StageSetup
+                  schema={schema}
+                  files={files}
+                  targetCol={targetCol}
+                  assumptions={assumptions}
+                  onSeedComposer={onSeedComposer}
+                  onNext={() => advance(4)} />
+              }
+              {stage === 4 &&
+                <StageRun
+                  progress={runProgress}
+                  done={runDone}
+                  activeIdx={runActive}
+                  onTestIt={testItOut}
+                  hasTested={hasTested} />
+              }
             </div>
-          )}
+          </div>
         </main>
       </div>
 

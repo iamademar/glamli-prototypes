@@ -2,9 +2,8 @@
 const STAGES = [
   { num: 1, key: 'upload', title: 'Data upload', short: 'Upload' },
   { num: 2, key: 'domain', title: 'Domain knowledge', short: 'Domain' },
-  { num: 3, key: 'tests', title: 'Test cases', short: 'Tests' },
-  { num: 4, key: 'review', title: 'Custom ML task review', short: 'Review' },
-  { num: 5, key: 'run', title: 'AutoML execution', short: 'Run' },
+  { num: 3, key: 'setup', title: 'Architecture setup', short: 'Setup' },
+  { num: 4, key: 'run', title: 'AutoML execution', short: 'Run' },
 ];
 
 function WorkflowRail({ stage, maxStage, setStage }) {
@@ -108,7 +107,7 @@ function StageUpload({ files, merges, onUpload, onChangeMergeKeys, onRemoveFile,
 
   return (
     <div>
-      <div className="stage-eyebrow">Stage 1 of 5</div>
+      <div className="stage-eyebrow">Stage 1 of 4</div>
       <h1 className="stage-title">Let's start with your data.</h1>
       <p className="stage-lede">
         Upload one or more CSVs. I'll parse each, describe what's inside, and check if they can be joined or stacked into a single training table.
@@ -332,6 +331,7 @@ const MERGED_TABLE_NAME = 'business_churn_cleaned_v1.csv';
 function StageDomain({
   schema,
   assumptions, setAssumptions,
+  targetCol, setTargetCol,
   onNext,
 }) {
   const updateAssumption = (key, idx, value) => {
@@ -344,28 +344,30 @@ function StageDomain({
     setAssumptions(prev => ({ ...prev, [key]: [...(prev[key] || []), 'New assumption — click to edit.'] }));
   };
 
-  // Flatten the schema into one column list. Shared (concat) columns
-  // come first, then every per-source group's columns in order. Join-
-  // key duplicates were already squashed by mergedSchema.
+  // Flatten the schema. Carry the `role` field (e.g. 'joinKey') through
+  // so the target picker can filter join keys out of the pill grid.
   const flatCols = [
-    ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, key: 'shared:' + c.name })),
+    ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, role: 'normal', key: 'shared:' + c.name })),
     ...schema.groups.flatMap(g => g.columns.map(c => ({
-      name: c.name, type: c.type, key: g.fileId + ':' + c.name,
+      name: c.name, type: c.type, role: c.role || 'normal', key: g.fileId + ':' + c.name,
     }))),
   ];
+  const targetableCols = flatCols.filter(c => c.role !== 'joinKey');
 
-  // Validation — every visible column needs at least one non-empty assumption.
+  // Validation — every visible column needs at least one non-empty assumption,
+  // AND a target must be chosen.
   const missingKeys = flatCols
     .map(c => c.key)
     .filter(k => {
       const list = assumptions[k] || [];
       return list.length === 0 || list.every(a => !a || !a.trim());
     });
-  const ok = flatCols.length > 0 && missingKeys.length === 0;
+  const allDocumented = flatCols.length > 0 && missingKeys.length === 0;
+  const ok = allDocumented && !!targetCol;
 
   return (
     <div>
-      <div className="stage-eyebrow">Stage 2 of 5</div>
+      <div className="stage-eyebrow">Stage 2 of 4</div>
       <h1 className="stage-title">What do you know about these columns?</h1>
       <p className="stage-lede">
         Dataset · <span className="mono">{MERGED_TABLE_NAME}</span>
@@ -386,6 +388,7 @@ function StageDomain({
           key={col.key}
           colKey={col.key}
           col={col}
+          rolePill={col.key === targetCol ? <span className="role-pill">target</span> : null}
           assumptions={assumptions}
           addAssumption={addAssumption}
           updateAssumption={updateAssumption}
@@ -393,10 +396,46 @@ function StageDomain({
         />
       ))}
 
+      {/* Target picker — pill row of every non-join-key column */}
+      {targetableCols.length > 0 && (
+        <div className="card card-pad" style={{ marginTop: 18, marginBottom: 18 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>What do you want to predict?</div>
+          <div className="small muted" style={{ marginBottom: 12 }}>
+            Pick the column the model should learn to predict.
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+            {targetableCols.map(col => {
+              const active = col.key === targetCol;
+              return (
+                <button
+                  key={col.key}
+                  className={"pill " + (active ? 'good' : '')}
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 12.5,
+                    padding: '4px 10px',
+                  }}
+                  onClick={() => setTargetCol(col.key)}
+                >
+                  {active && <Icon name="check" size={11}/>}
+                  <span className="mono" style={{ color: 'inherit' }}>{col.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Validation strip — sticky bottom */}
       {flatCols.length > 0 && (
         <div className="validation-strip">
-          {ok ? (
+          {!targetCol ? (
+            <span className="v-inline">
+              <Icon name="circle" size={14}/>
+              Pick a target column to continue
+            </span>
+          ) : allDocumented ? (
             <span className="v-inline">
               <Icon name="check" size={14}/>
               {flatCols.length} of {flatCols.length} columns documented
@@ -409,7 +448,7 @@ function StageDomain({
             </span>
           )}
           <button className="btn btn-primary btn-sm" disabled={!ok} onClick={onNext}>
-            Continue to test cases <Icon name="arrow-right" size={14}/>
+            Continue to setup <Icon name="arrow-right" size={14}/>
           </button>
         </div>
       )}
@@ -460,100 +499,540 @@ function ColumnAssumptionCard({ colKey, col, rolePill, assumptions, addAssumptio
   );
 }
 
-// ---- Stage 3: Test cases (Canvas) ----
+// ---- Stage 3: Setup (architecture overview) ----
 //
-// Renders the FlowchartPanel (the inputs → model → expected output
-// canvas) as the whole Stage 3 surface, plus a bottom strip that hosts
-// the Continue-to-Review button. No gate on the number of cases.
+// Read-only summary of how the model will be built. Inputs and target
+// are visualised; the target is the only editable affordance (via a
+// dropdown on the output node). Replaces the previous test-case
+// authoring canvas — see plan §1 for the rationale.
 
-function StageTests({ testCases, setTestCases, modelLit, predictionsShown, onNext }) {
-  return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-      <FlowchartPanel
-        testCases={testCases}
-        setTestCases={setTestCases}
-        modelLit={modelLit}
-        predictionsShown={predictionsShown}
-        embedded
-      />
-      <div
-        style={{
-          borderTop: '1px solid var(--border)',
-          background: 'var(--bg-elev)',
-          padding: '12px 18px',
-          display: 'flex',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <button className="btn btn-primary" onClick={onNext}>
-          Continue to review <Icon name="arrow-right" size={14}/>
-        </button>
-      </div>
-    </div>
-  );
-}
+function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onNext }) {
+  assumptions = assumptions || {};
+  // Model-explainer modal (opened by clicking the MODEL node).
+  const [modelModalOpen, setModelModalOpen] = React.useState(false);
 
-// ---- Stage 4: Review ----
-function StageReview({ spec, setSpec, onNext }) {
-  const update = (k) => (e) => setSpec(prev => ({ ...prev, [k]: e.target.value }));
-  const fields = [
-    { k: 'task_type', label: 'Task type' },
-    { k: 'input_description', label: 'Input description' },
-    { k: 'output_description', label: 'Output description' },
-    { k: 'objective', label: 'Objective' },
-    { k: 'metric', label: 'Evaluation metric' },
+  // Esc-key closes the model modal.
+  React.useEffect(() => {
+    if (!modelModalOpen) return;
+    const handler = (e) => { if (e.key === 'Escape') setModelModalOpen(false); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [modelModalOpen]);
+
+  // Build a flat column list with role + key, mirroring the structure
+  // used on Domain so target keys round-trip across stages.
+  const flatCols = [
+    ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, role: 'normal', key: 'shared:' + c.name })),
+    ...schema.groups.flatMap(g => g.columns.map(c => ({
+      name: c.name, type: c.type, role: c.role || 'normal', key: g.fileId + ':' + c.name,
+    }))),
   ];
+
+  if (flatCols.length === 0) {
+    return (
+      <div>
+        <div className="stage-eyebrow">Stage 3 of 4</div>
+        <h1 className="stage-title">Here's how your model will work.</h1>
+        <p className="stage-lede">No data uploaded yet — go back to Upload to add a CSV.</p>
+      </div>
+    );
+  }
+
+  const targetEntry = flatCols.find(c => c.key === targetCol) || flatCols[flatCols.length - 1];
+  const inputCols = flatCols.filter(c => c.key !== targetEntry.key && c.role !== 'joinKey');
+  const currentTask = inferTaskType(targetEntry);
+
+  // Group input columns by source file so the diagram can render
+  // one column per CSV under a filename header. For concat schemas
+  // (no schema.groups), fall back to a single "Shared across sources"
+  // column.
+  //
+  // Join keys: mergedSchema flags the right-side copy of each join key
+  // with role:'joinKey'. We drop those duplicates and instead tag the
+  // matching column on the left-side file with isJoinKey, so the key
+  // appears under the left file only with a "join key" pill.
+  const joinKeyNames = new Set(
+    schema.groups.flatMap(g => g.columns.filter(c => c.role === 'joinKey').map(c => c.name))
+  );
+  const inputGroups = schema.groups.length > 0
+    ? schema.groups
+        .map(g => ({
+          key: g.fileId,
+          title: g.name,
+          mono: true,
+          cols: g.columns
+            // Drop right-side duplicates flagged as joinKey by mergedSchema.
+            .filter(c => c.role !== 'joinKey')
+            .map(c => ({
+              ...c,
+              key: g.fileId + ':' + c.name,
+              isJoinKey: joinKeyNames.has(c.name),
+              sourceName: g.name,
+            }))
+            .filter(c => c.key !== targetEntry.key),
+        }))
+        .filter(g => g.cols.length > 0)
+    : [{
+        key: 'shared',
+        title: 'Shared across sources',
+        mono: false,
+        cols: schema.sharedColumns
+          .map(c => ({
+            ...c,
+            role: 'normal',
+            key: 'shared:' + c.name,
+            isJoinKey: false,
+            sourceName: 'Shared across sources',
+          }))
+          .filter(c => c.key !== targetEntry.key),
+      }].filter(g => g.cols.length > 0);
+
+  const explain = () => {
+    const sourceNames = files
+      .filter(f => f.status === 'parsed')
+      .map(f => f.name)
+      .join(', ');
+    onSeedComposer(
+      "The model is set up to use these " + inputCols.length +
+      " inputs from " + (sourceNames || 'the dataset') +
+      " to predict " + targetEntry.name + ". Here's what I'd change: ",
+      null
+    );
+  };
+
+  // Canvas geometry — input nodes laid out as one column per source
+  // file. Headers sit above each column.
+  const NODE_W        = 168;
+  const NODE_H        = 56;
+  const INPUT_GAP     = 14;   // vertical between nodes in a column
+  const COL_BLOCK_GAP = 32;   // horizontal between source columns
+  const COL_GAP       = 100;  // horizontal inputs → model and model → output
+  const HEADER_H      = 28;   // height reserved above each input column
+  const PAD_TOP       = HEADER_H + 12;
+
+  const groupCount   = Math.max(inputGroups.length, 1);
+  const inputBlockW  = groupCount * NODE_W + (groupCount - 1) * COL_BLOCK_GAP;
+  const tallestColLen = inputGroups.reduce((m, g) => Math.max(m, g.cols.length), 0) || 1;
+  const inputBlockH   = tallestColLen * NODE_H + (tallestColLen - 1) * INPUT_GAP;
+  const H = PAD_TOP + Math.max(inputBlockH, NODE_H) + PAD_TOP;
+
+  const xModel   = inputBlockW + COL_GAP;
+  const xOutput  = xModel + NODE_W + COL_GAP;
+  const W        = xOutput + NODE_W;
+  const modelY   = PAD_TOP + inputBlockH / 2 - NODE_H / 2;
+  const outputY  = modelY;
+
   return (
     <div>
-      <div className="stage-eyebrow">Stage 4 of 5</div>
-      <h1 className="stage-title">Here's the ML spec I drafted.</h1>
-      <p className="stage-lede">I synthesized your assumptions and test cases into this. Every field is editable — fix anything that's off, then confirm.</p>
+      <div className="stage-eyebrow">Stage 3 of 4</div>
+      <h1 className="stage-title">Here's how your model will work.</h1>
 
-      <div className="card">
-        {fields.map(f => (
-          <div className="spec-field" key={f.k}>
-            <div className="spec-label">{f.label}</div>
-            <AutoTextarea className="spec-value" value={spec[f.k]} onChange={update(f.k)} />
+      <p className="stage-lede">
+        The summary of inputs and the prediction target now lives in the chat on the left. Use the diagram below to confirm or change the target.
+      </p>
+
+      {/* Schema diagram — values-free. Breaks out of .workflow-body to
+       * span the full right-hand panel; the page text + buttons stay in
+       * the narrow column above and below. */}
+      <div
+        className="flow-canvas fullwidth"
+        style={{ height: H, marginBottom: 18 }}
+      >
+        <svg className="flow-svg" style={{ width: W, height: H, position: 'absolute', left: '50%', transform: 'translateX(-50%)', overflow: 'visible' }}>
+          <defs>
+            <marker id="setup-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--accent)" />
+            </marker>
+          </defs>
+          {inputGroups.flatMap((g, gi) => {
+            const xCol = gi * (NODE_W + COL_BLOCK_GAP);
+            const fx = xCol + NODE_W;
+            return g.cols.map((_, i) => {
+              const fy = PAD_TOP + i * (NODE_H + INPUT_GAP) + NODE_H / 2;
+              const tx = xModel - 6;
+              const ty = modelY + NODE_H / 2;
+              const dx = (tx - fx) * 0.5;
+              const d = `M ${fx} ${fy} C ${fx + dx} ${fy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
+              return <path key={g.key + ':' + i} d={d} stroke="var(--accent)" strokeWidth="1.4" fill="none" markerEnd="url(#setup-arrow)" />;
+            });
+          })}
+          {(() => {
+            const fx = xModel + NODE_W;
+            const fy = modelY + NODE_H / 2;
+            const tx = xOutput - 6;
+            const ty = outputY + NODE_H / 2;
+            const dx = (tx - fx) * 0.5;
+            const d = `M ${fx} ${fy} C ${fx + dx} ${fy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
+            return <path d={d} stroke="var(--accent)" strokeWidth="1.6" fill="none" markerEnd="url(#setup-arrow)" />;
+          })()}
+        </svg>
+
+        <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', width: W, height: H }}>
+          {/* Input columns grouped by source file */}
+          {inputGroups.map((g, gi) => {
+            const xCol = gi * (NODE_W + COL_BLOCK_GAP);
+            return (
+              <React.Fragment key={g.key}>
+                {/* Header label */}
+                <div
+                  style={{
+                    position: 'absolute', left: xCol, top: 0,
+                    width: NODE_W, height: HEADER_H,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11.5, fontWeight: 600,
+                    color: 'var(--text-3)',
+                    textTransform: g.mono ? 'none' : 'uppercase',
+                    letterSpacing: g.mono ? 0 : '.08em',
+                    fontFamily: g.mono ? 'var(--font-mono)' : 'inherit',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}
+                  title={g.title}
+                >
+                  {g.title}
+                </div>
+                {/* Nodes */}
+                {g.cols.map((c, i) => {
+                  const notes = (assumptions[c.key] || []).filter(s => s && s.trim());
+                  return (
+                    <div
+                      key={c.key}
+                      className="node node-input has-tooltip"
+                      style={{
+                        left: xCol, top: PAD_TOP + i * (NODE_H + INPUT_GAP),
+                        width: NODE_W, height: NODE_H, cursor: 'default',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                      }}
+                    >
+                      <div className="node-label">{c.type}</div>
+                      <div className="node-name">{c.name}</div>
+                      <div className="node-handle right" />
+                      <div className="node-tooltip" role="tooltip">
+                        <div className="node-tooltip-head">
+                          <span className="mono">{c.name}</span>
+                          <span className="node-tooltip-type">{c.type}</span>
+                        </div>
+                        <div className="node-tooltip-source">
+                          From <span className="mono">{c.sourceName}</span>
+                          {c.isJoinKey && <> · join key</>}
+                        </div>
+                        {notes.length > 0 && (
+                          <ul className="node-tooltip-list">
+                            {notes.map((n, ni) => <li key={ni}>{n}</li>)}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            );
+          })}
+
+          {/* Model — click to open the explainer modal */}
+          <button
+            className="node model lit"
+            style={{
+              left: xModel, top: modelY,
+              width: NODE_W, height: NODE_H, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              border: '1.5px solid var(--accent)',
+              background: 'var(--accent-soft)',
+            }}
+            onClick={() => setModelModalOpen(true)}
+            title="How the model is set up"
+          >
+            <Icon name="cpu" size={18}/>
+            <span className="node-name" style={{ marginBottom: 0 }}>model</span>
+            <span className="node-info-chip" aria-hidden="true">
+              <Icon name="info" size={12}/>
+            </span>
+            <div className="node-handle left" />
+            <div className="node-handle right" />
+          </button>
+
+          {/* Output (read-only — target is chosen on Domain). */}
+          <div
+            className="node output predicted"
+            style={{
+              position: 'absolute', left: xOutput, top: outputY,
+              width: NODE_W, height: NODE_H, padding: '0 12px',
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+              justifyContent: 'center', cursor: 'default',
+            }}
+          >
+            <span className="node-label">predicting</span>
+            <span className="node-name">{targetEntry.name}</span>
+            <div className="node-handle left" />
           </div>
-        ))}
+        </div>
       </div>
 
-      <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
-        <button className="btn btn-ghost btn-sm">
-          <Icon name="refresh" size={13}/> Regenerate from scratch
+      {/* Bottom CTAs */}
+      <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 24 }}>
+        <button className="btn" onClick={explain}>
+          <Icon name="chat" size={13}/> Something's off
         </button>
         <button className="btn btn-primary" onClick={onNext}>
-          Confirm & run AutoML <Icon name="play" size={13}/>
+          Looks right — continue <Icon name="arrow-right" size={14}/>
         </button>
+      </div>
+
+      {/* Model-explainer modal */}
+      {modelModalOpen && (
+        <ModelExplainerModal
+          schema={schema}
+          targetEntry={targetEntry}
+          task={currentTask}
+          rowNoun="customers"
+          onClose={() => setModelModalOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---- Stage 3 sub-component: model-explainer modal ----
+//
+// Click-to-open panel anchored over the page (centred). Reads
+// `schema`, `targetEntry`, and `task` (from inferTaskType) to template
+// data-driven copy. Esc and backdrop-click close (Esc lives on the
+// parent effect; backdrop-click hooked here).
+function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
+  const rows = schema.rows || 0;
+  const trainRows = Math.round(rows * 0.7);
+  const testRows  = rows - trainRows;
+
+  // Task-type-flexed copy. Strings are split into discrete blocks so
+  // the same modal layout serves classification / regression / multiclass.
+  let whatBody, taskTitle, taskCheckTitle, taskCheckCopy, taskWhy;
+  if (task.kind === 'classification') {
+    whatBody = (
+      <>
+        <p>
+          A model is a pattern-finder. I'll feed it thousands of past rows — what we knew about each {rowNoun.replace(/s$/, '')} and whether they ended up with <span className="mono">{targetEntry.name} = yes</span> — and it will figure out which patterns predict that outcome. Once it's learned those patterns, you can show it a new row and it'll guess whether <span className="mono">{targetEntry.name}</span> will be yes or no.
+        </p>
+        <p>
+          In machine learning, this kind of pattern-finder is called a <strong>model</strong>. <em>Training</em> the model means showing it enough examples that it picks up the patterns; <em>using</em> the model means asking it to make a guess on a new row.
+        </p>
+        <p>
+          You've probably used a model before without calling it that. ChatGPT and Claude are also machine learning models — just much bigger ones, trained on text instead of tables. They learned their patterns from billions of sentences; yours will learn from your <strong>{rows.toLocaleString()}</strong> rows. Same basic idea, very different scale and purpose. Yours doesn't write essays — it answers one specific yes/no question about your {rowNoun}.
+        </p>
+      </>
+    );
+    taskTitle = 'Classification (yes/no)';
+    taskWhy = (
+      <>
+        I'll learn to predict one of two answers for each row: will <span className="mono">{targetEntry.name}</span> be yes, or won't it?
+        <br/><br/>
+        Why this? <span className="mono">{targetEntry.name}</span> only contains two values, so this is a yes/no question.
+      </>
+    );
+    taskCheckTitle = 'Accuracy + F1-score';
+    taskCheckCopy = (
+      <>
+        <p>
+          I'll measure how often the model's prediction matches the real answer. F1-score is a fairer measure when yes/no answers aren't evenly split — useful here because the two answers usually aren't 50/50.
+        </p>
+        <p>
+          I'll use F1-score to pick the winning model. When I try several pattern-finders on your data, the one with the highest F1-score is the one I'll keep and show you at the end.
+        </p>
+      </>
+    );
+  } else if (task.kind === 'regression') {
+    whatBody = (
+      <>
+        <p>
+          A model is a pattern-finder. I'll feed it thousands of past rows — what we knew about each {rowNoun.replace(/s$/, '')} and the actual number for <span className="mono">{targetEntry.name}</span> — and it will figure out which patterns predict that number. Once it's learned, you can show it a new row and it'll guess what <span className="mono">{targetEntry.name}</span> will be.
+        </p>
+        <p>
+          In machine learning, this kind of pattern-finder is called a <strong>model</strong>. <em>Training</em> the model means showing it enough examples that it picks up the patterns; <em>using</em> the model means asking it to make a guess on a new row.
+        </p>
+        <p>
+          You've probably used a model before without calling it that. ChatGPT and Claude are also machine learning models — just much bigger ones, trained on text instead of tables. They learned their patterns from billions of sentences; yours will learn from your <strong>{rows.toLocaleString()}</strong> rows. Same basic idea, very different scale and purpose. Yours doesn't write essays — it answers one specific question: what's the number for <span className="mono">{targetEntry.name}</span>?
+        </p>
+      </>
+    );
+    taskTitle = 'Regression (a number)';
+    taskWhy = (
+      <>
+        I'll learn to predict a number for each row's <span className="mono">{targetEntry.name}</span>.
+        <br/><br/>
+        Why this? <span className="mono">{targetEntry.name}</span> is a numeric column, so the model has to predict a value rather than a category.
+      </>
+    );
+    taskCheckTitle = 'RMSE (root mean squared error)';
+    taskCheckCopy = (
+      <>
+        <p>
+          I'll measure how far the model's predicted numbers tend to be from the real numbers. Lower is better — RMSE in the same units as <span className="mono">{targetEntry.name}</span>.
+        </p>
+        <p>
+          I'll use RMSE to pick the winning model. When I try several pattern-finders on your data, the one with the lowest RMSE is the one I'll keep and show you at the end.
+        </p>
+      </>
+    );
+  } else {
+    // multiclass / fallback
+    whatBody = (
+      <>
+        <p>
+          A model is a pattern-finder. I'll feed it thousands of past rows — what we knew about each {rowNoun.replace(/s$/, '')} and which category they fell into for <span className="mono">{targetEntry.name}</span> — and it will figure out which patterns predict each category. Once it's learned, you can show it a new row and it'll guess the category.
+        </p>
+        <p>
+          In machine learning, this kind of pattern-finder is called a <strong>model</strong>. <em>Training</em> the model means showing it enough examples that it picks up the patterns; <em>using</em> the model means asking it to make a guess on a new row.
+        </p>
+        <p>
+          You've probably used a model before without calling it that. ChatGPT and Claude are also machine learning models — just much bigger ones, trained on text instead of tables. They learned their patterns from billions of sentences; yours will learn from your <strong>{rows.toLocaleString()}</strong> rows. Same basic idea, very different scale and purpose. Yours doesn't write essays — it picks one of a few categories for <span className="mono">{targetEntry.name}</span>.
+        </p>
+      </>
+    );
+    taskTitle = 'Classification (one of N categories)';
+    taskWhy = (
+      <>
+        I'll learn to predict which category <span className="mono">{targetEntry.name}</span> belongs to for each row.
+        <br/><br/>
+        Why this? <span className="mono">{targetEntry.name}</span> is a categorical column with more than two values, so the model picks one of several answers.
+      </>
+    );
+    taskCheckTitle = 'Macro F1-score';
+    taskCheckCopy = (
+      <>
+        <p>
+          I'll measure how well the model identifies each category, averaged so rare categories count as much as common ones.
+        </p>
+        <p>
+          I'll use macro F1-score to pick the winning model. When I try several pattern-finders on your data, the one with the highest macro F1 is the one I'll keep and show you at the end.
+        </p>
+      </>
+    );
+  }
+
+  // Each section is one slide in the carousel. Kept inline so the
+  // closure variables (whatBody, taskTitle, etc.) stay in scope.
+  const slides = [
+    {
+      eyebrow: "What's a model?",
+      strong: null,
+      body: whatBody,
+    },
+    {
+      eyebrow: "How I'll find the right one",
+      strong: null,
+      body: (
+        <>
+          <p>
+            There isn't just one kind of pattern-finder — there are dozens (decision trees, random forests, gradient boosting, and so on). Each one notices patterns in a slightly different way.
+          </p>
+          <p>
+            When you hit <strong>Run</strong>, I'll try several of them on your data, score how well each one predicts <span className="mono">{targetEntry.name}</span>, and keep the one that scores highest. You don't have to pick — I'll do the comparing and tell you which one won and why.
+          </p>
+        </>
+      ),
+    },
+    {
+      eyebrow: "Task type",
+      strong: taskTitle,
+      body: <p>{taskWhy}</p>,
+    },
+    {
+      eyebrow: "How I'll check my work",
+      strong: taskCheckTitle,
+      body: taskCheckCopy,
+    },
+    {
+      eyebrow: "How I'll train and test",
+      strong: "Train on 70% · test on 30%",
+      body: (
+        <p>
+          I'll use about <strong>{trainRows.toLocaleString()}</strong> {rowNoun} to learn patterns, then test on the other <strong>{testRows.toLocaleString()}</strong> that the model hasn't seen. The test scores tell us how the model behaves on new data, not just data it's already memorised.
+        </p>
+      ),
+    },
+  ];
+
+  const [slideIdx, setSlideIdx] = React.useState(0);
+  const total = slides.length;
+  const atFirst = slideIdx === 0;
+  const atLast  = slideIdx === total - 1;
+  const goPrev = () => { if (!atFirst) setSlideIdx(i => i - 1); };
+  const goNext = () => { if (!atLast)  setSlideIdx(i => i + 1); };
+
+  // Arrow-key paginate. Esc-to-close lives on the parent.
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'ArrowLeft')  goPrev();
+      else if (e.key === 'ArrowRight') goNext();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [slideIdx]);
+
+  const slide = slides[slideIdx];
+
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="model-explainer-title">
+        <div className="modal-header">
+          <div className="modal-title" id="model-explainer-title">How the model is set up</div>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Close">
+            <Icon name="x" size={14}/>
+          </button>
+        </div>
+        <div className="modal-body modal-body-slide">
+          <section>
+            <div className="modal-eyebrow">{slide.eyebrow}</div>
+            {slide.strong && <div className="modal-strong">{slide.strong}</div>}
+            {slide.body}
+          </section>
+        </div>
+        <div className="modal-footer">
+          <button
+            className="btn btn-ghost btn-icon"
+            onClick={goPrev}
+            disabled={atFirst}
+            title="Previous"
+            aria-label="Previous section"
+          >
+            <Icon name="arrow-right" size={14} style={{ transform: 'scaleX(-1)' }}/>
+          </button>
+          <div className="modal-dots" role="tablist" aria-label="Section">
+            {slides.map((s, i) => (
+              <button
+                key={i}
+                role="tab"
+                aria-selected={i === slideIdx}
+                aria-label={s.eyebrow}
+                className={"modal-dot " + (i === slideIdx ? 'active' : '')}
+                onClick={() => setSlideIdx(i)}
+              />
+            ))}
+          </div>
+          <div className="modal-counter">{slideIdx + 1} of {total}</div>
+          <button
+            className="btn btn-ghost btn-icon"
+            onClick={goNext}
+            disabled={atLast}
+            title="Next"
+            aria-label="Next section"
+          >
+            <Icon name="arrow-right" size={14}/>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function AutoTextarea({ value, onChange, className }) {
-  const ref = React.useRef(null);
-  React.useEffect(() => {
-    const el = ref.current;
-    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-  }, [value]);
-  return (
-    <textarea
-      ref={ref}
-      className={className}
-      value={value}
-      onChange={onChange}
-      rows={1}
-    />
-  );
-}
-
-// ---- Stage 5: Run ----
+// ---- Stage 4: Run ----
 function StageRun({ progress, done, activeIdx, onTestIt, hasTested }) {
   const [tab, setTab] = React.useState('overview');
 
   return (
     <div>
-      <div className="stage-eyebrow">Stage 5 of 5</div>
+      <div className="stage-eyebrow">Stage 4 of 4</div>
       <h1 className="stage-title">{done ? 'Your model is ready.' : 'Training your model.'}</h1>
       <p className="stage-lede">
         {done
@@ -644,4 +1123,4 @@ function StageRun({ progress, done, activeIdx, onTestIt, hasTested }) {
   );
 }
 
-Object.assign(window, { STAGES, WorkflowRail, StageUpload, StageDomain, StageTests, StageReview, StageRun });
+Object.assign(window, { STAGES, WorkflowRail, StageUpload, StageDomain, StageSetup, StageRun });

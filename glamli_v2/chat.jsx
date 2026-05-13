@@ -6,13 +6,9 @@ const STAGE_INTROS = {
   2: [
     { who: 'assistant', text: "Nice — I've parsed `customer_churn.csv`. 4,271 rows across 8 columns.\n\nNow here's where your expertise matters more than mine. For each column, I've drafted a couple of plain-language assumptions about what it means and why it matters. **Read through them, edit anything that's wrong, delete what doesn't apply, and add anything I missed.** The more accurate this is, the better the model behind the scenes." },
   ],
-  3: [
-    { who: 'assistant', text: "Great — your domain knowledge is captured. Now, instead of asking you to define an ML objective in technical terms (which is hard!), I'd like you to give me **examples**.\n\nThink of it like teaching by demonstration: *\"For this kind of customer, I'd expect the model to predict X.\"* Add at least 2 test cases on the right side. You can edit values directly on the flowchart." },
-  ],
+  // Stage 3 intro is synthesized inline in app.jsx (it depends on the
+  // live schema + target column).
   4: [
-    { who: 'assistant', text: "Perfect, that's enough to work with. Based on your assumptions and test cases, I've drafted a formal ML specification.\n\n**Review it carefully** — every field is editable. When it looks right, hit **Confirm & Run** and I'll start training models." },
-  ],
-  5: [
     { who: 'assistant', text: "Training in progress. This usually takes 1–2 minutes. You can watch the **Overview** tab for a friendly status, or peek at **Advanced** to see the full optimization history.\n\nWhen it's done, you'll get a **Test it Out!** button — clicking it will run your test cases through the trained model and show predictions right next to your expected values." },
   ],
 };
@@ -63,7 +59,7 @@ function ChatPanel({ stage, messages, onSend, streaming, composerDraft, onCompos
           <div className="brand-mark" style={{ width: 24, height: 24 }}>G</div>
           <div className="col">
             <div style={{ fontWeight: 600, fontSize: 13.5 }}>Assistant</div>
-            <div className="small muted">Stage {stage} of 5</div>
+            <div className="small muted">Stage {stage} of 4</div>
           </div>
         </div>
         <button className="btn btn-ghost btn-icon" title="New conversation">
@@ -72,9 +68,22 @@ function ChatPanel({ stage, messages, onSend, streaming, composerDraft, onCompos
       </div>
       <div className="panel-body" ref={feedRef}>
         <div className="chat-feed">
-          {messages.map((m, i) => (
-            <Message key={i} msg={m} streaming={streaming && i === messages.length - 1 && m.who === 'assistant'} />
-          ))}
+          {(() => {
+            // Stage-scoped feed: render only messages whose stage tag
+            // matches the current stage. Untagged legacy messages are
+            // visible everywhere (fallback for safety).
+            const visible = messages
+              .map((m, i) => ({ m, i }))
+              .filter(({ m }) => m.stage == null || m.stage === stage);
+            const lastIdx = visible.length > 0 ? visible[visible.length - 1].i : -1;
+            return visible.map(({ m, i }) => (
+              <Message
+                key={i}
+                msg={m}
+                streaming={streaming && i === lastIdx && i === messages.length - 1 && m.who === 'assistant'}
+              />
+            ));
+          })()}
         </div>
       </div>
       <div className="composer">

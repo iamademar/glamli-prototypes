@@ -235,14 +235,6 @@ const INITIAL_TEST_CASES = [
   },
 ];
 
-const INITIAL_SPEC = {
-  task_type: 'Binary classification',
-  input_description: '7 customer features: tenure (months), monthly charges (USD), contract type, payment method, support tickets in last 90 days, average session length, and plan tier.',
-  output_description: 'A single label predicting whether the customer will churn within the next billing cycle. Values: "Yes" or "No".',
-  objective: 'Predict customer churn before it happens, so the retention team can prioritize outreach to at-risk accounts.',
-  metric: 'F1-score on the "churned = Yes" class — balances precision and recall, suitable given class imbalance (~26% positive rate).',
-};
-
 const AUTOML_STEPS = [
   { label: 'Profiling data and detecting types', t: 1200 },
   { label: 'Generating data preparation plan', t: 1600 },
@@ -511,6 +503,48 @@ function mergedSchema(files, merges) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// inferTaskType — map a target column's dtype to a task description.
+// Used by Stage 3 (Setup) for the plain-language summary and the
+// cascade-confirm copy when the user changes target.
+// ─────────────────────────────────────────────────────────────────────
+function inferTaskType(col) {
+  if (!col) return { kind: 'classification', phrase: 'yes or no', metric: 'accuracy' };
+  if (col.type === 'boolean') return { kind: 'classification', phrase: 'yes or no', metric: 'accuracy' };
+  if (col.type === 'numeric')  return { kind: 'regression',     phrase: 'a number',  metric: 'RMSE' };
+  if (col.type === 'categorical') return { kind: 'multiclass',  phrase: 'one of N categories', metric: 'macro F1' };
+  return { kind: 'classification', phrase: 'yes or no', metric: 'accuracy' };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// defaultTargetKey — heuristic pick for the target column on Domain
+// entry. Skips join-key columns. Order of preference:
+//   1. Last boolean column
+//   2. Last column whose name matches /churn|target|label|outcome|status|predict/i
+//   3. Last entry overall
+// Returns a string keyed identically to assumption keys
+// (`fileId:colName` or `shared:colName`), or null for an empty schema.
+// ─────────────────────────────────────────────────────────────────────
+function defaultTargetKey(schema) {
+  if (!schema || schema.parsedCount === 0) return null;
+  const flat = [
+    ...schema.sharedColumns.map(c => ({ key: 'shared:' + c.name, col: c })),
+    ...schema.groups.flatMap(g => g.columns.map(c => ({ key: g.fileId + ':' + c.name, col: c }))),
+  ].filter(({ col }) => col.role !== 'joinKey');
+  if (flat.length === 0) return null;
+
+  let lastBoolean = null;
+  let lastNameMatch = null;
+  const nameRe = /(churn|target|label|outcome|status|predict)/i;
+  for (const entry of flat) {
+    if (entry.col.type === 'boolean') lastBoolean = entry;
+    if (nameRe.test(entry.col.name)) lastNameMatch = entry;
+  }
+  if (lastBoolean) return lastBoolean.key;
+  if (lastNameMatch) return lastNameMatch.key;
+  return flat[flat.length - 1].key;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // topbarSubtitle — string copy for the topbar's right-of-brand meta.
 // Returns a plain string; the caller wraps the mono span itself.
 // ─────────────────────────────────────────────────────────────────────
@@ -623,9 +657,10 @@ const UPLOAD_PRESETS = [
 
 Object.assign(window, {
   DATASET, FILE_FIXTURES,
-  INITIAL_ASSUMPTIONS, INITIAL_TEST_CASES, INITIAL_SPEC,
+  INITIAL_ASSUMPTIONS, INITIAL_TEST_CASES,
   AUTOML_STEPS, MODEL_PLANS,
   makeFile, migrateInitialAssumptions, blankAssumptionsForFile,
   classify, mergedSchema, topbarSubtitle,
+  inferTaskType, defaultTargetKey,
   buildDemoState, UPLOAD_PRESETS,
 });

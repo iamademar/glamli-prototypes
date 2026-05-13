@@ -24,6 +24,8 @@ const Icon = ({ name, size = 16, ...rest }) => {
     case 'circle': return <svg {...props}><circle cx="12" cy="12" r="9"/></svg>;
     case 'circle-dot': return <svg {...props}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>;
     case 'chat': return <svg {...props}><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-9l-4 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>;
+    case 'chevron-down': return <svg {...props}><path d="M6 9l6 6 6-6"/></svg>;
+    case 'info': return <svg {...props}><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>;
     default: return null;
   }
 };
