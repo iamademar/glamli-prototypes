@@ -1,0 +1,15 @@
+/* ProgressBar — extracted from glamli_v2.html.
+ * Tokens come from src/styles/globals.css.
+ */
+
+.progress-track {
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}

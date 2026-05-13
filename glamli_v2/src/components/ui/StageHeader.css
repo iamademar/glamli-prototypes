@@ -1,0 +1,30 @@
+/* StageHeader — extracted from glamli_v2.html.
+ * Tokens come from src/styles/globals.css.
+ */
+
+.stage-eyebrow {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  font-weight: 600;
+}
+
+h1.stage-title,
+.stage-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 6px 0 6px;
+  color: var(--text);
+}
+
+.stage-lede {
+  color: var(--text-2);
+  font-size: 15px;
+  margin: 0 0 24px;
+  max-width: 60ch;
+  text-wrap: pretty;
+}

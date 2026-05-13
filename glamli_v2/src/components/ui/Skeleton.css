@@ -1,0 +1,15 @@
+/* Skeleton — extracted from glamli_v2.html.
+ * Tokens come from src/styles/globals.css.
+ */
+
+.skel {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2),
+    var(--bg-elev),
+    var(--surface-2)
+  );
+  background-size: 200% 100%;
+  animation: skel 1.6s linear infinite;
+  border-radius: 5px;
+}
