@@ -421,21 +421,31 @@ function classify(prevSchema, candidate, hint) {
 // For a concat chain: ALL files contribute to a single `sharedColumns`
 // list (their schemas match by definition); groups stays empty.
 // ─────────────────────────────────────────────────────────────────────
-function mergedSchema(files, merges) {
+// typeOverrides: optional { 'fileId:colName' | 'shared:colName' -> type }
+// map letting the Domain page reclassify a column's type so the change
+// flows through Setup / Predict / chat. Falls back to the column's
+// original fixture type when no override exists.
+function mergedSchema(files, merges, typeOverrides) {
+  const ov = typeOverrides || {};
+  const applyOv = (col, key) => {
+    const t = ov[key];
+    return (t && t !== col.type) ? { ...col, type: t } : col;
+  };
   const parsed = (files || []).filter(f => f.status !== 'refused');
   if (parsed.length === 0) {
     return { rows: 0, cols: 0, parsedCount: 0, sharedColumns: [], groups: [], joinKeys: [] };
   }
   if (parsed.length === 1) {
+    const f0 = parsed[0];
     return {
-      rows: parsed[0].rows,
-      cols: parsed[0].cols,
+      rows: f0.rows,
+      cols: f0.cols,
       parsedCount: 1,
       sharedColumns: [],
       groups: [{
-        fileId: parsed[0].id,
-        name: parsed[0].name,
-        columns: parsed[0].columns.map(c => ({ ...c, role: 'normal' })),
+        fileId: f0.id,
+        name: f0.name,
+        columns: f0.columns.map(c => ({ ...applyOv(c, f0.id + ':' + c.name), role: 'normal' })),
       }],
       joinKeys: [],
     };
@@ -456,7 +466,7 @@ function mergedSchema(files, merges) {
       cols: first.cols,
       parsedCount: parsed.length,
       sharedColumns: first.columns.map(c => ({
-        ...c,
+        ...applyOv(c, 'shared:' + c.name),
         sourceIds: parsed.map(f => f.id),
       })),
       groups: [],
@@ -479,7 +489,7 @@ function mergedSchema(files, merges) {
       fileId: file.id,
       name: file.name,
       columns: file.columns.map(c => ({
-        ...c,
+        ...applyOv(c, file.id + ':' + c.name),
         role: (i > 0 && c.name === keyOnThisFile) ? 'joinKey' : 'normal',
       })),
     });

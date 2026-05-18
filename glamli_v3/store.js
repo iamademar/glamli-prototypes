@@ -24,6 +24,7 @@
       mergeRevision: 0,
       mergeRevisionAtDomainEntry: 0,
       assumptions: {},
+      typeOverrides: {},        // { 'fileId:colName' -> type } from Domain
       testCases: [],            // seeded from INITIAL_TEST_CASES by page roots
       messages: [],
       shownIntros: [],          // array form of the Set

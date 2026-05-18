@@ -136,6 +136,8 @@ function makePageApp(PAGE_STAGE) {
     const [mergeRevisionAtDomainEntry, setMergeRevisionAtDomainEntry] = React.useState(s0.mergeRevisionAtDomainEntry || 0);
 
     const [assumptions, setAssumptions] = React.useState(s0.assumptions || {});
+    // Per-column type reclassification done on the Domain page.
+    const [typeOverrides, setTypeOverrides] = React.useState(s0.typeOverrides || {});
     const [testCases, setTestCases] = React.useState(
       (s0.testCases && s0.testCases.length)
         ? s0.testCases
@@ -161,14 +163,14 @@ function makePageApp(PAGE_STAGE) {
     const [predictResult, setPredictResult] = React.useState(s0.predictResult || null);
     const [lastPredictedTargetKey, setLastPredictedTargetKey] = React.useState(s0.lastPredictedTargetKey || null);
 
-    const schema = React.useMemo(() => mergedSchema(files, merges), [files, merges]);
+    const schema = React.useMemo(() => mergedSchema(files, merges, typeOverrides), [files, merges, typeOverrides]);
     const topbarLabel = topbarSubtitle(files);
 
     // ── Persist the durable slice on any change ──────────────────────
     React.useEffect(() => {
       Store.save({
         files, merges, mergeRevision, mergeRevisionAtDomainEntry,
-        assumptions, testCases, messages,
+        assumptions, typeOverrides, testCases, messages,
         shownIntros: [...shownIntros],
         targetCol, runDone, hasTested,
         predictInputs, predictResult, lastPredictedTargetKey,
@@ -176,7 +178,7 @@ function makePageApp(PAGE_STAGE) {
       });
     }, [
       files, merges, mergeRevision, mergeRevisionAtDomainEntry,
-      assumptions, testCases, messages, shownIntros,
+      assumptions, typeOverrides, testCases, messages, shownIntros,
       targetCol, runDone, hasTested,
       predictInputs, predictResult, lastPredictedTargetKey,
       tweaks, maxStage,
@@ -292,7 +294,7 @@ function makePageApp(PAGE_STAGE) {
     const navTo = (n) => {
       Store.save({
         files, merges, mergeRevision, mergeRevisionAtDomainEntry,
-        assumptions, testCases, messages,
+        assumptions, typeOverrides, testCases, messages,
         shownIntros: [...shownIntros],
         targetCol, runDone, hasTested,
         predictInputs, predictResult, lastPredictedTargetKey,
@@ -507,6 +509,7 @@ function makePageApp(PAGE_STAGE) {
         files: snap.files,
         merges: snap.merges,
         assumptions: snap.assumptions,
+        typeOverrides: {},
         mergeRevision: snap.mergeRevision,
         mergeRevisionAtDomainEntry: snap.mergeRevisionAtDomainEntry,
         testCases: INITIAL_TEST_CASES.map((tc) => ({ ...tc, predicted: null, confidence: null })),
@@ -639,6 +642,8 @@ function makePageApp(PAGE_STAGE) {
                     setAssumptions={setAssumptions}
                     targetCol={targetCol}
                     setTargetCol={setTargetCol}
+                    onChangeColType={(key, type) =>
+                      setTypeOverrides(prev => ({ ...prev, [key]: type }))}
                     onNext={() => advance(3)} />
                 }
                 {stage === 3 &&

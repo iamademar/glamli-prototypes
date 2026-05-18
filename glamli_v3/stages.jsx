@@ -359,6 +359,7 @@ function StageDomain({
   schema,
   assumptions, setAssumptions,
   targetCol, setTargetCol,
+  onChangeColType,
   onNext,
 }) {
   const updateAssumption = (key, idx, value) => {
@@ -420,6 +421,7 @@ function StageDomain({
           addAssumption={addAssumption}
           updateAssumption={updateAssumption}
           removeAssumption={removeAssumption}
+          onChangeColType={onChangeColType}
         />
       ))}
 
@@ -483,13 +485,27 @@ function StageDomain({
   );
 }
 
-function ColumnAssumptionCard({ colKey, col, rolePill, assumptions, addAssumption, updateAssumption, removeAssumption }) {
+const COLUMN_TYPES = ['numeric', 'categorical', 'boolean'];
+
+function ColumnAssumptionCard({ colKey, col, rolePill, assumptions, addAssumption, updateAssumption, removeAssumption, onChangeColType }) {
   return (
     <div className="col-card">
       <div className="col-head">
         <div>
           <span className="col-name">{col.name}</span>
-          <span className="col-type" style={{ marginLeft: 10 }}>{col.type}</span>
+          {onChangeColType ? (
+            <select
+              className="col-type-select"
+              style={{ marginLeft: 10 }}
+              value={col.type}
+              title="Change this column's type"
+              onChange={(e) => onChangeColType(colKey, e.target.value)}
+            >
+              {COLUMN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          ) : (
+            <span className="col-type" style={{ marginLeft: 10 }}>{col.type}</span>
+          )}
           {rolePill}
         </div>
         <button className="btn btn-ghost btn-sm" onClick={() => addAssumption(colKey)}>
