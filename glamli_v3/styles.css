@@ -863,6 +863,36 @@
     padding-left: 10px;
   }
 
+  /* ---- Standalone CSV viewer page (viewer.html) ---- */
+  /* A normal document — Glide's documented happy path. No fixed
+   * modal layer, and #portal is left completely unstyled so Glide's
+   * inline cell editor positions itself correctly over the cell. */
+  .viewer-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .viewer-bar {
+    height: 48px;
+    flex: 0 0 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+  .viewer-title {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--text);
+  }
+  .viewer-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   /* ---- Modal (model-explainer) ---- */
   .modal-backdrop {
     position: fixed; inset: 0;

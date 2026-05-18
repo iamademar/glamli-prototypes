@@ -46,6 +46,15 @@ function FileCard({ file, variant = 'full', onRemove }) {
           </div>
         </div>
         <div className="row" style={{ gap: 8 }}>
+          {!isClassifying && !isRefused && !isCompact && file.status === 'parsed' && (
+            <button
+              className="btn btn-sm"
+              title="View all rows in a spreadsheet"
+              onClick={() => { window.location.href = 'viewer.html?file=' + encodeURIComponent(file.name); }}
+            >
+              <Icon name="database" size={13}/> View rows
+            </button>
+          )}
           {pill}
           {onRemove && (
             <button className="btn btn-ghost btn-icon btn-sm" title="Remove this file" onClick={onRemove}>

@@ -583,6 +583,71 @@ function firstPreviewValue(fixtureOrName, colName) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// generateFullRows — synthesize the "entire" dataset for the CSV
+// viewer. The fixtures only carry ~10 preview rows; this fills up to
+// the fixture's claimed `rows` count (capped) by reusing the real
+// preview rows verbatim at the top, then synthesizing plausible
+// values per column type. Pure, lazy (called only when the viewer
+// opens), result is never stored.
+// ─────────────────────────────────────────────────────────────────────
+function generateFullRows(fixtureOrName) {
+  const fixture = typeof fixtureOrName === 'string'
+    ? Object.values(FILE_FIXTURES).find(f => f.name === fixtureOrName)
+    : fixtureOrName;
+  if (!fixture) return [];
+
+  const cols = fixture.columns || [];
+  const preview = fixture.preview || [];
+  const CAP = 5000;
+  const target = Math.min(fixture.rows || preview.length, CAP);
+
+  // Per-column generators derived from the preview.
+  const gens = cols.map((col, ci) => {
+    const sampleVals = preview.map(r => r[ci]).filter(v => v !== undefined && v !== null);
+    const isFirstIdLike = ci === 0 && /(^|_)id$/i.test(col.name);
+
+    if (isFirstIdLike) {
+      return (i) => 'C-' + (1000 + i);
+    }
+    if (col.type === 'numeric') {
+      const nums = sampleVals.map(Number).filter(n => !Number.isNaN(n));
+      const min = nums.length ? Math.min(...nums) : 0;
+      const max = nums.length ? Math.max(...nums) : 100;
+      // Decimal precision = max decimals seen in the preview.
+      let decimals = 0;
+      for (const v of sampleVals) {
+        const s = String(v);
+        const dot = s.indexOf('.');
+        if (dot >= 0) decimals = Math.max(decimals, s.length - dot - 1);
+      }
+      return () => {
+        const raw = min + Math.random() * (max - min);
+        return decimals > 0 ? Number(raw.toFixed(decimals)) : Math.round(raw);
+      };
+    }
+    // categorical / boolean / anything else → pick from observed values.
+    const opts = [];
+    const seen = new Set();
+    for (const v of sampleVals) {
+      const s = String(v);
+      if (!seen.has(s)) { seen.add(s); opts.push(v); }
+    }
+    const fallback = opts.length ? opts : [''];
+    return () => fallback[Math.floor(Math.random() * fallback.length)];
+  });
+
+  const rows = [];
+  for (let i = 0; i < target; i++) {
+    if (i < preview.length) {
+      rows.push(preview[i].slice());
+    } else {
+      rows.push(cols.map((_, ci) => gens[ci](i)));
+    }
+  }
+  return rows;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // PREP_NOTES — per-column auto data-preparation notes surfaced on the
 // Stage 3 input-node hover tooltip. Each entry returns null or a
 // { headline, paragraphs[], rowsAffected, before[][], after[][] }
@@ -739,6 +804,7 @@ Object.assign(window, {
   classify, mergedSchema, topbarSubtitle,
   inferTaskType, defaultTargetKey,
   extractCategoricalValues, firstPreviewValue,
+  generateFullRows,
   getPrepNote,
   buildDemoState, UPLOAD_PRESETS,
 });
