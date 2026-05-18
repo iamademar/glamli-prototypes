@@ -107,6 +107,11 @@ function App() {
   const [runDone, setRunDone] = React.useState(false);
   const [hasTested, setHasTested] = React.useState(false);
 
+  // Stage 5 (Predict) state.
+  const [predictInputs, setPredictInputs] = React.useState({});
+  const [predictResult, setPredictResult] = React.useState(null);
+  const [lastPredictedTargetKey, setLastPredictedTargetKey] = React.useState(null);
+
   // Derived: schema and topbar copy
   const schema = React.useMemo(() => mergedSchema(files, merges), [files, merges]);
   const topbarLabel = topbarSubtitle(files);
@@ -127,6 +132,54 @@ function App() {
       setTargetCol(defaultTargetKey(schema));
     }
   }, [schema]);
+
+  // Stage 5 form: reconcile predictInputs against the live schema so
+  // the form's fields track Upload/Domain edits. Drop orphan keys,
+  // seed new keys from the first preview row of their source file,
+  // and invalidate any stale prediction result when the target moves.
+  React.useEffect(() => {
+    if (schema.parsedCount === 0) {
+      if (Object.keys(predictInputs).length) setPredictInputs({});
+      if (predictResult) setPredictResult(null);
+      return;
+    }
+    // Build the desired key set (non-target, non-joinKey-duplicate),
+    // with each key paired to its source file for seeding.
+    const filesByName = new Map(files.map(f => [f.name, f]));
+    const desired = schema.groups.length > 0
+      ? schema.groups.flatMap(g =>
+          g.columns
+            .filter(c => c.role !== 'joinKey')
+            .map(c => ({ key: g.fileId + ':' + c.name, name: c.name, file: filesByName.get(g.name) }))
+        )
+      : schema.sharedColumns.map(c => ({
+          key: 'shared:' + c.name,
+          name: c.name,
+          file: files.find(f => f.status === 'parsed'),
+        }));
+    const visible = desired.filter(d => d.key !== targetCol);
+
+    let changed = false;
+    const next = {};
+    const desiredKeys = new Set(visible.map(d => d.key));
+    // Preserve existing values for keys that still exist.
+    for (const k of Object.keys(predictInputs)) {
+      if (desiredKeys.has(k)) next[k] = predictInputs[k];
+      else changed = true;
+    }
+    // Seed new keys from firstPreviewValue.
+    for (const d of visible) {
+      if (!(d.key in next)) {
+        next[d.key] = d.file ? firstPreviewValue(d.file, d.name) : '';
+        changed = true;
+      }
+    }
+    if (changed) setPredictInputs(next);
+
+    if (predictResult && lastPredictedTargetKey !== targetCol) {
+      setPredictResult(null);
+    }
+  }, [schema, targetCol]);
 
   // Apply theme + density + accent to root
   React.useEffect(() => {
@@ -157,6 +210,22 @@ function App() {
       if (!summary) return;
       const intro = summary +
         "\n\nIf that's right, hit **continue**. If not, hit **Something's off** and tell me what to change.";
+      setShownIntros((prev) => new Set(prev).add(stage));
+      setStreaming(true);
+      streamMessage(setMessages, intro, () => setStreaming(false), 10, stage);
+      return;
+    }
+
+    if (stage === 5) {
+      if (schema.parsedCount === 0) return;
+      const flatCols = [
+        ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, key: 'shared:' + c.name })),
+        ...schema.groups.flatMap(g => g.columns.map(c => ({ name: c.name, type: c.type, key: g.fileId + ':' + c.name }))),
+      ];
+      const target = flatCols.find(c => c.key === targetCol) || flatCols[flatCols.length - 1];
+      const intro =
+        "Now let's test the model on a new row. Enter values for the inputs on the right and I'll predict `" +
+        target.name + "` for you. Try changing one field at a time to see what moves the prediction.";
       setShownIntros((prev) => new Set(prev).add(stage));
       setStreaming(true);
       streamMessage(setMessages, intro, () => setStreaming(false), 10, stage);
@@ -573,15 +642,29 @@ function App() {
                   done={runDone}
                   activeIdx={runActive}
                   onTestIt={testItOut}
-                  hasTested={hasTested} />
+                  hasTested={hasTested}
+                  onAdvancePredict={() => advance(5)} />
+              }
+              {stage === 5 &&
+                <StagePredict
+                  schema={schema}
+                  files={files}
+                  targetCol={targetCol}
+                  predictInputs={predictInputs}
+                  setPredictInputs={setPredictInputs}
+                  predictResult={predictResult}
+                  setPredictResult={setPredictResult}
+                  setLastPredictedTargetKey={setLastPredictedTargetKey}
+                  runDone={runDone}
+                  setStage={setStage} />
               }
             </div>
           </div>
         </main>
       </div>
 
-      <TweaksPanel title="Tweaks">
-        {stage === 1 && (
+      {stage === 1 && (
+        <TweaksPanel title="Tweaks">
           <TweakSection title="Demo states">
             <TweakSelect
               label="Upload preset"
@@ -589,8 +672,8 @@ function App() {
               onChange={(v) => v && applyPreset(v)}
               options={[{ value: '', label: '— pick a state —' }, ...UPLOAD_PRESETS]} />
           </TweakSection>
-        )}
-      </TweaksPanel>
+        </TweaksPanel>
+      )}
     </>);
 
 }

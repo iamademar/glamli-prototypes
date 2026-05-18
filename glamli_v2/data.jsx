@@ -545,6 +545,82 @@ function defaultTargetKey(schema) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// extractCategoricalValues — walk a fixture's preview rows for one
+// column and return the unique, insertion-ordered list of cell values
+// (coerced to strings). Used by Stage 5's form to populate <select>s.
+// Accepts either a fixture object or a filename string.
+// ─────────────────────────────────────────────────────────────────────
+function extractCategoricalValues(fixtureOrName, colName) {
+  const fixture = typeof fixtureOrName === 'string'
+    ? Object.values(FILE_FIXTURES).find(f => f.name === fixtureOrName)
+    : fixtureOrName;
+  if (!fixture) return [];
+  const idx = fixture.columns.findIndex(c => c.name === colName);
+  if (idx < 0) return [];
+  const seen = new Set();
+  const out = [];
+  for (const row of fixture.preview || []) {
+    const v = row[idx];
+    if (v === undefined || v === null) continue;
+    const s = String(v).trim();
+    if (!s) continue;
+    if (!seen.has(s)) { seen.add(s); out.push(s); }
+  }
+  return out;
+}
+
+// firstPreviewValue — return the first preview row's cell for a column.
+// Used by Stage 5's form to seed default field values.
+function firstPreviewValue(fixtureOrName, colName) {
+  const fixture = typeof fixtureOrName === 'string'
+    ? Object.values(FILE_FIXTURES).find(f => f.name === fixtureOrName)
+    : fixtureOrName;
+  if (!fixture) return undefined;
+  const idx = fixture.columns.findIndex(c => c.name === colName);
+  if (idx < 0) return undefined;
+  const row = (fixture.preview || [])[0];
+  return row ? row[idx] : undefined;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PREP_NOTES — per-column auto data-preparation notes surfaced on the
+// Stage 3 input-node hover tooltip. Each entry returns null or a
+// { headline, paragraphs[], rowsAffected, before[][], after[][] }
+// object given the row count from the column's source file. Currently
+// only `plan_tier` has a note; add more entries here as the prototype
+// grows.
+// ─────────────────────────────────────────────────────────────────────
+const PREP_NOTES = {
+  plan_tier: (rows) => ({
+    headline: "I'll group discontinued plan tiers into `Basic` before training.",
+    paragraphs: [
+      "Your data has 5 plan tiers. Two — `Legacy-Bronze` and `Legacy-Silver` — only appear in 47 rows total. That's not enough for the model to learn a reliable pattern from, so I'll roll them into `Basic` (the closest current tier in price).",
+      "Rows affected: 47 of " + (rows ? rows.toLocaleString() : '?') + " (" + (rows ? ((47 / rows) * 100).toFixed(1) : '?') + "%)",
+    ],
+    before: [
+      ['Basic',          '2,104'],
+      ['Standard',       '1,389'],
+      ['Premium',          '731'],
+      ['Legacy-Bronze',     '29'],
+      ['Legacy-Silver',     '18'],
+    ],
+    after: [
+      ['Basic',          '2,151'],
+      ['Standard',       '1,389'],
+      ['Premium',          '731'],
+      ['Legacy-Bronze',      '—'],
+      ['Legacy-Silver',      '—'],
+    ],
+  }),
+};
+
+function getPrepNote(colName, sourceFile) {
+  const factory = PREP_NOTES[colName];
+  if (!factory) return null;
+  return factory(sourceFile && sourceFile.rows);
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // topbarSubtitle — string copy for the topbar's right-of-brand meta.
 // Returns a plain string; the caller wraps the mono span itself.
 // ─────────────────────────────────────────────────────────────────────
@@ -662,5 +738,7 @@ Object.assign(window, {
   makeFile, migrateInitialAssumptions, blankAssumptionsForFile,
   classify, mergedSchema, topbarSubtitle,
   inferTaskType, defaultTargetKey,
+  extractCategoricalValues, firstPreviewValue,
+  getPrepNote,
   buildDemoState, UPLOAD_PRESETS,
 });

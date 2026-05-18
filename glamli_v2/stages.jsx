@@ -4,7 +4,34 @@ const STAGES = [
   { num: 2, key: 'domain', title: 'Domain knowledge', short: 'Domain' },
   { num: 3, key: 'setup', title: 'Architecture setup', short: 'Setup' },
   { num: 4, key: 'run', title: 'AutoML execution', short: 'Run' },
+  { num: 5, key: 'predict', title: 'Predict on a row', short: 'Predict' },
 ];
+
+// renderInlineCode — render a string containing `code` spans as a
+// React fragment with the right `.mono` spans. Used by the Stage 3
+// data-prep tooltip copy.
+function renderInlineCode(text) {
+  if (!text) return null;
+  const parts = String(text).split(/(`[^`]+`)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith('`') && p.endsWith('`')) {
+      return <span key={i} className="mono" style={{ color: 'var(--accent-ink)' }}>{p.slice(1, -1)}</span>;
+    }
+    return p;
+  });
+}
+
+// humanizeColumnName — turn a snake_case column id into a Title Case
+// label. e.g. customer_id → "Customer Id"; avg_resolution_hours →
+// "Avg Resolution Hours". Used by Stage 5's form labels.
+function humanizeColumnName(name) {
+  if (!name) return '';
+  return String(name)
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
 
 function WorkflowRail({ stage, maxStage, setStage }) {
   return (
@@ -107,7 +134,7 @@ function StageUpload({ files, merges, onUpload, onChangeMergeKeys, onRemoveFile,
 
   return (
     <div>
-      <div className="stage-eyebrow">Stage 1 of 4</div>
+      <div className="stage-eyebrow">Stage 1 of 5</div>
       <h1 className="stage-title">Let's start with your data.</h1>
       <p className="stage-lede">
         Upload one or more CSVs. I'll parse each, describe what's inside, and check if they can be joined or stacked into a single training table.
@@ -367,7 +394,7 @@ function StageDomain({
 
   return (
     <div>
-      <div className="stage-eyebrow">Stage 2 of 4</div>
+      <div className="stage-eyebrow">Stage 2 of 5</div>
       <h1 className="stage-title">What do you know about these columns?</h1>
       <p className="stage-lede">
         Dataset · <span className="mono">{MERGED_TABLE_NAME}</span>
@@ -531,7 +558,7 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
   if (flatCols.length === 0) {
     return (
       <div>
-        <div className="stage-eyebrow">Stage 3 of 4</div>
+        <div className="stage-eyebrow">Stage 3 of 5</div>
         <h1 className="stage-title">Here's how your model will work.</h1>
         <p className="stage-lede">No data uploaded yet — go back to Upload to add a CSV.</p>
       </div>
@@ -554,23 +581,28 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
   const joinKeyNames = new Set(
     schema.groups.flatMap(g => g.columns.filter(c => c.role === 'joinKey').map(c => c.name))
   );
+  const filesByName = new Map(files.map(f => [f.name, f]));
   const inputGroups = schema.groups.length > 0
     ? schema.groups
-        .map(g => ({
-          key: g.fileId,
-          title: g.name,
-          mono: true,
-          cols: g.columns
-            // Drop right-side duplicates flagged as joinKey by mergedSchema.
-            .filter(c => c.role !== 'joinKey')
-            .map(c => ({
-              ...c,
-              key: g.fileId + ':' + c.name,
-              isJoinKey: joinKeyNames.has(c.name),
-              sourceName: g.name,
-            }))
-            .filter(c => c.key !== targetEntry.key),
-        }))
+        .map(g => {
+          const sourceFile = filesByName.get(g.name);
+          return {
+            key: g.fileId,
+            title: g.name,
+            mono: true,
+            cols: g.columns
+              // Drop right-side duplicates flagged as joinKey by mergedSchema.
+              .filter(c => c.role !== 'joinKey')
+              .map(c => ({
+                ...c,
+                key: g.fileId + ':' + c.name,
+                isJoinKey: joinKeyNames.has(c.name),
+                sourceName: g.name,
+                prepNote: getPrepNote(c.name, sourceFile),
+              }))
+              .filter(c => c.key !== targetEntry.key),
+          };
+        })
         .filter(g => g.cols.length > 0)
     : [{
         key: 'shared',
@@ -583,6 +615,7 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
             key: 'shared:' + c.name,
             isJoinKey: false,
             sourceName: 'Shared across sources',
+            prepNote: getPrepNote(c.name, files.find(f => f.status === 'parsed')),
           }))
           .filter(c => c.key !== targetEntry.key),
       }].filter(g => g.cols.length > 0);
@@ -593,7 +626,7 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
       .map(f => f.name)
       .join(', ');
     onSeedComposer(
-      "The model is set up to use these " + inputCols.length +
+      "Something looks off. The model is set up to use these " + inputCols.length +
       " inputs from " + (sourceNames || 'the dataset') +
       " to predict " + targetEntry.name + ". Here's what I'd change: ",
       null
@@ -624,11 +657,11 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
 
   return (
     <div>
-      <div className="stage-eyebrow">Stage 3 of 4</div>
+      <div className="stage-eyebrow">Stage 3 of 5</div>
       <h1 className="stage-title">Here's how your model will work.</h1>
 
       <p className="stage-lede">
-        The summary of inputs and the prediction target now lives in the chat on the left. Use the diagram below to confirm or change the target.
+        The summary of inputs and the prediction target now lives in the chat on the left. Use the diagram below to learn about the setup.
       </p>
 
       {/* Schema diagram — values-free. Breaks out of .workflow-body to
@@ -719,6 +752,39 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
                           <ul className="node-tooltip-list">
                             {notes.map((n, ni) => <li key={ni}>{n}</li>)}
                           </ul>
+                        )}
+                        {c.prepNote && (
+                          <div className="node-tooltip-prep">
+                            <div className="node-tooltip-prep-eyebrow">Data prep</div>
+                            <div className="node-tooltip-prep-headline">
+                              {renderInlineCode(c.prepNote.headline)}
+                            </div>
+                            {c.prepNote.paragraphs.map((p, pi) => (
+                              <div className="node-tooltip-prep-para" key={pi}>
+                                {renderInlineCode(p)}
+                              </div>
+                            ))}
+                            {c.prepNote.before && c.prepNote.after && (
+                              <table className="node-tooltip-prep-table">
+                                <thead>
+                                  <tr>
+                                    <th colSpan="2">Before</th>
+                                    <th colSpan="2">After</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {c.prepNote.before.map((row, ri) => (
+                                    <tr key={ri}>
+                                      <td className="mono">{row[0]}</td>
+                                      <td className="num">{row[1]}</td>
+                                      <td className="mono">{c.prepNote.after[ri][0]}</td>
+                                      <td className="num">{c.prepNote.after[ri][1]}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1027,12 +1093,12 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
 }
 
 // ---- Stage 4: Run ----
-function StageRun({ progress, done, activeIdx, onTestIt, hasTested }) {
+function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onAdvancePredict }) {
   const [tab, setTab] = React.useState('overview');
 
   return (
     <div>
-      <div className="stage-eyebrow">Stage 4 of 4</div>
+      <div className="stage-eyebrow">Stage 4 of 5</div>
       <h1 className="stage-title">{done ? 'Your model is ready.' : 'Training your model.'}</h1>
       <p className="stage-lede">
         {done
@@ -1052,10 +1118,11 @@ function StageRun({ progress, done, activeIdx, onTestIt, hasTested }) {
           </div>
           <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Best model: <span className="mono">GradientBoostingClassifier</span></div>
           <div className="muted" style={{ marginBottom: 24 }}>F1-score on hold-out: <strong>0.847</strong> · trained in 12s</div>
-          <button className="btn btn-primary" style={{ height: 44, padding: '0 22px', fontSize: 15, borderRadius: 10 }} onClick={onTestIt}>
-            <Icon name="sparkle" size={16}/> {hasTested ? 'Re-run on test cases' : 'Test it Out!'}
-          </button>
-          {hasTested && <div className="muted small" style={{ marginTop: 16 }}>Predictions are showing on the flowchart →</div>}
+          <div className="row" style={{ justifyContent: 'center', gap: 10 }}>
+            <button className="btn btn-primary" style={{ height: 44, padding: '0 22px', fontSize: 15, borderRadius: 10 }} onClick={onAdvancePredict}>
+              <Icon name="sparkle" size={16}/> Test it Out!
+            </button>
+          </div>
         </div>
       ) : (
         <div>
@@ -1123,4 +1190,217 @@ function StageRun({ progress, done, activeIdx, onTestIt, hasTested }) {
   );
 }
 
-Object.assign(window, { STAGES, WorkflowRail, StageUpload, StageDomain, StageSetup, StageRun });
+// ---- Stage 5: Predict ----
+//
+// Single-row prediction form. Reads `schema` to build a list of input
+// fields (one per non-target, non-join-key-duplicate column), pre-fills
+// each from the first preview row of its source file, and on submit
+// produces a fake prediction whose shape depends on the target's type.
+function StagePredict({
+  schema, files, targetCol,
+  predictInputs, setPredictInputs,
+  predictResult, setPredictResult,
+  setLastPredictedTargetKey,
+  runDone, setStage,
+}) {
+  predictInputs = predictInputs || {};
+
+  if (schema.parsedCount === 0) {
+    return (
+      <div>
+        <div className="stage-eyebrow">Stage 5 of 5</div>
+        <h1 className="stage-title">Predict on a new row.</h1>
+        <div className="card card-pad" style={{ marginTop: 18 }}>
+          <p style={{ margin: 0, marginBottom: 12 }}>No data yet — go to Upload to add a CSV.</p>
+          <button className="btn btn-primary" onClick={() => setStage(1)}>
+            Go to Upload <Icon name="arrow-right" size={14}/>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Build a flat column list with source-file metadata, mirroring
+  // Stage 3's pattern. The form excludes the right-side join-key
+  // duplicate (role==='joinKey') and the current target.
+  const joinKeyNames = new Set(
+    schema.groups.flatMap(g => g.columns.filter(c => c.role === 'joinKey').map(c => c.name))
+  );
+  const filesByName = new Map(files.map(f => [f.name, f]));
+  const inputFields = schema.groups.length > 0
+    ? schema.groups.flatMap(g =>
+        g.columns
+          .filter(c => c.role !== 'joinKey')
+          .map(c => ({
+            key: g.fileId + ':' + c.name,
+            name: c.name,
+            type: c.type,
+            sourceName: g.name,
+            sourceFile: filesByName.get(g.name),
+            isJoinKey: joinKeyNames.has(c.name),
+          }))
+      )
+    : schema.sharedColumns.map(c => ({
+        key: 'shared:' + c.name,
+        name: c.name,
+        type: c.type,
+        sourceName: 'Shared',
+        sourceFile: files.find(f => f.status === 'parsed'),
+        isJoinKey: false,
+      }));
+  const visibleFields = inputFields.filter(f => f.key !== targetCol);
+
+  const targetEntry = (() => {
+    const flat = [
+      ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, key: 'shared:' + c.name, sourceName: 'Shared' })),
+      ...schema.groups.flatMap(g => g.columns.map(c => ({ name: c.name, type: c.type, key: g.fileId + ':' + c.name, sourceName: g.name }))),
+    ];
+    return flat.find(c => c.key === targetCol) || flat[flat.length - 1];
+  })();
+  const targetTask = inferTaskType(targetEntry);
+
+  const onChangeField = (k, v) => setPredictInputs(prev => ({ ...prev, [k]: v }));
+
+  const runPrediction = () => {
+    let value;
+    if (targetEntry.type === 'boolean') {
+      // 70/30 No/Yes — mimics realistic class imbalance.
+      value = Math.random() < 0.30 ? 'Yes' : 'No';
+    } else if (targetEntry.type === 'categorical') {
+      const sourceFile = filesByName.get(targetEntry.sourceName);
+      const opts = sourceFile ? extractCategoricalValues(sourceFile, targetEntry.name) : [];
+      value = opts.length ? opts[Math.floor(Math.random() * opts.length)] : '?';
+    } else {
+      // numeric — sample within observed preview min/max
+      const sourceFile = filesByName.get(targetEntry.sourceName);
+      const idx = sourceFile ? sourceFile.columns.findIndex(c => c.name === targetEntry.name) : -1;
+      const samples = (sourceFile && idx >= 0)
+        ? sourceFile.preview.map(r => Number(r[idx])).filter(n => !Number.isNaN(n))
+        : [];
+      if (samples.length) {
+        const min = Math.min(...samples), max = Math.max(...samples);
+        const raw = min + Math.random() * (max - min);
+        value = Math.round(raw * 100) / 100;
+      } else {
+        value = Math.round(Math.random() * 100 * 100) / 100;
+      }
+    }
+    const confidence = Math.round((0.70 + Math.random() * 0.25) * 100) / 100;
+    setPredictResult({ value, confidence });
+    setLastPredictedTargetKey(targetCol);
+  };
+
+  const resetForm = () => {
+    const fresh = {};
+    visibleFields.forEach(f => {
+      fresh[f.key] = f.sourceFile ? firstPreviewValue(f.sourceFile, f.name) : '';
+    });
+    setPredictInputs(fresh);
+    setPredictResult(null);
+  };
+
+  return (
+    <div>
+      <div className="stage-eyebrow">Stage 5 of 5</div>
+      <h1 className="stage-title">Predict on a new row.</h1>
+      <p className="stage-lede">
+        Tweak the values below and hit <strong>Predict</strong> to see what{' '}
+        <span className="mono">{targetEntry.name}</span> the model would guess for this row.
+      </p>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        {visibleFields.map(f => {
+          const v = predictInputs[f.key];
+          let control;
+          if (f.isJoinKey) {
+            control = (
+              <input
+                type="text"
+                className="spec-value"
+                value={v == null ? '' : v}
+                onChange={(e) => onChangeField(f.key, e.target.value)}
+              />
+            );
+          } else if (f.type === 'boolean') {
+            control = (
+              <select
+                className="spec-value"
+                value={v == null ? '' : v}
+                onChange={(e) => onChangeField(f.key, e.target.value)}
+              >
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            );
+          } else if (f.type === 'categorical') {
+            const opts = f.sourceFile ? extractCategoricalValues(f.sourceFile, f.name) : [];
+            control = (
+              <select
+                className="spec-value"
+                value={v == null ? '' : v}
+                onChange={(e) => onChangeField(f.key, e.target.value)}
+              >
+                {opts.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            );
+          } else {
+            // numeric
+            control = (
+              <input
+                type="number"
+                className="spec-value"
+                value={v == null ? '' : v}
+                onChange={(e) => {
+                  const n = e.target.value === '' ? '' : Number(e.target.value);
+                  onChangeField(f.key, n);
+                }}
+              />
+            );
+          }
+          return (
+            <div className="spec-field" key={f.key}>
+              <div className="spec-label" style={{ textTransform: 'none', letterSpacing: 0 }}>
+                <span style={{ color: 'var(--text)', fontSize: 12.5, fontWeight: 600 }}>{humanizeColumnName(f.name)}</span>
+              </div>
+              {control}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="row" style={{ justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
+        {!runDone && (
+          <span className="small muted">Train the model first — head back to <strong>Run</strong>.</span>
+        )}
+        <button
+          className="btn btn-primary"
+          disabled={!runDone}
+          onClick={runPrediction}
+        >
+          <Icon name="sparkle" size={14}/> Predict
+        </button>
+      </div>
+
+      {predictResult && (
+        <div className="card card-pad" style={{ marginTop: 18 }}>
+          <div className="stage-eyebrow" style={{ marginBottom: 8 }}>Prediction</div>
+          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 6 }}>
+            <span className="mono">{targetEntry.name}</span>
+            {' = '}
+            <span className="mono" style={{ color: 'var(--accent-ink)' }}>{String(predictResult.value)}</span>
+          </div>
+          <div className="small muted" style={{ marginBottom: 14 }}>
+            Confidence: {Math.round(predictResult.confidence * 100)}%
+          </div>
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button className="btn" onClick={resetForm}>
+              <Icon name="refresh" size={13}/> Predict another row
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, { STAGES, WorkflowRail, StageUpload, StageDomain, StageSetup, StageRun, StagePredict });

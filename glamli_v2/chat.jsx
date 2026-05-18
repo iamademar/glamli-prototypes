@@ -59,7 +59,7 @@ function ChatPanel({ stage, messages, onSend, streaming, composerDraft, onCompos
           <div className="brand-mark" style={{ width: 24, height: 24 }}>G</div>
           <div className="col">
             <div style={{ fontWeight: 600, fontSize: 13.5 }}>Assistant</div>
-            <div className="small muted">Stage {stage} of 4</div>
+            <div className="small muted">Stage {stage} of 5</div>
           </div>
         </div>
         <button className="btn btn-ghost btn-icon" title="New conversation">
