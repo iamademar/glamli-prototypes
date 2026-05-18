@@ -756,6 +756,26 @@
   }
   .node:hover .node-info-chip { background: var(--accent-ink); }
 
+  /* Inline "explain this in chat" affordance next to a technical term
+   * (Run stage: model name + F1 line). Recognition over recall — it
+   * tells the user help is right here. */
+  .info-chip {
+    appearance: none;
+    border: none;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    vertical-align: middle;
+    margin-left: 8px;
+    padding: 0;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .info-chip:hover { background: var(--accent); color: var(--on-accent, #fbf9f4); }
+  .info-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   /* ---- Stage 3 input-node tooltips ---- */
   .node.has-tooltip { overflow: visible; }
   .node-tooltip {

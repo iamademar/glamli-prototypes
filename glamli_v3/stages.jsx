@@ -1109,8 +1109,13 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
 }
 
 // ---- Stage 4: Run ----
-function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onAdvancePredict }) {
+function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onSeedComposer, onAdvancePredict }) {
   const [tab, setTab] = React.useState('overview');
+  const best = (typeof MODEL_PLANS !== 'undefined' && MODEL_PLANS.find(m => m.best)) || MODEL_PLANS[0];
+  const bestName = best ? best.name : 'GradientBoostingClassifier';
+  const bestScore = best ? best.score.toFixed(3) : '0.847';
+  const bestTime = best && best.time ? best.time : '12s';
+  const seed = (t) => () => { if (onSeedComposer) onSeedComposer(t, null); };
 
   return (
     <div>
@@ -1132,8 +1137,26 @@ function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onAdvancePre
           <div style={{ width: 56, height: 56, margin: '0 auto 24px', borderRadius: '50%', background: 'var(--accent-soft)', color: 'var(--accent-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="check" size={26}/>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Best model: <span className="mono">GradientBoostingClassifier</span></div>
-          <div className="muted" style={{ marginBottom: 24 }}>F1-score on hold-out: <strong>0.847</strong> · trained in 12s</div>
+          <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>
+            Best model: <span className="mono">{bestName}</span>
+            <button
+              className="info-chip"
+              title="Explain this in chat"
+              onClick={seed('What does the model "' + bestName + '" actually mean, in plain terms?')}
+            >
+              <Icon name="info" size={12}/>
+            </button>
+          </div>
+          <div className="muted" style={{ marginBottom: 24 }}>
+            F1-score on hold-out: <strong>{bestScore}</strong> · trained in {bestTime}
+            <button
+              className="info-chip"
+              title="Explain this in chat"
+              onClick={seed('What does F1-score ' + bestScore + ' mean for my model — is that good?')}
+            >
+              <Icon name="info" size={12}/>
+            </button>
+          </div>
           <div className="row" style={{ justifyContent: 'center', gap: 10 }}>
             <button className="btn btn-primary" style={{ height: 44, padding: '0 22px', fontSize: 15, borderRadius: 10 }} onClick={onAdvancePredict}>
               <Icon name="sparkle" size={16}/> Test it Out!

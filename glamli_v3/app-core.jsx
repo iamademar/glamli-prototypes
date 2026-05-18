@@ -29,19 +29,25 @@ function nowTime() {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+let __msgSeq = 0;
 function streamMessage(setMessages, fullText, onDone, chunkSize, stage) {
-  setMessages((prev) => [...prev, { who: 'assistant', text: '', t: nowTime(), stage: stage || null }]);
+  // Stamp a unique id and update THIS bubble by id, not "the last one".
+  // If a second streamMessage starts before this finishes, "last bubble"
+  // would point at the newer one and freeze this one mid-word — the
+  // observed truncation bug. Targeting by id makes streams independent.
+  const id = 'm' + (++__msgSeq);
+  setMessages((prev) => [...prev, { id, who: 'assistant', text: '', t: nowTime(), stage: stage || null }]);
   let i = 0;
   if (!chunkSize) chunkSize = 3;
   const interval = setInterval(() => {
     i += chunkSize;
-    setMessages((prev) => {
-      const copy = prev.slice();
-      copy[copy.length - 1] = { ...copy[copy.length - 1], text: fullText.slice(0, i) };
-      return copy;
-    });
+    const slice = fullText.slice(0, i);
+    setMessages((prev) => prev.map(m => m.id === id ? { ...m, text: slice } : m));
     if (i >= fullText.length) {
       clearInterval(interval);
+      // Final write guarantees the complete string even if a slice
+      // boundary landed exactly on length.
+      setMessages((prev) => prev.map(m => m.id === id ? { ...m, text: fullText } : m));
       if (onDone) onDone();
     }
   }, 18);
@@ -100,8 +106,21 @@ function explainRefusalCopy(prevFile, file, fileColList) {
 
 function generateReply(text, stage) {
   const lower = text.toLowerCase();
+  // "is <score> good?" / "is that good?" — interpret the F1 number.
+  if (lower.includes('good') && (lower.includes('f1') || lower.includes('score') || /\b0\.\d{2,}\b/.test(lower) || lower.includes('that'))) {
+    return "Short answer: **yes, that's solid** for a churn problem. F1 runs 0 (useless) to 1 (perfect). On real-world churn data — where most customers *don't* leave, so the model has to work to find the ones who do — anything in the **mid-0.8s is a good, usable model**; 0.9+ is excellent and often a sign of a leak; below ~0.6 you'd be cautious. So the score here is in the range you'd be comfortable acting on, while still sanity-checking individual predictions on the next screen.";
+  }
+  // "what is F1 / what does F1-score mean" (no 'why' needed).
+  if (lower.includes('f1') || (lower.includes('score') && lower.includes('mean'))) {
+    return "**F1-score** is one number for how well the model finds the answer you care about. It blends two things: of the customers it *flagged* as churning, how many really did (precision), and of the customers who *really* churned, how many it caught (recall). It matters here because churners are a minority — a model that just says \"nobody churns\" would look ~74% accurate but be useless. F1 only goes up if the model genuinely catches churners **without** crying wolf.";
+  }
   if (lower.includes('why') && lower.includes('f1')) {
     return "Good question. **F1-score** balances precision and recall, which matters here because only ~26% of customers churn. If we used plain accuracy, a model could predict \"No\" for everyone and still score 74% — useless for retention. F1 forces the model to actually catch the churners.";
+  }
+  // "what does <model name> mean" — explain the algorithm family plainly.
+  if ((lower.includes('model') || lower.includes('gradient') || lower.includes('classifier') || lower.includes('forest')) &&
+      (lower.includes('mean') || lower.includes('what') || lower.includes('plain'))) {
+    return "It's the *kind* of pattern-finder the system picked after trying several. A **gradient boosting** model builds lots of tiny \"if this, lean that way\" rules and stacks them so each new rule fixes mistakes the previous ones made — together they capture fairly subtle churn patterns. You don't need to manage it; the important part is the score next to it, which says how well *this* model does on customers it hasn't seen.";
   }
   if (lower.includes('test') && lower.includes('case')) {
     return "Test cases are the heart of this approach. Each one says: *given these inputs, expect this output.* The system uses them to (a) infer your objective, and (b) sanity-check the trained model. Two is the minimum, but **5–10 cases gives a much better picture**.";
@@ -581,6 +600,44 @@ function makePageApp(PAGE_STAGE) {
       return () => { cancelled = true; };
     }, []);
 
+    // When training finishes on the Run page, stream a plain-language
+    // decode of the on-screen result (model name + F1 score) into chat.
+    // Fires exactly once per session (guarded via shownIntros key
+    // 'run-done') so it doesn't re-fire on revisits or re-renders.
+    React.useEffect(() => {
+      if (PAGE_STAGE !== 4 || !runDone) return;
+      if (shownIntros.has('run-done')) return;
+
+      const best = (typeof MODEL_PLANS !== 'undefined' && MODEL_PLANS.find(m => m.best)) || MODEL_PLANS[0];
+      const flatCols = [
+        ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, key: 'shared:' + c.name })),
+        ...schema.groups.flatMap(g => g.columns.map(c => ({ name: c.name, type: c.type, key: g.fileId + ':' + c.name }))),
+      ];
+      const target = flatCols.find(c => c.key === targetCol) || flatCols[flatCols.length - 1];
+      const targetName = target ? target.name : 'the target';
+      const pct = best ? Math.round(best.score * 100) : null;
+      const family = best && /gradientboost/i.test(best.name)
+        ? "a 'gradient boosting' model — it learned patterns by combining many small decision rules"
+        : "the best-scoring model from the ones it tried";
+
+      const decode =
+        "Training's done. The model it picked is **" + (best ? best.name : 'the top model') + "** — " +
+        family + ".\n\n" +
+        "The **" + (best ? best.score.toFixed(3) : '—') + "** next to it is its **F1-score**: on rows it had " +
+        "never seen during training, it correctly told `" + targetName + "` apart" +
+        (pct != null ? (" about " + pct + "% of the time") : "") +
+        " — F1 balances *catching the real cases* against *false alarms*, which matters when one answer is much " +
+        "rarer than the other.\n\n" +
+        "Ask me **\"is " + (best ? best.score.toFixed(3) : 'that') + " good?\"** if you want a sense of whether " +
+        "that's strong for this kind of problem, or hit **Test it Out!** to try the model on a new row.";
+
+      setShownIntros((prev) => new Set(prev).add('run-done'));
+      setStreaming(true);
+      setTimeout(() => {
+        streamMessage(setMessages, decode, () => setStreaming(false), 10, 4);
+      }, 250);
+    }, [runDone]);
+
     const testItOut = () => {
       setHasTested(true);
       setTestCases((prev) => prev.map((tc) => ({
@@ -662,6 +719,7 @@ function makePageApp(PAGE_STAGE) {
                     activeIdx={runActive}
                     onTestIt={testItOut}
                     hasTested={hasTested}
+                    onSeedComposer={onSeedComposer}
                     onAdvancePredict={() => advance(5)} />
                 }
                 {stage === 5 &&
