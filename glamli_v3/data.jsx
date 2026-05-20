@@ -517,7 +517,21 @@ function mergedSchema(files, merges, typeOverrides) {
 // Used by Stage 3 (Setup) for the plain-language summary and the
 // cascade-confirm copy when the user changes target.
 // ─────────────────────────────────────────────────────────────────────
-function inferTaskType(col) {
+function inferTaskType(col, explicitTaskType) {
+  // Explicit user choice wins. Falls through to dtype-based inference
+  // when null/undefined.
+  if (explicitTaskType === 'clustering') {
+    return { kind: 'clustering', phrase: 'groups of similar rows', metric: 'silhouette' };
+  }
+  if (explicitTaskType === 'regression') {
+    return { kind: 'regression', phrase: 'a number', metric: 'RMSE' };
+  }
+  if (explicitTaskType === 'classification') {
+    if (col && col.type === 'categorical')
+      return { kind: 'multiclass', phrase: 'one of N categories', metric: 'macro F1' };
+    return { kind: 'classification', phrase: 'yes or no', metric: 'accuracy' };
+  }
+  // Dtype-based fallback (pre-task-type-flow behaviour).
   if (!col) return { kind: 'classification', phrase: 'yes or no', metric: 'accuracy' };
   if (col.type === 'boolean') return { kind: 'classification', phrase: 'yes or no', metric: 'accuracy' };
   if (col.type === 'numeric')  return { kind: 'regression',     phrase: 'a number',  metric: 'RMSE' };
@@ -534,13 +548,22 @@ function inferTaskType(col) {
 // Returns a string keyed identically to assumption keys
 // (`fileId:colName` or `shared:colName`), or null for an empty schema.
 // ─────────────────────────────────────────────────────────────────────
-function defaultTargetKey(schema) {
+function defaultTargetKey(schema, mode) {
   if (!schema || schema.parsedCount === 0) return null;
   const flat = [
     ...schema.sharedColumns.map(c => ({ key: 'shared:' + c.name, col: c })),
     ...schema.groups.flatMap(g => g.columns.map(c => ({ key: g.fileId + ':' + c.name, col: c }))),
   ].filter(({ col }) => col.role !== 'joinKey');
   if (flat.length === 0) return null;
+
+  // Regression mode — prefer the last numeric column. If none exist,
+  // fall through to the default heuristic so the caller still gets
+  // *something* (which the Domain UI will then immediately clear via
+  // the regression-target coupling effect).
+  if (mode === 'regression') {
+    const numerics = flat.filter(e => e.col.type === 'numeric');
+    if (numerics.length > 0) return numerics[numerics.length - 1].key;
+  }
 
   let lastBoolean = null;
   let lastNameMatch = null;
@@ -552,6 +575,32 @@ function defaultTargetKey(schema) {
   if (lastBoolean) return lastBoolean.key;
   if (lastNameMatch) return lastNameMatch.key;
   return flat[flat.length - 1].key;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// defaultTaskType — heuristic guess for the Domain page's task-type
+// radio. Returns 'classification' when the dataset has a binary or
+// outcome-named column, 'regression' when an outcome-named column is
+// numeric, or null when there's no strong signal (the chat then asks
+// "I'm not sure yet, what are you trying to figure out?").
+// ─────────────────────────────────────────────────────────────────────
+function defaultTaskType(schema) {
+  if (!schema || schema.parsedCount === 0) return null;
+  const flat = [
+    ...schema.sharedColumns.map(c => ({ col: c })),
+    ...schema.groups.flatMap(g => g.columns.map(c => ({ col: c }))),
+  ].filter(({ col }) => col.role !== 'joinKey');
+  if (flat.length === 0) return null;
+
+  const nameRe = /(churn|target|label|outcome|status|predict)/i;
+  // Boolean → classification (the most common GLAMLI demo path).
+  if (flat.some(({ col }) => col.type === 'boolean')) return 'classification';
+  // Outcome-named column → check dtype.
+  const named = flat.find(({ col }) => nameRe.test(col.name));
+  if (named) {
+    return named.col.type === 'numeric' ? 'regression' : 'classification';
+  }
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -812,7 +861,7 @@ Object.assign(window, {
   AUTOML_STEPS, MODEL_PLANS,
   makeFile, migrateInitialAssumptions, blankAssumptionsForFile,
   classify, mergedSchema, topbarSubtitle,
-  inferTaskType, defaultTargetKey,
+  inferTaskType, defaultTargetKey, defaultTaskType,
   extractCategoricalValues, firstPreviewValue,
   generateFullRows,
   getPrepNote,

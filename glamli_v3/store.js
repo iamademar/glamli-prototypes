@@ -29,6 +29,7 @@
       messages: [],
       shownIntros: [],          // array form of the Set
       targetCol: null,
+      taskType: null,           // 'classification' | 'regression' | 'clustering' | null
       runDone: false,
       hasTested: false,
       predictInputs: {},

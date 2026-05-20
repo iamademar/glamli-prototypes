@@ -49,10 +49,10 @@ function FileCard({ file, variant = 'full', onRemove }) {
           {!isClassifying && !isRefused && !isCompact && file.status === 'parsed' && (
             <button
               className="btn btn-sm"
-              title="View all rows in a spreadsheet"
-              onClick={() => { window.location.href = 'viewer.html?file=' + encodeURIComponent(file.name); }}
+              title="Explore this file's columns"
+              onClick={() => { window.location.href = 'explore.html?file=' + encodeURIComponent(file.name); }}
             >
-              <Icon name="database" size={13}/> View rows
+              <Icon name="sparkle" size={13}/> Explore
             </button>
           )}
           {pill}
