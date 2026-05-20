@@ -355,10 +355,29 @@ function RefusalExplanation({ file, prevFile, onRemove, onExplainInChat }) {
 
 const MERGED_TABLE_NAME = 'business_churn_cleaned_v1.csv';
 
+const TASK_OPTIONS = [
+  {
+    value: 'classification',
+    label: 'Predict an outcome (Classification)',
+    description: '"Will this customer leave?" Picks one of a fixed set of answers, like Yes/No or High/Medium/Low.',
+  },
+  {
+    value: 'regression',
+    label: 'Predict a number (Regression)',
+    description: '"How much will this customer spend next month?" Estimates a numeric value.',
+  },
+  {
+    value: 'clustering',
+    label: 'Find groups in your data (Clustering)',
+    description: '"Which customers behave alike?" No target needed — the system organises rows by similarity.',
+  },
+];
+
 function StageDomain({
   schema,
   assumptions, setAssumptions,
   targetCol, setTargetCol,
+  taskType, setTaskType,
   onChangeColType,
   onNext,
 }) {
@@ -382,8 +401,10 @@ function StageDomain({
   ];
   const targetableCols = flatCols.filter(c => c.role !== 'joinKey');
 
-  // Validation — every visible column needs at least one non-empty assumption,
-  // AND a target must be chosen.
+  // Validation:
+  //   - every visible column needs at least one non-empty assumption
+  //   - a taskType must be picked
+  //   - classification/regression also require a target column (clustering doesn't)
   const missingKeys = flatCols
     .map(c => c.key)
     .filter(k => {
@@ -391,24 +412,111 @@ function StageDomain({
       return list.length === 0 || list.every(a => !a || !a.trim());
     });
   const allDocumented = flatCols.length > 0 && missingKeys.length === 0;
-  const ok = allDocumented && !!targetCol;
+  const needsTarget = taskType === 'classification' || taskType === 'regression';
+  const targetReady = !needsTarget || !!targetCol;
+  const ok = allDocumented && !!taskType && targetReady;
 
   return (
     <div>
       <div className="stage-eyebrow">Stage 2 of 5</div>
-      <h1 className="stage-title">What do you know about these columns?</h1>
+      <h1 className="stage-title">What kind of question are you asking?</h1>
       <p className="stage-lede">
         Dataset · <span className="mono">{MERGED_TABLE_NAME}</span>
         {flatCols.length > 0 && <> · {schema.rows.toLocaleString()} rows × {flatCols.length} columns</>}
-      </p>
-      <p className="stage-lede" style={{ marginTop: -16 }}>
-        I've drafted plain-language assumptions for each column. Edit, delete, or add your own. This becomes the model's context.
       </p>
 
       {flatCols.length === 0 && (
         <div className="small muted" style={{ padding: '24px 0' }}>
           No data uploaded yet — go back to Upload to add a CSV.
         </div>
+      )}
+
+      {/* Task-type picker — always first. Pre-selects via defaultTaskType
+          when the dataset has a strong signal. */}
+      {flatCols.length > 0 && (
+        <div className="card card-pad" style={{ marginBottom: 18 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            What kind of question are you asking?
+          </div>
+          <div className="small muted" style={{ marginBottom: 12 }}>
+            {taskType
+              ? "Based on what's in your file, this looks like a prediction problem — switch below if you're after something else."
+              : "I'm not sure yet — pick the one that matches what you're trying to figure out."}
+          </div>
+          <div className="col" style={{ gap: 8 }}>
+            {TASK_OPTIONS.map(opt => (
+              <label
+                key={opt.value}
+                className={"task-radio" + (taskType === opt.value ? ' selected' : '')}
+              >
+                <input
+                  type="radio"
+                  name="task-type"
+                  value={opt.value}
+                  checked={taskType === opt.value}
+                  onChange={() => setTaskType(opt.value)}
+                />
+                <div className="col" style={{ gap: 2 }}>
+                  <div style={{ fontWeight: 600 }}>{opt.label}</div>
+                  <div className="small muted">{opt.description}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Target picker — only for classification/regression. Filters to
+          numeric columns when regression. */}
+      {taskType !== 'clustering' && targetableCols.length > 0 && (() => {
+        const heading = taskType === 'regression'
+          ? 'Pick the number you want to predict'
+          : 'Pick what you want to predict';
+        const subLabel = taskType === 'regression'
+          ? 'Pick the numeric column the model should learn to estimate.'
+          : 'Pick the column the model should learn to predict.';
+        const visiblePillCols = taskType === 'regression'
+          ? targetableCols.filter(c => c.type === 'numeric')
+          : targetableCols;
+        return (
+          <div className="card card-pad" style={{ marginBottom: 18 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{heading}</div>
+            <div className="small muted" style={{ marginBottom: 12 }}>{subLabel}</div>
+            {visiblePillCols.length > 0 ? (
+              <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                {visiblePillCols.map(col => {
+                  const active = col.key === targetCol;
+                  return (
+                    <button
+                      key={col.key}
+                      className={"pill " + (active ? 'good' : '')}
+                      style={{
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 12.5,
+                        padding: '4px 10px',
+                      }}
+                      onClick={() => setTargetCol(col.key)}
+                    >
+                      {active && <Icon name="check" size={11}/>}
+                      <span className="mono" style={{ color: 'inherit' }}>{col.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="small muted">
+                No numeric columns in this dataset — switch to Classification or Clustering.
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {flatCols.length > 0 && (
+        <p className="stage-lede" style={{ marginTop: 0, marginBottom: 18 }}>
+          I've drafted plain-language assumptions for each column. Edit, delete, or add your own. This becomes the model's context.
+        </p>
       )}
 
       {flatCols.map(col => (
@@ -425,55 +533,31 @@ function StageDomain({
         />
       ))}
 
-      {/* Target picker — pill row of every non-join-key column */}
-      {targetableCols.length > 0 && (
-        <div className="card card-pad" style={{ marginTop: 18, marginBottom: 18 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>What do you want to predict?</div>
-          <div className="small muted" style={{ marginBottom: 12 }}>
-            Pick the column the model should learn to predict.
-          </div>
-          <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
-            {targetableCols.map(col => {
-              const active = col.key === targetCol;
-              return (
-                <button
-                  key={col.key}
-                  className={"pill " + (active ? 'good' : '')}
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 12.5,
-                    padding: '4px 10px',
-                  }}
-                  onClick={() => setTargetCol(col.key)}
-                >
-                  {active && <Icon name="check" size={11}/>}
-                  <span className="mono" style={{ color: 'inherit' }}>{col.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Validation strip — sticky bottom */}
+      {/* Validation strip — sticky bottom. First unmet condition wins. */}
       {flatCols.length > 0 && (
         <div className="validation-strip">
-          {!targetCol ? (
+          {!taskType ? (
             <span className="v-inline">
               <Icon name="circle" size={14}/>
-              Pick a target column to continue
+              Pick what kind of question you're asking
             </span>
-          ) : allDocumented ? (
+          ) : needsTarget && !targetCol ? (
             <span className="v-inline">
-              <Icon name="check" size={14}/>
-              {flatCols.length} of {flatCols.length} columns documented
+              <Icon name="circle" size={14}/>
+              {taskType === 'regression'
+                ? 'Pick the number you want to predict'
+                : 'Pick what you want to predict'}
             </span>
-          ) : (
+          ) : !allDocumented ? (
             <span className="v-inline">
               <Icon name="circle" size={14}/>
               {flatCols.length - missingKeys.length} of {flatCols.length} columns documented ·{' '}
               {missingKeys.length} still need a note
+            </span>
+          ) : (
+            <span className="v-inline">
+              <Icon name="check" size={14}/>
+              {flatCols.length} of {flatCols.length} columns documented · ready for setup
             </span>
           )}
           <button className="btn btn-primary btn-sm" disabled={!ok} onClick={onNext}>
@@ -549,18 +633,24 @@ function ColumnAssumptionCard({ colKey, col, rolePill, assumptions, addAssumptio
 // dropdown on the output node). Replaces the previous test-case
 // authoring canvas — see plan §1 for the rationale.
 
-function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onNext }) {
+function StageSetup({ schema, files, targetCol, taskType, assumptions, onSeedComposer, onNext }) {
   assumptions = assumptions || {};
   // Model-explainer modal (opened by clicking the MODEL node).
   const [modelModalOpen, setModelModalOpen] = React.useState(false);
+  // Per-feature explainer modal (opened by clicking an input node).
+  const [featureModal, setFeatureModal] = React.useState(null);
 
-  // Esc-key closes the model modal.
+  // Esc-key closes whichever modal is open.
   React.useEffect(() => {
-    if (!modelModalOpen) return;
-    const handler = (e) => { if (e.key === 'Escape') setModelModalOpen(false); };
+    if (!modelModalOpen && !featureModal) return;
+    const handler = (e) => {
+      if (e.key !== 'Escape') return;
+      setModelModalOpen(false);
+      setFeatureModal(null);
+    };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [modelModalOpen]);
+  }, [modelModalOpen, featureModal]);
 
   // Build a flat column list with role + key, mirroring the structure
   // used on Domain so target keys round-trip across stages.
@@ -581,9 +671,37 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
     );
   }
 
+  // Clustering — placeholder. The Setup flow assumes a supervised
+  // target; the clustering pipeline is out of scope for this revision.
+  if (taskType === 'clustering') {
+    const inputs = flatCols.filter(c => c.role !== 'joinKey');
+    return (
+      <div>
+        <div className="stage-eyebrow">Stage 3 of 5</div>
+        <h1 className="stage-title">Clustering workflow — coming soon.</h1>
+        <p className="stage-lede">
+          The model will look at all <strong>{inputs.length} columns</strong> and group rows
+          that behave alike — no single column to predict.
+        </p>
+        <div className="card card-pad" style={{ marginTop: 18 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>What this would look like</div>
+          <div className="small" style={{ color: 'var(--text-2)', lineHeight: 1.6 }}>
+            We'd ask you to choose the number of groups (or let the system pick it),
+            then run a clustering algorithm across every non-ID column. The result is a
+            cluster label per row plus a short narrative on what each cluster represents.
+          </div>
+          <div className="small muted" style={{ marginTop: 10 }}>
+            The supervised Setup, Run, and Predict stages don't apply to clustering, so
+            those screens are skipped in this prototype.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const targetEntry = flatCols.find(c => c.key === targetCol) || flatCols[flatCols.length - 1];
   const inputCols = flatCols.filter(c => c.key !== targetEntry.key && c.role !== 'joinKey');
-  const currentTask = inferTaskType(targetEntry);
+  const currentTask = inferTaskType(targetEntry, taskType);
 
   // Group input columns by source file so the diagram can render
   // one column per CSV under a filename header. For concat schemas
@@ -614,6 +732,7 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
                 key: g.fileId + ':' + c.name,
                 isJoinKey: joinKeyNames.has(c.name),
                 sourceName: g.name,
+                sourceFileName: g.name,
                 prepNote: getPrepNote(c.name, sourceFile),
               }))
               .filter(c => c.key !== targetEntry.key),
@@ -631,6 +750,7 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
             key: 'shared:' + c.name,
             isJoinKey: false,
             sourceName: 'Shared across sources',
+            sourceFileName: (files.find(f => f.status === 'parsed') || {}).name || null,
             prepNote: getPrepNote(c.name, files.find(f => f.status === 'parsed')),
           }))
           .filter(c => c.key !== targetEntry.key),
@@ -739,71 +859,29 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
                 >
                   {g.title}
                 </div>
-                {/* Nodes */}
+                {/* Nodes — click to open the per-feature explainer.
+                    Hover grows the node slightly (CSS) instead of
+                    revealing an info tooltip. */}
                 {g.cols.map((c, i) => {
-                  const notes = (assumptions[c.key] || []).filter(s => s && s.trim());
+                  const flatIndex = flatCols.findIndex(fc => fc.key === c.key);
                   return (
-                    <div
+                    <button
                       key={c.key}
-                      className="node node-input has-tooltip"
+                      type="button"
+                      className="node node-input node-feature"
                       style={{
                         left: xCol, top: PAD_TOP + i * (NODE_H + INPUT_GAP),
-                        width: NODE_W, height: NODE_H, cursor: 'default',
+                        width: NODE_W, height: NODE_H,
                         display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                        textAlign: 'left',
                       }}
+                      onClick={() => setFeatureModal({ col: c, colIndex: flatIndex })}
+                      title={'What happens to ' + c.name + '?'}
                     >
                       <div className="node-label">{c.type}</div>
                       <div className="node-name">{c.name}</div>
                       <div className="node-handle right" />
-                      <div className="node-tooltip" role="tooltip">
-                        <div className="node-tooltip-head">
-                          <span className="mono">{c.name}</span>
-                          <span className="node-tooltip-type">{c.type}</span>
-                        </div>
-                        <div className="node-tooltip-source">
-                          From <span className="mono">{c.sourceName}</span>
-                          {c.isJoinKey && <> · join key</>}
-                        </div>
-                        {notes.length > 0 && (
-                          <ul className="node-tooltip-list">
-                            {notes.map((n, ni) => <li key={ni}>{n}</li>)}
-                          </ul>
-                        )}
-                        {c.prepNote && (
-                          <div className="node-tooltip-prep">
-                            <div className="node-tooltip-prep-eyebrow">Data prep</div>
-                            <div className="node-tooltip-prep-headline">
-                              {renderInlineCode(c.prepNote.headline)}
-                            </div>
-                            {c.prepNote.paragraphs.map((p, pi) => (
-                              <div className="node-tooltip-prep-para" key={pi}>
-                                {renderInlineCode(p)}
-                              </div>
-                            ))}
-                            {c.prepNote.before && c.prepNote.after && (
-                              <table className="node-tooltip-prep-table">
-                                <thead>
-                                  <tr>
-                                    <th colSpan="2">Before</th>
-                                    <th colSpan="2">After</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {c.prepNote.before.map((row, ri) => (
-                                    <tr key={ri}>
-                                      <td className="mono">{row[0]}</td>
-                                      <td className="num">{row[1]}</td>
-                                      <td className="mono">{c.prepNote.after[ri][0]}</td>
-                                      <td className="num">{c.prepNote.after[ri][1]}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    </button>
                   );
                 })}
               </React.Fragment>
@@ -812,10 +890,10 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
 
           {/* Model — click to open the explainer modal */}
           <button
-            className="node model lit"
+            className="node model lit node-feature"
             style={{
               left: xModel, top: modelY,
-              width: NODE_W, height: NODE_H, cursor: 'pointer',
+              width: NODE_W, height: NODE_H,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               border: '1.5px solid var(--accent)',
               background: 'var(--accent-soft)',
@@ -825,9 +903,6 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
           >
             <Icon name="cpu" size={18}/>
             <span className="node-name" style={{ marginBottom: 0 }}>model</span>
-            <span className="node-info-chip" aria-hidden="true">
-              <Icon name="info" size={12}/>
-            </span>
             <div className="node-handle left" />
             <div className="node-handle right" />
           </button>
@@ -866,7 +941,21 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
           targetEntry={targetEntry}
           task={currentTask}
           rowNoun="customers"
+          onAsk={onSeedComposer ? (text) => onSeedComposer(text, null) : null}
           onClose={() => setModelModalOpen(false)}
+        />
+      )}
+
+      {/* Per-feature explainer modal */}
+      {featureModal && (
+        <FeatureExplainerModal
+          col={featureModal.col}
+          colIndex={featureModal.colIndex}
+          isTarget={false}
+          targetName={targetEntry.name}
+          inputNames={inputCols.map(c => c.name)}
+          onAsk={onSeedComposer ? (text) => onSeedComposer(text, null) : null}
+          onClose={() => setFeatureModal(null)}
         />
       )}
     </div>
@@ -879,7 +968,7 @@ function StageSetup({ schema, files, targetCol, assumptions, onSeedComposer, onN
 // `schema`, `targetEntry`, and `task` (from inferTaskType) to template
 // data-driven copy. Esc and backdrop-click close (Esc lives on the
 // parent effect; backdrop-click hooked here).
-function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
+function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onAsk, onClose }) {
   const rows = schema.rows || 0;
   const trainRows = Math.round(rows * 0.7);
   const testRows  = rows - trainRows;
@@ -991,11 +1080,17 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
 
   // Each section is one slide in the carousel. Kept inline so the
   // closure variables (whatBody, taskTitle, etc.) stay in scope.
+  const tname = targetEntry.name;
   const slides = [
     {
       eyebrow: "What's a model?",
       strong: null,
       body: whatBody,
+      prompts: [
+        'What is a machine learning model?',
+        'How is this different from ChatGPT?',
+        'What does “training” actually do?',
+      ],
     },
     {
       eyebrow: "How I'll find the right one",
@@ -1010,16 +1105,31 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
           </p>
         </>
       ),
+      prompts: [
+        'Which models will you try?',
+        'What is gradient boosting?',
+        'How do you decide which model wins?',
+      ],
     },
     {
       eyebrow: "Task type",
       strong: taskTitle,
       body: <p>{taskWhy}</p>,
+      prompts: [
+        'Why is predicting `' + tname + '` a ' + task.kind + ' task?',
+        'What if I picked a different target?',
+        'What does a ' + task.kind + ' model output?',
+      ],
     },
     {
       eyebrow: "How I'll check my work",
       strong: taskCheckTitle,
       body: taskCheckCopy,
+      prompts: [
+        'What is ' + taskCheckTitle + '?',
+        'Why not just use accuracy?',
+        'What score would be good for `' + tname + '`?',
+      ],
     },
     {
       eyebrow: "How I'll train and test",
@@ -1029,6 +1139,11 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
           I'll use about <strong>{trainRows.toLocaleString()}</strong> {rowNoun} to learn patterns, then test on the other <strong>{testRows.toLocaleString()}</strong> that the model hasn't seen. The test scores tell us how the model behaves on new data, not just data it's already memorised.
         </p>
       ),
+      prompts: [
+        'Why split into train and test?',
+        'What is overfitting?',
+        'Why 70/30 and not another split?',
+      ],
     },
   ];
 
@@ -1050,6 +1165,10 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
   }, [slideIdx]);
 
   const slide = slides[slideIdx];
+  const ask = (text) => () => {
+    if (onAsk) onAsk(text);
+    onClose();
+  };
 
   return (
     <div
@@ -1070,6 +1189,23 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
             {slide.body}
           </section>
         </div>
+        {onAsk && slide.prompts && (
+          <div className="modal-suggest">
+            <div className="modal-suggest-label">Try asking</div>
+            <div className="modal-suggest-chips">
+              {slide.prompts.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="modal-suggest-chip"
+                  onClick={ask(p)}
+                >
+                  {renderInlineCode(p)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="modal-footer">
           <button
             className="btn btn-ghost btn-icon"
@@ -1103,6 +1239,214 @@ function ModelExplainerModal({ schema, targetEntry, task, rowNoun, onClose }) {
             <Icon name="arrow-right" size={14}/>
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Stage 3 sub-component: per-feature explainer modal ----
+//
+// Opened by clicking an input node. Derives the ML treatment from the
+// column's type / id-shape / join-key role and renders feature-specific
+// copy: detected type → treatment → an example of what the model sees →
+// why this avoids a mistake. Real example values are sampled from the
+// column's source file when available, so the copy is grounded in the
+// uploaded data rather than hard-coded.
+
+// Pull a few real sample values for a column from its source file.
+function sampleColumnValues(fileName, colName, n) {
+  try {
+    if (typeof window.generateFullRows !== 'function') return [];
+    const fx = Object.values(window.FILE_FIXTURES || {}).find(f => f.name === fileName);
+    if (!fx) return [];
+    const idx = fx.columns.findIndex(c => c.name === colName);
+    if (idx < 0) return [];
+    const rows = window.generateFullRows(fileName) || [];
+    const seen = [];
+    for (const r of rows) {
+      const v = r[idx];
+      if (v === '' || v == null) continue;
+      const s = String(v);
+      if (!seen.includes(s)) seen.push(s);
+      if (seen.length >= (n || 3)) break;
+    }
+    return seen;
+  } catch (e) { return []; }
+}
+
+// Map a column to { type, treatment } using the same rules the
+// Technical view / setup diagram already imply.
+function deriveFeatureTreatment(col, colIndex, isTarget) {
+  const looksId = (colIndex === 0 && /(^|_)id$/i.test(col.name)) ||
+    /(^|_)id$/i.test(col.name);
+  if (isTarget) return { type: col.type === 'boolean' ? 'binary' : col.type, treatment: 'Target candidate', kind: 'target' };
+  if (col.isJoinKey) return { type: 'ID / key', treatment: 'Used to join files (not a feature)', kind: 'joinkey' };
+  if (looksId) return { type: 'ID / string', treatment: 'Dropped, not predictive', kind: 'id' };
+  if (col.type === 'numeric') return { type: 'numeric', treatment: 'Used as numeric feature', kind: 'numeric' };
+  if (col.type === 'boolean') return { type: 'binary', treatment: 'Used as feature', kind: 'boolean' };
+  return { type: 'categorical', treatment: 'One-hot encoded', kind: 'categorical' };
+}
+
+function CodeBlock({ children }) {
+  return <pre className="modal-code"><code>{children}</code></pre>;
+}
+
+function FeatureExplainerModal({ col, colIndex, isTarget, targetName, inputNames, onAsk, onClose }) {
+  const t = deriveFeatureTreatment(col, colIndex, isTarget);
+  const samples = sampleColumnValues(col.sourceFileName, col.name, 4);
+  const ex = samples.length ? samples : null;
+
+  let body;
+  if (t.kind === 'id') {
+    body = (
+      <>
+        <p>This column looks like an identifier. It's useful for tracking individual records, but it usually doesn't help the model learn meaningful patterns.</p>
+        <p>For example, a value like:</p>
+        <CodeBlock>{ex ? ex[0] : 'CUST-10492'}</CodeBlock>
+        <p>only tells us <em>which</em> record the row belongs to. It doesn't describe behaviour, spending, or the outcome you're predicting.</p>
+        <p>Because of this, the system won't use <span className="mono">{col.name}</span> as an input feature during training. It may still be kept behind the scenes so predictions can be linked back to the right record.</p>
+        <CodeBlock>{'Used for tracking results: Yes\nUsed for model training:  No'}</CodeBlock>
+      </>
+    );
+  } else if (t.kind === 'joinkey') {
+    body = (
+      <>
+        <p><span className="mono">{col.name}</span> is the column used to line up rows across your files. It identifies which records match, but the identifier itself doesn't describe anything predictive.</p>
+        <CodeBlock>{ex ? ex.slice(0, 3).join('\n') : 'C-1041\nC-1042\nC-1043'}</CodeBlock>
+        <p>So it's used to <strong>join</strong> the files together, not as an input the model learns from.</p>
+        <CodeBlock>{'Used for joining files: Yes\nUsed for model training: No'}</CodeBlock>
+      </>
+    );
+  } else if (t.kind === 'numeric') {
+    body = (
+      <>
+        <p>This column contains numeric values, so the model can use it directly as a feature.</p>
+        <p>For example:</p>
+        <CodeBlock>{ex ? ex.slice(0, 3).join(', ') : '23, 41, 67'}</CodeBlock>
+        <p>These numbers may carry useful information. The model can learn whether <span className="mono">{col.name}</span> is related to the outcome you're predicting{targetName ? <> (<span className="mono">{targetName}</span>)</> : null}.</p>
+        <p>Unlike an ID column, <span className="mono">{col.name}</span> describes something meaningful about the record.</p>
+        <CodeBlock>{'Input column: ' + col.name + '\nModel sees:   a numeric value\nExample:      ' + (ex ? ex[0] : '41')}</CodeBlock>
+      </>
+    );
+  } else if (t.kind === 'categorical') {
+    const cats = ex ? ex.slice(0, 4) : ['Month-to-month', 'One year', 'Two year'];
+    const pick = cats[0];
+    const safe = (s) => String(s).replace(/[^A-Za-z0-9]+/g, '_');
+    body = (
+      <>
+        <p>This column contains categories such as:</p>
+        <CodeBlock>{cats.join('\n')}</CodeBlock>
+        <p>These categories don't have a numeric meaning. The system should <em>not</em> treat them like:</p>
+        <CodeBlock>{cats.map((c, i) => c + ' = ' + (i + 1)).join('\n')}</CodeBlock>
+        <p>That would wrongly suggest one category is mathematically greater than another. Instead, the system creates separate true/false columns.</p>
+        <CodeBlock>{col.name + ' = ' + pick + '\n\n' + cats.map(c => safe(col.name) + '_' + safe(c) + ' = ' + (c === pick ? 'true' : 'false')).join('\n')}</CodeBlock>
+        <p>This lets the model learn the effect of each category without assuming a fake order.</p>
+      </>
+    );
+  } else if (t.kind === 'boolean') {
+    const vals = ex ? ex.slice(0, 2) : ['Yes', 'No'];
+    body = (
+      <>
+        <p>This column has just two values:</p>
+        <CodeBlock>{vals.join('\n')}</CodeBlock>
+        <p>The system turns it into a single true/false feature the model can use directly — no scaling or extra columns needed.</p>
+        <CodeBlock>{'Input column: ' + col.name + '\nModel sees:   true / false'}</CodeBlock>
+      </>
+    );
+  } else {
+    // target
+    body = (
+      <>
+        <p>This column is the outcome the model should predict.</p>
+        <CodeBlock>{ex ? ex.slice(0, 2).map(v => col.name + ' = ' + v).join('\n') : (col.name + ' = Yes\n' + col.name + ' = No')}</CodeBlock>
+        <p>The model will use the other columns to learn patterns that help predict <span className="mono">{col.name}</span>.</p>
+        <CodeBlock>{'Input features:\n' + (inputNames && inputNames.length ? inputNames.slice(0, 6).join('\n') : 'the other columns') + '\n\nTarget:\n' + col.name}</CodeBlock>
+        <p>The target is not used as an input feature — it's the answer the model tries to learn.</p>
+      </>
+    );
+  }
+
+  // Suggested follow-up prompts, specific to this column + its
+  // treatment. Clicking one seeds the chat composer and closes the
+  // modal so the user lands on the conversation.
+  const cn = col.name;
+  const promptsByKind = {
+    id: [
+      'Why is `' + cn + '` not used for training?',
+      'Could `' + cn + '` ever be useful as a feature?',
+      'How is `' + cn + '` used to track predictions?',
+    ],
+    joinkey: [
+      'How is `' + cn + '` used to join the files?',
+      'Why isn’t `' + cn + '` a model feature?',
+      'What happens if `' + cn + '` values don’t match?',
+    ],
+    numeric: [
+      'How will `' + cn + '` influence the prediction?',
+      'Does `' + cn + '` need to be scaled?',
+      'Show me the distribution of `' + cn + '`',
+    ],
+    categorical: [
+      'What is one-hot encoding for `' + cn + '`?',
+      'How many categories does `' + cn + '` have?',
+      'Which `' + cn + '` value affects the outcome most?',
+    ],
+    boolean: [
+      'How is `' + cn + '` turned into true/false?',
+      'How balanced is `' + cn + '`?',
+      'Does `' + cn + '` predict the outcome well?',
+    ],
+    target: [
+      'Why is `' + cn + '` the prediction target?',
+      'What metric is used to score `' + cn + '`?',
+      'Which features best predict `' + cn + '`?',
+    ],
+  };
+  const prompts = promptsByKind[t.kind] || promptsByKind.numeric;
+  const ask = (text) => () => {
+    if (onAsk) onAsk(text);
+    onClose();
+  };
+
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="feature-explainer-title">
+        <div className="modal-header">
+          <div className="modal-title mono" id="feature-explainer-title">{col.name}</div>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Close">
+            <Icon name="x" size={14}/>
+          </button>
+        </div>
+        <div className="modal-body">
+          <section>
+            <div className="modal-eyebrow">ML treatment</div>
+            <div className="modal-strong">{t.treatment}</div>
+            <p className="small muted" style={{ marginBottom: 14 }}>
+              Detected as <strong>{t.type}</strong>. Because of that, it will be treated as <strong>{t.treatment.toLowerCase()}</strong>.
+            </p>
+            {body}
+          </section>
+        </div>
+        {onAsk && (
+          <div className="modal-suggest">
+            <div className="modal-suggest-label">Try asking</div>
+            <div className="modal-suggest-chips">
+              {prompts.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="modal-suggest-chip"
+                  onClick={ask(p)}
+                >
+                  {renderInlineCode(p)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

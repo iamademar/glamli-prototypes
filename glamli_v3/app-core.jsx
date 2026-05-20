@@ -53,7 +53,7 @@ function streamMessage(setMessages, fullText, onDone, chunkSize, stage) {
   }, 18);
 }
 
-function buildSetupSummary(schema, targetKey, opts) {
+function buildSetupSummary(schema, targetKey, taskType, opts) {
   const flatCols = [
     ...schema.sharedColumns.map(c => ({ name: c.name, type: c.type, role: 'normal', key: 'shared:' + c.name })),
     ...schema.groups.flatMap(g => g.columns.map(c => ({
@@ -61,10 +61,22 @@ function buildSetupSummary(schema, targetKey, opts) {
     }))),
   ];
   if (flatCols.length === 0) return null;
+  const prefix = (opts && opts.prefix) ? opts.prefix : '';
+  // Clustering — no target. Frame the system's job around grouping.
+  if (taskType === 'clustering') {
+    const inputs = flatCols.filter(c => c.role !== 'joinKey');
+    return (
+      prefix +
+      "Here's how your model will work. It will look at all **" +
+      inputs.length + " columns** and group rows that behave alike — " +
+      "no single column to predict."
+    );
+  }
   const targetEntry = flatCols.find(c => c.key === targetKey) || flatCols[flatCols.length - 1];
   const inputs = flatCols.filter(c => c.key !== targetEntry.key && c.role !== 'joinKey');
-  const task = (typeof inferTaskType === 'function') ? inferTaskType(targetEntry) : { phrase: 'a value' };
-  const prefix = (opts && opts.prefix) ? opts.prefix : '';
+  const task = (typeof inferTaskType === 'function')
+    ? inferTaskType(targetEntry, taskType)
+    : { phrase: 'a value' };
   const bulletInputs = inputs.map(c => '· `' + c.name + '`').join('\n\n');
   return (
     prefix +
@@ -138,7 +150,8 @@ function generateReply(text, stage) {
 // makePageApp(PAGE_STAGE) — returns the page-root component pinned to
 // the given workflow stage.
 // ─────────────────────────────────────────────────────────────────────
-function makePageApp(PAGE_STAGE) {
+function makePageApp(PAGE_STAGE, opts) {
+  opts = opts || {};
   return function PageApp() {
     const boot = React.useRef(Store.load());
     const s0 = boot.current;
@@ -172,6 +185,7 @@ function makePageApp(PAGE_STAGE) {
     const [sourcesOpen, setSourcesOpen] = React.useState(true);
 
     const [targetCol, setTargetCol] = React.useState(s0.targetCol || null);
+    const [taskType, setTaskType] = React.useState(s0.taskType || null);
 
     const [runProgress, setRunProgress] = React.useState(0);
     const [runActive, setRunActive] = React.useState(0);
@@ -191,32 +205,70 @@ function makePageApp(PAGE_STAGE) {
         files, merges, mergeRevision, mergeRevisionAtDomainEntry,
         assumptions, typeOverrides, testCases, messages,
         shownIntros: [...shownIntros],
-        targetCol, runDone, hasTested,
+        targetCol, taskType, runDone, hasTested,
         predictInputs, predictResult, lastPredictedTargetKey,
         tweaks, stage: PAGE_STAGE, maxStage,
       });
     }, [
       files, merges, mergeRevision, mergeRevisionAtDomainEntry,
       assumptions, typeOverrides, testCases, messages, shownIntros,
-      targetCol, runDone, hasTested,
+      targetCol, taskType, runDone, hasTested,
       predictInputs, predictResult, lastPredictedTargetKey,
       tweaks, maxStage,
     ]);
 
     // Auto-default the target column whenever the schema changes.
+    // Clustering doesn't use a target; regression prefers a numeric pick.
     React.useEffect(() => {
       if (schema.parsedCount === 0) {
         if (targetCol !== null) setTargetCol(null);
         return;
       }
+      if (taskType === 'clustering') return;
       const flatKeys = new Set([
         ...schema.sharedColumns.map(c => 'shared:' + c.name),
         ...schema.groups.flatMap(g => g.columns.map(c => g.fileId + ':' + c.name)),
       ]);
       if (!targetCol || !flatKeys.has(targetCol)) {
-        setTargetCol(defaultTargetKey(schema));
+        const mode = taskType === 'regression' ? 'regression' : undefined;
+        setTargetCol(defaultTargetKey(schema, mode));
+      }
+    }, [schema, taskType]);
+
+    // Auto-detect taskType on first arrival of a parsed schema. Once
+    // set (by user or heuristic), it's sticky — only the user can
+    // change it back.
+    React.useEffect(() => {
+      if (schema.parsedCount === 0) {
+        if (taskType !== null) setTaskType(null);
+        return;
+      }
+      if (taskType === null && typeof defaultTaskType === 'function') {
+        const guess = defaultTaskType(schema);
+        if (guess) setTaskType(guess);
       }
     }, [schema]);
+
+    // Couple taskType ↔ targetCol:
+    //   - Clustering clears any selected target.
+    //   - Regression clears a non-numeric target so the picker prompts
+    //     for a fresh choice.
+    React.useEffect(() => {
+      if (!targetCol) return;
+      if (taskType === 'clustering') {
+        setTargetCol(null);
+        return;
+      }
+      if (taskType === 'regression') {
+        const colName = targetCol.slice(targetCol.indexOf(':') + 1);
+        const flat = [
+          ...schema.sharedColumns,
+          ...schema.groups.flatMap(g => g.columns),
+        ];
+        const t = flat.find(c => c.name === colName);
+        if (t && t.type !== 'numeric') setTargetCol(null);
+      }
+    }, [taskType, schema]);
 
     // Stage 5 form: reconcile predictInputs against the live schema.
     React.useEffect(() => {
@@ -273,8 +325,26 @@ function makePageApp(PAGE_STAGE) {
       }
       if (shownIntros.has(stage)) return;
 
+      if (stage === 2) {
+        // Synthesize the Domain intro based on the auto-detected task
+        // type. Replaces the static STAGE_INTROS[2] entry for files
+        // where the schema is loaded.
+        if (schema.parsedCount === 0) return;
+        const auto = (typeof defaultTaskType === 'function') ? defaultTaskType(schema) : null;
+        const lead = "You're on Domain — let's pin down what kind of question you're asking, and then which column holds the answer (if you need one).";
+        const tail = auto === 'classification'
+          ? " Based on your file, Classification looks likely, but switch if you're after something else."
+          : auto === 'regression'
+          ? " Based on your file, Regression looks likely, but switch if you're after something else."
+          : " I'm not sure yet, what are you trying to figure out?";
+        setShownIntros((prev) => new Set(prev).add(stage));
+        setStreaming(true);
+        streamMessage(setMessages, lead + tail, () => setStreaming(false), 10, stage);
+        return;
+      }
+
       if (stage === 3) {
-        const summary = buildSetupSummary(schema, targetCol, {
+        const summary = buildSetupSummary(schema, targetCol, taskType, {
           prefix: "Here's how your model will work. ",
         });
         if (!summary) return;
@@ -315,7 +385,7 @@ function makePageApp(PAGE_STAGE) {
         files, merges, mergeRevision, mergeRevisionAtDomainEntry,
         assumptions, typeOverrides, testCases, messages,
         shownIntros: [...shownIntros],
-        targetCol, runDone, hasTested,
+        targetCol, taskType, runDone, hasTested,
         predictInputs, predictResult, lastPredictedTargetKey,
         tweaks,
       });
@@ -479,9 +549,24 @@ function makePageApp(PAGE_STAGE) {
       }, 400);
     };
 
+    // Sub-views (e.g. the Explore tile modal) can pre-register a
+    // curated assistant reply for a specific question by stashing it on
+    // window.__glamliPendingAnswers — keyed by the question text. When
+    // onSend sees a match it streams that answer instead of routing
+    // through generateReply's pattern-matcher.
     const onSend = (text) => {
       setMessages((prev) => [...prev, { who: 'user', text, t: nowTime(), stage }]);
       setComposerDraft('');
+      const pending = window.__glamliPendingAnswers;
+      if (pending && pending[text]) {
+        const curated = pending[text];
+        delete pending[text];
+        setStreaming(true);
+        setTimeout(() => {
+          streamMessage(setMessages, curated, () => setStreaming(false), undefined, stage);
+        }, 350);
+        return;
+      }
       const hintFileId = pendingHintForFileId.current;
       if (hintFileId) {
         pendingHintForFileId.current = null;
@@ -519,6 +604,16 @@ function makePageApp(PAGE_STAGE) {
       }, 500);
     };
 
+    // Expose onSend on window so non-prop-receiving subviews (e.g.
+    // ExploreView's tile-modal pills) can push prompts into the chat
+    // panel. The window slot is cleared on unmount to avoid stale refs.
+    React.useEffect(() => {
+      window.__glamliChatAsk = (text) => onSend(text);
+      return () => {
+        if (window.__glamliChatAsk) delete window.__glamliChatAsk;
+      };
+    }, [onSend]);
+
     // Demo presets — Tweaks panel (Upload page only).
     const applyPreset = (name) => {
       const snap = buildDemoState(name);
@@ -535,6 +630,7 @@ function makePageApp(PAGE_STAGE) {
         messages: [],
         shownIntros: [],
         targetCol: null,
+        taskType: null,
         runDone: false,
         hasTested: false,
         predictInputs: {},
@@ -554,8 +650,8 @@ function makePageApp(PAGE_STAGE) {
       ];
       const newCol = flatCols.find(c => c.key === newKey);
       if (!newCol) return;
-      const t = inferTaskType(newCol);
-      const summary = buildSetupSummary(schema, newKey, {
+      const t = inferTaskType(newCol, taskType);
+      const summary = buildSetupSummary(schema, newKey, taskType, {
         prefix: "Got it — predicting **" + newCol.name + "** instead. This is now a **" + t.kind + "** task, so I'll use **" + t.metric + "** as the metric.\n\n",
       });
       setStreaming(true);
@@ -682,7 +778,10 @@ function makePageApp(PAGE_STAGE) {
             <WorkflowRail stage={stage} maxStage={maxStage} setStage={railSetStage} />
             <div className="panel-body">
               <div className={"workflow-body" + (stage === 3 ? ' wide' : '')}>
-                {stage === 1 &&
+                {stage === 1 && opts.subView === 'explore' &&
+                  <ExploreView />
+                }
+                {stage === 1 && opts.subView !== 'explore' &&
                   <StageUpload
                     files={files}
                     merges={merges}
@@ -699,6 +798,8 @@ function makePageApp(PAGE_STAGE) {
                     setAssumptions={setAssumptions}
                     targetCol={targetCol}
                     setTargetCol={setTargetCol}
+                    taskType={taskType}
+                    setTaskType={setTaskType}
                     onChangeColType={(key, type) =>
                       setTypeOverrides(prev => ({ ...prev, [key]: type }))}
                     onNext={() => advance(3)} />
@@ -708,6 +809,7 @@ function makePageApp(PAGE_STAGE) {
                     schema={schema}
                     files={files}
                     targetCol={targetCol}
+                    taskType={taskType}
                     assumptions={assumptions}
                     onSeedComposer={onSeedComposer}
                     onNext={() => advance(4)} />
@@ -740,7 +842,7 @@ function makePageApp(PAGE_STAGE) {
           </main>
         </div>
 
-        {stage === 1 && (
+        {stage === 1 && opts.subView !== 'explore' && (
           <TweaksPanel title="Tweaks">
             <TweakSection title="Demo states">
               <TweakSelect

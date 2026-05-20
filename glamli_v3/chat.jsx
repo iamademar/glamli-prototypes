@@ -3,8 +3,12 @@ const STAGE_INTROS = {
   1: [
     { who: 'assistant', text: "Hi! I'm here to help you build a machine-learning model — no code required. Let's start by getting your data in.\n\nDrop a CSV file into the **Data Upload** card on your right, or pick one of the samples. I'll take a quick look and tell you what I see." },
   ],
+  // Stage 2 intro is synthesized inline in app-core.jsx (it depends on
+  // the live schema's auto-detected task type). This static fallback
+  // matches the "no signal" wording for any caller that still reads
+  // from the static map.
   2: [
-    { who: 'assistant', text: "Nice — I've parsed `customer_churn.csv`. 4,271 rows across 8 columns.\n\nNow here's where your expertise matters more than mine. For each column, I've drafted a couple of plain-language assumptions about what it means and why it matters. **Read through them, edit anything that's wrong, delete what doesn't apply, and add anything I missed.** The more accurate this is, the better the model behind the scenes." },
+    { who: 'assistant', text: "You're on Domain — let's pin down what kind of question you're asking, and then which column holds the answer (if you need one). I'm not sure yet, what are you trying to figure out?" },
   ],
   // Stage 3 intro is synthesized inline in app.jsx (it depends on the
   // live schema + target column).
