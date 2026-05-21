@@ -639,18 +639,21 @@ function StageSetup({ schema, files, targetCol, taskType, assumptions, onSeedCom
   const [modelModalOpen, setModelModalOpen] = React.useState(false);
   // Per-feature explainer modal (opened by clicking an input node).
   const [featureModal, setFeatureModal] = React.useState(null);
+  // Group-column explainer modal (clustering branch only).
+  const [groupModalOpen, setGroupModalOpen] = React.useState(false);
 
   // Esc-key closes whichever modal is open.
   React.useEffect(() => {
-    if (!modelModalOpen && !featureModal) return;
+    if (!modelModalOpen && !featureModal && !groupModalOpen) return;
     const handler = (e) => {
       if (e.key !== 'Escape') return;
       setModelModalOpen(false);
       setFeatureModal(null);
+      setGroupModalOpen(false);
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [modelModalOpen, featureModal]);
+  }, [modelModalOpen, featureModal, groupModalOpen]);
 
   // Build a flat column list with role + key, mirroring the structure
   // used on Domain so target keys round-trip across stages.
@@ -671,30 +674,288 @@ function StageSetup({ schema, files, targetCol, taskType, assumptions, onSeedCom
     );
   }
 
-  // Clustering — placeholder. The Setup flow assumes a supervised
-  // target; the clustering pipeline is out of scope for this revision.
+  // Clustering — separate Setup variant. Reuses the supervised layout
+  // grammar (workflow shell, eyebrow, dot-grid canvas, column-card and
+  // model-node treatment) but:
+  //   - H1 verb shifts to "group" (not "predict")
+  //   - all columns feed the model — no held-out target
+  //   - the right-hand node is a NEW COLUMN the model creates, not an
+  //     existing column it predicts
   if (taskType === 'clustering') {
-    const inputs = flatCols.filter(c => c.role !== 'joinKey');
+    // Row noun for the demo (§5.3) — "customers" if a customer_* column
+    // exists in the schema, "rows" otherwise.
+    const allColNames = flatCols.map(c => c.name);
+    const isCustomerShaped = allColNames.some(n => /^customer[_]?/i.test(n));
+    const rowNoun = isCustomerShaped ? 'your customers' : 'your rows';
+
+    const CLUSTER_N = 4; // §0.5 / §3.2 — system picks silently for v1.
+
+    // Build the input groups (one per source file) using ALL columns —
+    // no exclusion. Same shape as the supervised path's inputGroups but
+    // built off flatCols directly, with no target removed.
+    const cJoinKeyNames = new Set(
+      schema.groups.flatMap(g => g.columns.filter(c => c.role === 'joinKey').map(c => c.name))
+    );
+    const cFilesByName = new Map(files.map(f => [f.name, f]));
+    const cInputGroups = schema.groups.length > 0
+      ? schema.groups
+          .map(g => {
+            const sourceFile = cFilesByName.get(g.name);
+            return {
+              key: g.fileId,
+              title: g.name,
+              mono: true,
+              cols: g.columns
+                .filter(c => c.role !== 'joinKey')
+                .map(c => ({
+                  ...c,
+                  key: g.fileId + ':' + c.name,
+                  isJoinKey: cJoinKeyNames.has(c.name),
+                  sourceName: g.name,
+                  sourceFileName: g.name,
+                  prepNote: getPrepNote(c.name, sourceFile),
+                })),
+            };
+          })
+          .filter(g => g.cols.length > 0)
+      : [{
+          key: 'shared',
+          title: 'Shared across sources',
+          mono: false,
+          cols: schema.sharedColumns.map(c => ({
+            ...c,
+            role: 'normal',
+            key: 'shared:' + c.name,
+            isJoinKey: false,
+            sourceName: 'Shared across sources',
+            sourceFileName: (files.find(f => f.status === 'parsed') || {}).name || null,
+            prepNote: getPrepNote(c.name, files.find(f => f.status === 'parsed')),
+          })),
+        }].filter(g => g.cols.length > 0);
+
+    const cInputCols = cInputGroups.flatMap(g => g.cols);
+
+    // Canvas geometry — identical to supervised. Right-hand node uses
+    // the same NODE_W/NODE_H so it lines up with the input column rail.
+    const NODE_W = 168;
+    const NODE_H = 56;
+    const INPUT_GAP = 14;
+    const COL_BLOCK_GAP = 32;
+    const COL_GAP = 100;
+    const HEADER_H = 28;
+    const PAD_TOP = HEADER_H + 12;
+
+    const cGroupCount   = Math.max(cInputGroups.length, 1);
+    const cInputBlockW  = cGroupCount * NODE_W + (cGroupCount - 1) * COL_BLOCK_GAP;
+    const cTallest      = cInputGroups.reduce((m, g) => Math.max(m, g.cols.length), 0) || 1;
+    const cInputBlockH  = cTallest * NODE_H + (cTallest - 1) * INPUT_GAP;
+    const cH = PAD_TOP + Math.max(cInputBlockH, NODE_H) + PAD_TOP;
+    const cxModel   = cInputBlockW + COL_GAP;
+    const cxOutput  = cxModel + NODE_W + COL_GAP;
+    const cW        = cxOutput + NODE_W;
+    const cModelY   = PAD_TOP + cInputBlockH / 2 - NODE_H / 2;
+    const cOutputY  = cModelY;
+
+    const cExplain = () => {
+      const sourceNames = files
+        .filter(f => f.status === 'parsed')
+        .map(f => f.name)
+        .join(', ');
+      onSeedComposer(
+        "Something looks off. The model is set up to group these " + cInputCols.length +
+        " inputs from " + (sourceNames || 'the dataset') +
+        " into " + CLUSTER_N + " groups. Here's what I'd change: ",
+        null
+      );
+    };
+
     return (
       <div>
         <div className="stage-eyebrow">Stage 3 of 5</div>
-        <h1 className="stage-title">Clustering workflow — coming soon.</h1>
+        <h1 className="stage-title">Here's how your model will group {rowNoun}.</h1>
+
         <p className="stage-lede">
-          The model will look at all <strong>{inputs.length} columns</strong> and group rows
-          that behave alike — no single column to predict.
+          The summary of inputs and what the system will group now lives in the chat on the left. Use the diagram below to learn about the setup.
         </p>
-        <div className="card card-pad" style={{ marginTop: 18 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>What this would look like</div>
-          <div className="small" style={{ color: 'var(--text-2)', lineHeight: 1.6 }}>
-            We'd ask you to choose the number of groups (or let the system pick it),
-            then run a clustering algorithm across every non-ID column. The result is a
-            cluster label per row plus a short narrative on what each cluster represents.
-          </div>
-          <div className="small muted" style={{ marginTop: 10 }}>
-            The supervised Setup, Run, and Predict stages don't apply to clustering, so
-            those screens are skipped in this prototype.
+
+        <div
+          className="flow-canvas fullwidth"
+          style={{ height: cH, marginBottom: 14 }}
+        >
+          <svg className="flow-svg" style={{ width: cW, height: cH, position: 'absolute', left: '50%', transform: 'translateX(-50%)', overflow: 'visible' }}>
+            <defs>
+              <marker id="setup-arrow-cluster" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--accent)" />
+              </marker>
+            </defs>
+            {cInputGroups.flatMap((g, gi) => {
+              const xCol = gi * (NODE_W + COL_BLOCK_GAP);
+              const fx = xCol + NODE_W;
+              return g.cols.map((_, i) => {
+                const fy = PAD_TOP + i * (NODE_H + INPUT_GAP) + NODE_H / 2;
+                const tx = cxModel - 6;
+                const ty = cModelY + NODE_H / 2;
+                const dx = (tx - fx) * 0.5;
+                const d = `M ${fx} ${fy} C ${fx + dx} ${fy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
+                return <path key={g.key + ':' + i} d={d} stroke="var(--accent)" strokeWidth="1.4" fill="none" markerEnd="url(#setup-arrow-cluster)" />;
+              });
+            })}
+            {(() => {
+              const fx = cxModel + NODE_W;
+              const fy = cModelY + NODE_H / 2;
+              const tx = cxOutput - 6;
+              const ty = cOutputY + NODE_H / 2;
+              const dx = (tx - fx) * 0.5;
+              const d = `M ${fx} ${fy} C ${fx + dx} ${fy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
+              return <path d={d} stroke="var(--accent)" strokeWidth="1.6" fill="none" strokeDasharray="6 4" markerEnd="url(#setup-arrow-cluster)" />;
+            })()}
+          </svg>
+
+          <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', width: cW, height: cH }}>
+            {/* Input columns grouped by source file — every column feeds the model. */}
+            {cInputGroups.map((g, gi) => {
+              const xCol = gi * (NODE_W + COL_BLOCK_GAP);
+              return (
+                <React.Fragment key={g.key}>
+                  <div
+                    style={{
+                      position: 'absolute', left: xCol, top: 0,
+                      width: NODE_W, height: HEADER_H,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11.5, fontWeight: 600,
+                      color: 'var(--text-3)',
+                      textTransform: g.mono ? 'none' : 'uppercase',
+                      letterSpacing: g.mono ? 0 : '.08em',
+                      fontFamily: g.mono ? 'var(--font-mono)' : 'inherit',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}
+                    title={g.title}
+                  >
+                    {g.title}
+                  </div>
+                  {g.cols.map((c, i) => {
+                    const flatIndex = flatCols.findIndex(fc => fc.key === c.key);
+                    return (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className="node node-input node-feature"
+                        style={{
+                          left: xCol, top: PAD_TOP + i * (NODE_H + INPUT_GAP),
+                          width: NODE_W, height: NODE_H,
+                          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                          textAlign: 'left',
+                        }}
+                        onClick={() => setFeatureModal({ col: c, colIndex: flatIndex })}
+                        title={'What happens to ' + c.name + '?'}
+                      >
+                        <div className="node-label">{c.type}</div>
+                        <div className="node-name">{c.name}</div>
+                        <div className="node-handle right" />
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Model — unchanged from supervised. */}
+            <button
+              className="node model lit node-feature"
+              style={{
+                left: cxModel, top: cModelY,
+                width: NODE_W, height: NODE_H,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                border: '1.5px solid var(--accent)',
+                background: 'var(--accent-soft)',
+              }}
+              onClick={() => setModelModalOpen(true)}
+              title="How the model is set up"
+            >
+              <Icon name="cpu" size={18}/>
+              <span className="node-name" style={{ marginBottom: 0 }}>model</span>
+              <div className="node-handle left" />
+              <div className="node-handle right" />
+            </button>
+
+            {/* New column — distinct from input cards (dashed border +
+                tinted background + NEW COLUMN eyebrow). Hoverable +
+                clickable: opens the "What's in the group column?" modal. */}
+            <button
+              type="button"
+              className="node output new-column node-feature"
+              style={{
+                position: 'absolute', left: cxOutput, top: cOutputY,
+                width: NODE_W, height: NODE_H,
+                padding: '0 12px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: 2,
+                border: '1.5px dashed var(--accent)',
+                background: 'var(--accent-soft)',
+                borderRadius: 'var(--radius-lg)',
+                textAlign: 'center',
+              }}
+              onClick={() => setGroupModalOpen(true)}
+              title="What's in the group column?"
+            >
+              <span className="node-label" style={{ marginBottom: 0 }}>new column</span>
+              <span
+                className="node-name"
+                style={{
+                  fontFamily: 'inherit', fontWeight: 600,
+                  fontSize: 11.5, lineHeight: 1.3,
+                  whiteSpace: 'normal',
+                  marginBottom: 0,
+                }}
+              >
+                Groups {rowNoun} by similarity
+              </span>
+              <div className="node-handle left" />
+            </button>
           </div>
         </div>
+
+        {/* Footnote — preview the conditional flow (H11 Guidance) so the
+            user doesn't think Setup is unfinished. */}
+        <p
+          className="small muted"
+          style={{ fontStyle: 'italic', marginTop: 0, marginBottom: 18, lineHeight: 1.55 }}
+        >
+          What makes each group different is something you'll see at Run, after the model finishes — for example, "Group 2 is mostly long-tenure customers with low monthly charges."
+        </p>
+
+        {/* Bottom CTAs */}
+        <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+          <button className="btn" onClick={cExplain}>
+            <Icon name="chat" size={13}/> Something's off
+          </button>
+          <button className="btn btn-primary" onClick={onNext}>
+            Looks right — continue <Icon name="arrow-right" size={14}/>
+          </button>
+        </div>
+
+        {/* Per-feature explainer modal (re-used; no target on this branch). */}
+        {featureModal && (
+          <FeatureExplainerModal
+            col={featureModal.col}
+            colIndex={featureModal.colIndex}
+            isTarget={false}
+            targetName={null}
+            inputNames={cInputCols.map(c => c.name)}
+            onAsk={onSeedComposer ? (text) => onSeedComposer(text, null) : null}
+            onClose={() => setFeatureModal(null)}
+          />
+        )}
+
+        {/* "What's in the group column?" explainer */}
+        {groupModalOpen && (
+          <GroupColumnModal
+            rowNoun={rowNoun}
+            inputCols={cInputCols}
+            onAsk={onSeedComposer ? (text) => onSeedComposer(text, null) : null}
+            onClose={() => setGroupModalOpen(false)}
+          />
+        )}
       </div>
     );
   }
@@ -1291,6 +1552,349 @@ function CodeBlock({ children }) {
   return <pre className="modal-code"><code>{children}</code></pre>;
 }
 
+// ---- Stage 3 (Clustering) sub-component: group-column explainer ----
+// Opened by clicking the right-hand "new column" node on the clustering
+// Setup diagram. Explains what the `group` column will contain, why N
+// is decided at training time, and shows a small example table.
+function GroupColumnModal({ rowNoun, inputCols, onAsk, onClose }) {
+  // Pick 1-2 representative input columns to make the example feel
+  // grounded in the actual file. Prefer a plausible-looking categorical
+  // and numeric column if available.
+  const idCol = (inputCols.find(c => /id$/i.test(c.name)) || {}).name || 'customer_id';
+  const numericCol = (inputCols.find(c => c.type === 'numeric' && c.name !== idCol) || {}).name
+    || 'tenure_months';
+
+  // Tiny example rows — value choices are illustrative only.
+  const exampleRows = [
+    { id: 'C001', num: '24', group: '2' },
+    { id: 'C002', num: '6',  group: '1' },
+    { id: 'C003', num: '41', group: '3' },
+  ];
+
+  const prompts = [
+    "Why doesn't the model just predict a value like it does for classification?",
+    "How does the system decide which rows go in the same group?",
+    "Can I name the groups myself, or does the model name them?",
+    "What if two rows look really similar but end up in different groups?",
+  ];
+  const ask = (text) => () => {
+    if (onAsk) onAsk(text);
+    onClose();
+  };
+
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="group-col-title">
+        <div className="modal-header">
+          <div className="modal-title" id="group-col-title">What's in the <span className="mono">group</span> column?</div>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Close">
+            <Icon name="x" size={14}/>
+          </button>
+        </div>
+        <div className="modal-body">
+          <section>
+            <p>
+              <span className="mono">group</span> — a new column the model will add to your data after training.
+            </p>
+            <p>
+              <strong>What it will hold:</strong> each row will get a single value — a label that tells you which group that row belongs to. Rows with similar values across your input columns end up in the same group.
+            </p>
+            <p>
+              <strong>How many groups?</strong> That's decided during training. The system tries a few different numbers and picks the one that splits {rowNoun} most cleanly. You'll see the final number, and what makes each group different, at the Run stage.
+            </p>
+            <div className="modal-eyebrow" style={{ marginTop: 18 }}>An example, once the model finishes</div>
+            <p className="small muted" style={{ marginBottom: 8 }}>
+              The <span className="mono">group</span> column might look like:
+            </p>
+            <div className="modal-code" style={{ padding: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ background: 'var(--surface-2)', color: 'var(--text-3)' }}>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{idCol}</th>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{numericCol}</th>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-3)' }}>…</th>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--accent-ink)' }}>group</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exampleRows.map((r, i) => (
+                    <tr key={i} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                      <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)' }}>{r.id}</td>
+                      <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)' }}>{r.num}</td>
+                      <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>…</td>
+                      <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono)', color: 'var(--accent-ink)', fontWeight: 600 }}>{r.group}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="small muted" style={{ marginTop: 12 }}>
+              Each label (1, 2, 3…) refers to one of the groups the model found.
+            </p>
+          </section>
+        </div>
+        {onAsk && (
+          <div className="modal-suggest">
+            <div className="modal-suggest-label">Try asking</div>
+            <div className="modal-suggest-chips">
+              {prompts.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="modal-suggest-chip"
+                  onClick={ask(p)}
+                >
+                  {renderInlineCode(p)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- Stage 4 (Run) sub-component: best-model explainer ----
+// Opened by clicking the (i) chip next to "Best model: <name>". Explains
+// what the chosen algorithm family means, why the system landed on it,
+// and that the algorithm name itself isn't something the user has to
+// manage. Pills seed the composer (same pattern as the Setup modals).
+function BestModelInfoModal({ modelName, score, trainedIn, onAsk, onClose }) {
+  // Algorithm-family copy. Defaults to GradientBoosting wording; the
+  // demo fixture always picks this, but the modal accepts any name and
+  // falls back to a generic line if the name doesn't match a known family.
+  const isGB = /Gradient.?Boost/i.test(modelName);
+  const isRF = /Random.?Forest/i.test(modelName);
+  const isLR = /Logistic.?Reg/i.test(modelName);
+  let familyBody;
+  if (isGB) {
+    familyBody = (
+      <>
+        <p>
+          <span className="mono">{modelName}</span> is a <strong>gradient boosting</strong> model. It builds a stack of small "if-this-lean-that-way" rules, where each new rule is trained specifically to fix the mistakes the previous ones made.
+        </p>
+        <p>
+          The rules on their own are weak, but stacked together they capture surprisingly subtle patterns. It tends to be the strongest off-the-shelf model for tabular data — which is why the system reaches for it first.
+        </p>
+      </>
+    );
+  } else if (isRF) {
+    familyBody = (
+      <>
+        <p>
+          <span className="mono">{modelName}</span> is a <strong>random forest</strong>. It trains many decision trees independently on random slices of your data, and then averages their predictions.
+        </p>
+        <p>
+          No single tree gets to dominate — the forest's strength is in the vote across all of them. It's a strong, robust default for tabular data, though usually a step behind gradient boosting on accuracy.
+        </p>
+      </>
+    );
+  } else if (isLR) {
+    familyBody = (
+      <>
+        <p>
+          <span className="mono">{modelName}</span> is a <strong>logistic regression</strong>. It fits a single equation that weighs each input column to estimate the probability of the outcome.
+        </p>
+        <p>
+          It's simple, fast, and its predictions are easy to interpret. The trade-off is that it can only learn straight-line relationships — if your data has tangled patterns, a tree-based model usually does better.
+        </p>
+      </>
+    );
+  } else {
+    familyBody = (
+      <p>
+        <span className="mono">{modelName}</span> is the pattern-finder the system picked after trying several. Each family of model has its own way of carving up the data — this one happened to score highest on your held-out test rows.
+      </p>
+    );
+  }
+
+  const prompts = [
+    "What other models did the system try?",
+    "Could I force the system to use a different model?",
+    "Does the model name change anything about my predictions?",
+    "Is `" + modelName + "` a good fit for this kind of data?",
+  ];
+  const ask = (text) => () => {
+    if (onAsk) onAsk(text);
+    onClose();
+  };
+
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="best-model-title">
+        <div className="modal-header">
+          <div className="modal-title" id="best-model-title">
+            Best model: <span className="mono">{modelName}</span>
+          </div>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Close">
+            <Icon name="x" size={14}/>
+          </button>
+        </div>
+        <div className="modal-body">
+          <section>
+            <div className="modal-eyebrow">What it is</div>
+            {familyBody}
+          </section>
+          <section style={{ marginTop: 18 }}>
+            <div className="modal-eyebrow">Why this one?</div>
+            <p>
+              The system trained several model families on your data (regression, tree-based, boosted trees) and graded each on the held-out 20% it didn't see during training. <span className="mono">{modelName}</span> scored highest, so it's the one you'll use.
+            </p>
+            <p className="small muted">
+              You can see the full leaderboard under the <strong>Advanced</strong> tab — the rest of the candidates and their scores are listed there.
+            </p>
+          </section>
+          <section style={{ marginTop: 18 }}>
+            <div className="modal-eyebrow">Do I need to manage this?</div>
+            <p>
+              No. The algorithm name is the family of pattern-finder under the hood — it doesn't change what you do next. You still predict by feeding new rows in, and the model returns an answer.
+            </p>
+            <p className="small muted">
+              Training took <strong>{trainedIn}</strong>. The model is now frozen and ready to use on new rows.
+            </p>
+          </section>
+        </div>
+        {onAsk && (
+          <div className="modal-suggest">
+            <div className="modal-suggest-label">Try asking</div>
+            <div className="modal-suggest-chips">
+              {prompts.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="modal-suggest-chip"
+                  onClick={ask(p)}
+                >
+                  {renderInlineCode(p)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- Stage 4 (Run) sub-component: F1-score explainer ----
+function F1InfoModal({ score, trainedIn, modelName, onAsk, onClose }) {
+  // Banded interpretation of an F1 number — matches the wording in
+  // app-core.jsx's generateReply so the chat and modal say the same thing.
+  const s = parseFloat(score);
+  let band;
+  if (s >= 0.9) {
+    band = (
+      <p>
+        <strong>{score}</strong> is excellent. Be a little wary — scores in this range can sometimes hint at a leak (a column that gives the answer away). The Predict step is a good place to sanity-check a few rows by hand.
+      </p>
+    );
+  } else if (s >= 0.8) {
+    band = (
+      <p>
+        <strong>{score}</strong> is a solid score for a real-world classification problem. The model is doing real work — it's catching the rare class without crying wolf on the common one.
+      </p>
+    );
+  } else if (s >= 0.6) {
+    band = (
+      <p>
+        <strong>{score}</strong> is workable but not great. The model has found some signal, but it's missing or misclassifying enough rows that you'd want to triple-check important predictions.
+      </p>
+    );
+  } else {
+    band = (
+      <p>
+        <strong>{score}</strong> is on the low side. The model is barely beating a coin flip in the harder direction. Worth checking whether the input columns actually carry signal about the outcome.
+      </p>
+    );
+  }
+
+  const prompts = [
+    "Is " + score + " good enough to ship?",
+    "Why F1-score and not plain accuracy?",
+    "What's the hold-out set?",
+    "What would push this score higher?",
+  ];
+  const ask = (text) => () => {
+    if (onAsk) onAsk(text);
+    onClose();
+  };
+
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="f1-info-title">
+        <div className="modal-header">
+          <div className="modal-title" id="f1-info-title">
+            F1-score: <span className="mono">{score}</span>
+          </div>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Close">
+            <Icon name="x" size={14}/>
+          </button>
+        </div>
+        <div className="modal-body">
+          <section>
+            <div className="modal-eyebrow">What it means</div>
+            <p>
+              F1-score is one number summarising how well the model finds the answer you care about. It blends two things: of the rows it flagged as "yes," how many really were yes (precision), and of the rows that really were yes, how many it actually caught (recall).
+            </p>
+            <p>
+              The score runs from <strong>0</strong> (useless) to <strong>1</strong> (perfect). The system uses F1 to pick the winning model — whichever candidate scores highest on the held-out test rows is the one you end up with.
+            </p>
+          </section>
+          <section style={{ marginTop: 18 }}>
+            <div className="modal-eyebrow">How {score} reads</div>
+            {band}
+            <p className="small muted">
+              Rough guide: <strong>mid-0.8s</strong> is solid and usable, <strong>0.9+</strong> is excellent (and worth a leak-check), <strong>below ~0.6</strong> is cautious — the model isn't pulling its weight yet.
+            </p>
+          </section>
+          <section style={{ marginTop: 18 }}>
+            <div className="modal-eyebrow">Why F1 and not accuracy?</div>
+            <p>
+              Because the outcome is uneven. If most rows in your data are "no," a model that just predicts "no" for everything could look 70-80% accurate — and be completely useless. F1 only goes up if the model actually catches the rare class <em>and</em> doesn't trigger false alarms on the common one.
+            </p>
+          </section>
+          <section style={{ marginTop: 18 }}>
+            <div className="modal-eyebrow">What's "on hold-out"?</div>
+            <p>
+              The system held back <strong>20% of your rows</strong> as a test set that the model never saw during training. F1 is measured on those rows — it tells you how the model behaves on data it hasn't already memorised.
+            </p>
+            <p className="small muted">
+              Training the whole thing took <strong>{trainedIn}</strong>. That includes trying every candidate family, not just <span className="mono">{modelName}</span>.
+            </p>
+          </section>
+        </div>
+        {onAsk && (
+          <div className="modal-suggest">
+            <div className="modal-suggest-label">Try asking</div>
+            <div className="modal-suggest-chips">
+              {prompts.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="modal-suggest-chip"
+                  onClick={ask(p)}
+                >
+                  {renderInlineCode(p)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FeatureExplainerModal({ col, colIndex, isTarget, targetName, inputNames, onAsk, onClose }) {
   const t = deriveFeatureTreatment(col, colIndex, isTarget);
   const samples = sampleColumnValues(col.sourceFileName, col.name, 4);
@@ -1455,11 +2059,25 @@ function FeatureExplainerModal({ col, colIndex, isTarget, targetName, inputNames
 // ---- Stage 4: Run ----
 function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onSeedComposer, onAdvancePredict }) {
   const [tab, setTab] = React.useState('overview');
+  const [modelInfoOpen, setModelInfoOpen] = React.useState(false);
+  const [f1InfoOpen, setF1InfoOpen] = React.useState(false);
   const best = (typeof MODEL_PLANS !== 'undefined' && MODEL_PLANS.find(m => m.best)) || MODEL_PLANS[0];
   const bestName = best ? best.name : 'GradientBoostingClassifier';
   const bestScore = best ? best.score.toFixed(3) : '0.847';
   const bestTime = best && best.time ? best.time : '12s';
   const seed = (t) => () => { if (onSeedComposer) onSeedComposer(t, null); };
+
+  // Esc closes whichever info modal is open.
+  React.useEffect(() => {
+    if (!modelInfoOpen && !f1InfoOpen) return;
+    const handler = (e) => {
+      if (e.key !== 'Escape') return;
+      setModelInfoOpen(false);
+      setF1InfoOpen(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [modelInfoOpen, f1InfoOpen]);
 
   return (
     <div>
@@ -1485,8 +2103,9 @@ function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onSeedCompos
             Best model: <span className="mono">{bestName}</span>
             <button
               className="info-chip"
-              title="Explain this in chat"
-              onClick={seed('What does the model "' + bestName + '" actually mean, in plain terms?')}
+              title="Explain this model"
+              aria-label={"Explain " + bestName}
+              onClick={() => setModelInfoOpen(true)}
             >
               <Icon name="info" size={12}/>
             </button>
@@ -1495,8 +2114,9 @@ function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onSeedCompos
             F1-score on hold-out: <strong>{bestScore}</strong> · trained in {bestTime}
             <button
               className="info-chip"
-              title="Explain this in chat"
-              onClick={seed('What does F1-score ' + bestScore + ' mean for my model — is that good?')}
+              title="Explain this score"
+              aria-label={"Explain F1-score " + bestScore}
+              onClick={() => setF1InfoOpen(true)}
             >
               <Icon name="info" size={12}/>
             </button>
@@ -1568,6 +2188,26 @@ function StageRun({ progress, done, activeIdx, onTestIt, hasTested, onSeedCompos
             </div>
           )}
         </div>
+      )}
+
+      {modelInfoOpen && (
+        <BestModelInfoModal
+          modelName={bestName}
+          score={bestScore}
+          trainedIn={bestTime}
+          onAsk={onSeedComposer ? (text) => onSeedComposer(text, null) : null}
+          onClose={() => setModelInfoOpen(false)}
+        />
+      )}
+
+      {f1InfoOpen && (
+        <F1InfoModal
+          score={bestScore}
+          trainedIn={bestTime}
+          modelName={bestName}
+          onAsk={onSeedComposer ? (text) => onSeedComposer(text, null) : null}
+          onClose={() => setF1InfoOpen(false)}
+        />
       )}
     </div>
   );

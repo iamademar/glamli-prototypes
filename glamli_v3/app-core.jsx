@@ -344,6 +344,17 @@ function makePageApp(PAGE_STAGE, opts) {
       }
 
       if (stage === 3) {
+        // Clustering gets its own narration — there's no target, the
+        // model adds a new `group` column, and N is fixed at 4 in v1.
+        if (taskType === 'clustering') {
+          if (schema.parsedCount === 0) return;
+          const intro =
+            "Stage 3 of 5 — Setup. You're clustering, so there's no target column — every column feeds into the model, and the model adds a new column called `group` to your data. Each row will get a label (1, 2, 3, or 4) based on which other rows it looks most like. Open the diagram on the right to see the flow.";
+          setShownIntros((prev) => new Set(prev).add(stage));
+          setStreaming(true);
+          streamMessage(setMessages, intro, () => setStreaming(false), 10, stage);
+          return;
+        }
         const summary = buildSetupSummary(schema, targetCol, taskType, {
           prefix: "Here's how your model will work. ",
         });

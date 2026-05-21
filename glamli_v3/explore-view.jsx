@@ -1515,19 +1515,10 @@ function OutliersByAttribute({ fixture, rows, quality, onJumpToColumn }) {
 // ── Overview tab: cross-file banner for non-target files ─────────────
 function CrossFileBanner({ targetCtx }) {
   if (targetCtx.resolvable) return null;
-  if (!targetCtx.targetColName) {
-    // No target chosen yet — gentler copy.
-    return React.createElement(
-      'section', { className: 'xp-banner' },
-      React.createElement('span', { className: 'xp-banner-icon', 'aria-hidden': 'true' }, '◆'),
-      React.createElement('div', null,
-        React.createElement('div', { className: 'xp-banner-title' },
-          'No prediction target chosen yet.'),
-        React.createElement('div', { className: 'xp-banner-body' },
-          'Pick one on the Domain step to see a Class Distribution chart here. ' +
-          'The distributions and data quality below still apply.'))
-    );
-  }
+  // No-target-chosen state renders nothing — the previous "Pick one on
+  // the Domain step…" copy was noise on a page that already explains
+  // the file in its own right.
+  if (!targetCtx.targetColName) return null;
   return React.createElement(
     'section', { className: 'xp-banner' },
     React.createElement('span', { className: 'xp-banner-icon', 'aria-hidden': 'true' }, '↗'),
