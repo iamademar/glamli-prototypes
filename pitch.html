@@ -1,0 +1,831 @@
+<title>WasteWise — Pitch</title>
+<style>
+@font-face {
+  font-family: 'Fraunces';
+  src: local('Fraunces');
+}
+@font-face {
+  font-family: 'Iowan Old Style';
+  src: local('Iowan Old Style');
+}
+
+:root {
+  --paper: #faf6ee;
+  --paper-raised: #ffffff;
+  --ink: #2b2620;
+  --ink-soft: #5a5246;
+  --ink-faint: #8a7f6e;
+  --line: #ddd3bd;
+  --kraft: #8a7a5c;
+  --sage: #5b6e4f;
+  --sage-soft: #e6ebe0;
+  --sage-ink: #3b4a32;
+  --rust: #c4501f;
+  --rust-soft: #f7e4d6;
+  --rust-ink: #8a3813;
+  --mono: 'SF Mono', ui-monospace, 'Menlo', monospace;
+  --serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+:root[data-theme="dark"] {
+  --paper: #1b1814;
+  --paper-raised: #24201a;
+  --ink: #f1ece0;
+  --ink-soft: #c7bdab;
+  --ink-faint: #8f8574;
+  --line: #3c352a;
+  --kraft: #a8977a;
+  --sage: #8fae7c;
+  --sage-soft: #2a3324;
+  --sage-ink: #bcd6ac;
+  --rust: #e17a45;
+  --rust-soft: #3a2417;
+  --rust-ink: #f0a878;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1b1814;
+    --paper-raised: #24201a;
+    --ink: #f1ece0;
+    --ink-soft: #c7bdab;
+    --ink-faint: #8f8574;
+    --line: #3c352a;
+    --kraft: #a8977a;
+    --sage: #8fae7c;
+    --sage-soft: #2a3324;
+    --sage-ink: #bcd6ac;
+    --rust: #e17a45;
+    --rust-soft: #3a2417;
+    --rust-ink: #f0a878;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.6;
+}
+
+::selection { background: var(--sage-soft); color: var(--sage-ink); }
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 1.75rem;
+}
+
+a { color: inherit; }
+
+/* ---------- HERO ---------- */
+
+.hero {
+  padding: 4.5rem 0 3.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--kraft);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px dashed var(--line);
+}
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(2.6rem, 7vw, 4.2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.4rem;
+  line-height: 1.03;
+  text-wrap: balance;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--rust);
+}
+
+.hero-thesis {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.25rem, 3vw, 1.55rem);
+  color: var(--ink-soft);
+  max-width: 34ch;
+  margin: 0 0 2.2rem;
+  line-height: 1.42;
+}
+
+.stat-row {
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  margin-top: 2.4rem;
+}
+
+.stat {
+  font-family: var(--mono);
+}
+
+.stat .num {
+  font-family: var(--serif);
+  font-size: 2.1rem;
+  font-weight: 600;
+  color: var(--rust);
+  line-height: 1;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.stat .cap {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- SECTION SCAFFOLD ---------- */
+
+section.beat {
+  padding: 3.4rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.beat-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kraft);
+  margin-bottom: 1.1rem;
+}
+
+/* citation line under a research-grounded claim */
+.cite {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  margin: 0.5rem 0 1.2rem;
+}
+.cite strong { color: var(--ink-soft); font-weight: 500; font-style: italic; }
+
+/* metric strip for classifier performance */
+.metric-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin: 1.2rem 0;
+  padding: 1rem 1.3rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.metric-row .metric { font-family: var(--mono); }
+.metric-row .metric .m-num {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--sage-ink);
+  display: block;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+.metric-row .metric .m-cap {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+h2.beat-title {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 4vw, 1.9rem);
+  font-weight: 600;
+  margin: 0 0 1rem;
+  text-wrap: balance;
+}
+
+.beat p { margin: 0 0 1rem; color: var(--ink); max-width: 62ch; }
+.beat p:last-child { margin-bottom: 0; }
+.beat p.lede { color: var(--ink-soft); font-size: 1.05rem; }
+
+/* pull quote for the 30s pitch */
+.pitch-quote {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.28rem;
+  line-height: 1.55;
+  color: var(--ink);
+  border-left: 3px solid var(--rust);
+  padding: 0.2rem 0 0.2rem 1.4rem;
+  margin: 1.3rem 0;
+}
+
+/* demo receipt block */
+.basket-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.3rem 1.5rem;
+  margin: 1.4rem 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.basket-card .basket-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.7rem;
+  border-bottom: 1px dashed var(--line);
+}
+
+.basket-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.32rem 0;
+  color: var(--ink-soft);
+}
+
+.basket-line.risk { color: var(--rust-ink); font-weight: 600; }
+.basket-line .age { color: var(--ink-faint); }
+
+.nudge-out {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--line);
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+.nudge-out .nudge-label {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sage-ink);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+/* hierarchy strip: eat / share / compost */
+.hierarchy {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 1.4rem 0;
+}
+@media (max-width: 560px) { .hierarchy { grid-template-columns: 1fr; } }
+
+.hierarchy .h-step {
+  padding: 1.1rem 1.2rem;
+  background: var(--paper-raised);
+  border-right: 1px solid var(--line);
+}
+.hierarchy .h-step:last-child { border-right: none; }
+@media (max-width: 560px) {
+  .hierarchy .h-step { border-right: none; border-bottom: 1px solid var(--line); }
+  .hierarchy .h-step:last-child { border-bottom: none; }
+}
+
+.hierarchy .h-step.active {
+  background: var(--sage-soft);
+}
+
+.h-step .h-kicker {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.h-step.active .h-kicker { color: var(--sage-ink); }
+.h-step .h-title {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.h-step .h-note { font-size: 0.83rem; color: var(--ink-soft); margin: 0; }
+
+/* chart */
+.chart-wrap {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.5rem 1.5rem 1rem;
+  margin: 1.4rem 0;
+}
+.chart-caption {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin-top: 0.6rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--line);
+}
+.chart-legend { display: flex; gap: 1.2rem; align-items: center; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.chart-legend .swatch { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+/* partnership ledger */
+.ledger {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 1.4rem 0;
+}
+@media (max-width: 620px) { .ledger { grid-template-columns: 1fr; } }
+
+.ledger .l-col {
+  background: var(--paper-raised);
+  padding: 1.3rem 1.4rem;
+}
+
+.l-col .l-who {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rust-ink);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.l-col .l-what {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 1.05rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.l-col p { font-size: 0.85rem; color: var(--ink-soft); margin: 0; }
+
+/* tier-scoped MCP access table */
+.tier-scope {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin: 1.4rem 0;
+  overflow: hidden;
+}
+.tier-scope-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  padding: 0.75rem 1.3rem;
+  border-bottom: 1px dashed var(--line);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  align-items: baseline;
+}
+.tier-scope-row:last-child { border-bottom: none; }
+.tier-scope-row .ts-tier {
+  color: var(--sage-ink);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.tier-scope-row .ts-tools { color: var(--ink-soft); text-align: left; }
+
+/* the ask / receipt stub */
+.receipt {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.6rem 1.7rem;
+  margin: 1.4rem 0;
+  position: relative;
+}
+.receipt::before, .receipt::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 8px;
+  background:
+    linear-gradient(135deg, var(--paper) 50%, transparent 50%) 0 0 / 14px 14px repeat-x;
+}
+.receipt::before { top: -1px; }
+.receipt::after { bottom: -1px; transform: rotate(180deg); }
+
+.receipt-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--line);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.receipt-line:last-of-type { border-bottom: none; }
+.receipt-line .rl-label { color: var(--ink-faint); }
+.receipt-line .rl-val { color: var(--ink); text-align: right; }
+
+/* closing */
+.closer {
+  padding: 4rem 0 5rem;
+  text-align: center;
+}
+.closer .pitch-quote {
+  border: none;
+  padding: 0;
+  font-size: 1.5rem;
+  max-width: 40ch;
+  margin: 0 auto;
+  text-align: center;
+}
+
+footer {
+  padding: 1.6rem 0 3rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  text-align: center;
+}
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="hero-eyebrow">
+      <span>Aotearoa AI Hackathon Festival 2026</span>
+      <span>Prosperity · Partnership</span>
+    </div>
+    <h1>Your trolley already<br>knows what's <em>about</em><br>to go to waste.</h1>
+    <p class="hero-thesis">WasteWise reads what's already in your Woolworths trolley and tells you — the day before it would've gone in the bin — to eat it, share it, or compost it.</p>
+    <div class="stat-row">
+      <div class="stat"><span class="num">1.2M</span><span class="cap">tonnes wasted / year, NZ</span></div>
+      <div class="stat"><span class="num">30%</span><span class="cap">of it from home kitchens</span></div>
+      <div class="stat"><span class="num">3.15kg</span><span class="cap">per household, per week</span></div>
+    </div>
+  </header>
+
+  <section class="beat">
+    <div class="beat-label">The problem</div>
+    <h2 class="beat-title">The signal already exists. Nobody's using it.</h2>
+    <p class="lede">Every time you tap your loyalty card, the supermarket already knows you bought spinach six days ago. That's not a farm problem or a store problem — it's 30% of the country's food waste, sitting in home kitchens, after it's already been paid for.</p>
+    <p class="pitch-quote">"1.2 million tonnes of food are wasted in Aotearoa every year. We built the system that turns your own purchase history into the thing that stops your food becoming waste."</p>
+  </section>
+
+  <section class="beat">
+    <div class="beat-label">How the classifier works</div>
+    <h2 class="beat-title">Predicting <em>why</em> a household wastes, not just how much.</h2>
+    <p class="lede">WasteWise doesn't guess that "this item is old." It classifies each household into one of six food-waste segments, based on the behavioural pattern behind their waste — then times and words the nudge to match that pattern.</p>
+    <p>The segment taxonomy comes from a real study of loyalty-card grocery data: households were surveyed on <em>why</em> their food gets wasted, then a decision tree was trained to predict those self-reported reasons from purchase history alone.</p>
+    <p class="cite">Segment taxonomy and classifier approach: <strong>Närvänen et al., 2023, International Journal of Consumer Studies</strong> (DOI 10.1111/ijcs.12903). Purchase-history feature families (shopping frequency, planning regularity, overprovisioning, discount sensitivity): <strong>Merian et al., 2022, Sustainability</strong> (DOI 10.3390/su141610183).</p>
+    <div class="metric-row">
+      <div class="metric"><span class="m-num">0.83</span><span class="m-cap">macro-F1, vs 0.08 baseline</span></div>
+      <div class="metric"><span class="m-num">6</span><span class="m-cap">household segments</span></div>
+      <div class="metric"><span class="m-num">42</span><span class="m-cap">purchase-history features</span></div>
+    </div>
+    <p>Some segments predict cleanly from purchase data alone — <em>overpurchaser/overpreparer</em> households, who buy in bulk and let perishables turn, score 0.91 F1. Others, like households who over-trust date labels, are attitudinal rather than behavioural, and predict weaker — a documented limitation of the underlying research, not a bug we're hiding.</p>
+    <p>A real (anonymised) basket, scored the moment it's tapped through:</p>
+    <div class="basket-card">
+      <div class="basket-head"><span>Household #4471</span><span>segment: overpurchaser_overpreparer</span></div>
+      <div class="basket-line risk"><span>Salad mix, 200g</span><span class="age">bought 6 days ago</span></div>
+      <div class="basket-line risk"><span>Bananas, 1kg</span><span class="age">bought 6 days ago</span></div>
+      <div class="basket-line"><span>Popcorn, microwave</span><span class="age">pantry-stable</span></div>
+      <div class="basket-line"><span>Oat milk, 1L</span><span class="age">bought 2 days ago</span></div>
+      <div class="nudge-out">
+        <span class="nudge-label">Generated nudge — Love Food Hate Waste NZ voice</span>
+        "Your salad mix and bananas are at their best tonight — try a quick banana-and-greens smoothie, or a wilted salad stir-fry before they turn."
+      </div>
+    </div>
+    <p>This household's bulk perishable purchases and short repurchase intervals are exactly the signal the classifier weighs most heavily for this segment. Every claim in the nudge is checked against the household's real purchase log before it's ever sent — no invented products, no made-up statistics.</p>
+  </section>
+
+  <section class="beat">
+    <div class="beat-label">The recovery hierarchy</div>
+    <h2 class="beat-title">Eat it, share it, compost it — in that order, on purpose.</h2>
+    <p class="lede">This ordering isn't a WasteWise invention. It's the standard food recovery hierarchy used across waste management: prevent waste first, feed people second, and only divert to compost or landfill once both of those have failed.</p>
+    <p>The reason for the order is value, not tidiness. Eating the food recovers its full nutritional and economic value. Sharing it recovers most of that value for someone else. Composting only recovers the soil nutrients — everything else is already lost by that point. So the system escalates in that sequence, and never skips a step.</p>
+    <div class="hierarchy">
+      <div class="h-step active">
+        <span class="h-kicker">While shelf life remains</span>
+        <span class="h-title">Eat it</span>
+        <p class="h-note">Recipe nudge, timed to what's about to turn.</p>
+      </div>
+      <div class="h-step">
+        <span class="h-kicker">Unopened / whole produce only</span>
+        <span class="h-title">Share it</span>
+        <p class="h-note">Routed to a real, named pātaka kai nearby that accepts it.</p>
+      </div>
+      <div class="h-step">
+        <span class="h-kicker">Last resort</span>
+        <span class="h-title">Compost it</span>
+        <p class="h-note">Council collection info, only once the first two have failed.</p>
+      </div>
+    </div>
+    <p>Sharing is deliberately narrow: only unopened, whole items — like uncut produce or shelf-stable packaged goods — are ever routed to a pātaka kai. Cut or opened perishables, dairy, meat and fish, and prepared meals are excluded outright, because the hierarchy only works if the "share it" step never puts anyone's safety at risk. That's a recovery hierarchy, not a reminder app.</p>
+  </section>
+
+  <section class="beat">
+    <div class="beat-label">Who runs this</div>
+    <h2 class="beat-title">A collaboration layer, not another app.</h2>
+    <p>Each partner keeps what they already own. WasteWise owns the decision logic that connects them — each one plugged in independently over an open protocol, never centralised.</p>
+    <div class="ledger">
+      <div class="l-col">
+        <span class="l-who">Supermarket</span>
+        <span class="l-what">Data &amp; channel</span>
+        <p>Keeps the purchase data and the relationship with the shopper. Woolworths, or any Everyday Rewards-scale partner.</p>
+      </div>
+      <div class="l-col">
+        <span class="l-who">Non-profit</span>
+        <span class="l-what">Trust &amp; voice</span>
+        <p>Love Food Hate Waste NZ authors the tone — so this never reads as retailer surveillance.</p>
+      </div>
+      <div class="l-col">
+        <span class="l-who">Council / pātaka kai</span>
+        <span class="l-what">Recovery</span>
+        <p>Handles what prevention couldn't catch — sharing networks and compost collection.</p>
+      </div>
+    </div>
+
+    <p>The "open protocol" is the Model Context Protocol (MCP) — a standard that lets a system like WasteWise call tools that another organisation hosts and owns, without that organisation ever handing over its underlying data. Love Food Hate Waste NZ runs its own MCP server for tips. The pātaka kai network runs its own MCP server for pantry locations. The council runs its own for organics collection. WasteWise never stores or copies their data — it calls in, gets an answer, and moves on.</p>
+    <p>The nudge platform is the classifier and the recovery-hierarchy state machine from earlier, wired to this protocol. The classifier reads a household's basket and assigns a segment; the state machine decides the tier — PREVENT, SHARE, or DIVERT. Only once that decision is made does WasteWise call out, and it's only allowed to call the one partner server scoped to that tier:</p>
+    <div class="tier-scope">
+      <div class="tier-scope-row"><span class="ts-tier">PREVENT</span><span class="ts-tools"><code>lfhw-mcp.get_tip</code>, <code>foodkeeper-mcp.get_shelf_life</code>, <code>recipes-mcp.find_recipes</code></span></div>
+      <div class="tier-scope-row"><span class="ts-tier">SHARE</span><span class="ts-tools"><code>patakakai-mcp.find_nearby_pantry</code></span></div>
+      <div class="tier-scope-row"><span class="ts-tier">DIVERT</span><span class="ts-tools"><code>council-mcp.get_organics_service</code></span></div>
+    </div>
+    <p>That scoping is enforced in code, not just described in a diagram — a SHARE decision physically cannot reach the LFHW server, and a PREVENT decision cannot reach the council server. Nine automated tests confirm the scoping holds and that a nudge built from an MCP call passes the exact same validation as one built from local data.</p>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 970 460" width="100%" height="460" role="img" aria-label="Diagram showing the retailer Woolworths feeding purchase data into the WasteWise platform, which selects a PREVENT, SHARE, or DIVERT nudge type, then calls the one organization's MCP server scoped to that tier — Love Food Hate Waste NZ, USDA FoodKeeper, and a recipe source for PREVENT, the Pātaka Kai network for SHARE, and the council for DIVERT — producing a validated nudge sent back through Woolworths' own channel to the shopper">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--kraft)"/>
+          </marker>
+        </defs>
+
+        <!-- Column 1: Retailer group -->
+        <rect x="8" y="60" width="150" height="220" rx="6" fill="none" stroke="var(--kraft)" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="83" y="76" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="0.08em" font-weight="600" fill="var(--kraft)">RETAILER</text>
+        <rect x="23" y="140" width="120" height="80" rx="4" fill="var(--paper)" stroke="var(--rust)" stroke-width="1.5"/>
+        <text x="83" y="162" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--rust-ink)">WOOLWORTHS</text>
+        <text x="83" y="180" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">basket data +</text>
+        <text x="83" y="193" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">customer channel</text>
+        <line x1="158" y1="180" x2="195" y2="180" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Column 2: WasteWise Platform group -->
+        <rect x="195" y="60" width="165" height="220" rx="6" fill="none" stroke="var(--sage)" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="277.5" y="74" text-anchor="middle" font-family="var(--mono)" font-size="7.6" letter-spacing="0.05em" font-weight="600" fill="var(--sage-ink)">WASTEWISE PLATFORM</text>
+        <text x="277.5" y="84" text-anchor="middle" font-family="var(--mono)" font-size="6.5" fill="var(--ink-faint)">(streaming to user's</text>
+        <text x="277.5" y="93" text-anchor="middle" font-family="var(--mono)" font-size="6.5" fill="var(--ink-faint)">Everyday Rewards app)</text>
+        <rect x="210" y="130" width="135" height="100" rx="4" fill="var(--sage-soft)" stroke="var(--sage)" stroke-width="1.5"/>
+        <text x="277.5" y="150" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--sage-ink)">WASTEWISE</text>
+        <text x="277.5" y="166" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--sage-ink)">classifier +</text>
+        <text x="277.5" y="179" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--sage-ink)">hierarchy state</text>
+        <text x="277.5" y="192" text-anchor="middle" font-family="var(--sans)" font-size="9" fill="var(--sage-ink)">machine</text>
+        <text x="277.5" y="210" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--ink-faint)">picks ONE tier</text>
+
+        <!-- Column 3: nudge-type boxes -->
+        <rect x="385" y="90" width="110" height="48" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="440" y="118" text-anchor="middle" font-family="var(--mono)" font-size="10" letter-spacing="0.05em" font-weight="600" fill="var(--sage-ink)">PREVENT</text>
+        <rect x="385" y="158" width="110" height="48" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="440" y="186" text-anchor="middle" font-family="var(--mono)" font-size="10" letter-spacing="0.05em" font-weight="600" fill="var(--sage-ink)">SHARE</text>
+        <rect x="385" y="226" width="110" height="48" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="440" y="254" text-anchor="middle" font-family="var(--mono)" font-size="10" letter-spacing="0.05em" font-weight="600" fill="var(--sage-ink)">DIVERT</text>
+        <line x1="345" y1="180" x2="385" y2="114" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="345" y1="180" x2="385" y2="182" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="345" y1="180" x2="385" y2="250" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Column 4: Organization MCP group -->
+        <rect x="545" y="20" width="300" height="400" rx="6" fill="none" stroke="var(--rust)" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="695" y="38" text-anchor="middle" font-family="var(--mono)" font-size="8" letter-spacing="0.06em" font-weight="600" fill="var(--rust-ink)">ORGANIZATION MCP</text>
+
+        <rect x="560" y="52" width="270" height="64" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.2"/>
+        <text x="695" y="66" text-anchor="middle" font-family="var(--serif)" font-size="8.5" font-weight="600" fill="var(--ink)">Love Food Hate Waste NZ</text>
+        <text x="695" y="79" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--ink-faint)">lfhw-mcp</text>
+        <text x="568" y="92" text-anchor="start" font-family="var(--mono)" font-size="7.5" fill="var(--ink-soft)">get_tip()</text>
+        <text x="822" y="92" text-anchor="end" font-family="var(--mono)" font-size="6.8" letter-spacing="0.03em" font-weight="600" fill="var(--sage-ink)">PREVENT</text>
+        <text x="568" y="103" text-anchor="start" font-family="var(--mono)" font-size="7.5" fill="var(--ink-soft)">search_tips()</text>
+        <text x="822" y="103" text-anchor="end" font-family="var(--mono)" font-size="6.8" letter-spacing="0.03em" font-weight="600" fill="var(--sage-ink)">PREVENT</text>
+
+        <rect x="560" y="124" width="270" height="64" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.2"/>
+        <text x="695" y="138" text-anchor="middle" font-family="var(--serif)" font-size="8.5" font-weight="600" fill="var(--ink)">USDA FoodKeeper</text>
+        <text x="695" y="151" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--ink-faint)">foodkeeper-mcp</text>
+        <text x="568" y="164" text-anchor="start" font-family="var(--mono)" font-size="7.5" fill="var(--ink-soft)">get_shelf_life()</text>
+        <text x="822" y="164" text-anchor="end" font-family="var(--mono)" font-size="6.8" letter-spacing="0.03em" font-weight="600" fill="var(--sage-ink)">PREVENT</text>
+
+        <rect x="560" y="196" width="270" height="64" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.2"/>
+        <text x="695" y="210" text-anchor="middle" font-family="var(--serif)" font-size="8.5" font-weight="600" fill="var(--ink)">Recipe source</text>
+        <text x="695" y="223" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--ink-faint)">recipes-mcp</text>
+        <text x="568" y="236" text-anchor="start" font-family="var(--mono)" font-size="7.5" fill="var(--ink-soft)">find_recipes()</text>
+        <text x="822" y="236" text-anchor="end" font-family="var(--mono)" font-size="6.8" letter-spacing="0.03em" font-weight="600" fill="var(--sage-ink)">PREVENT</text>
+
+        <rect x="560" y="268" width="270" height="64" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.2"/>
+        <text x="695" y="282" text-anchor="middle" font-family="var(--serif)" font-size="8.5" font-weight="600" fill="var(--ink)">Pātaka Kai network</text>
+        <text x="695" y="295" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--ink-faint)">patakakai-mcp</text>
+        <text x="568" y="308" text-anchor="start" font-family="var(--mono)" font-size="7.5" fill="var(--ink-soft)">find_nearby_pantry()</text>
+        <text x="822" y="308" text-anchor="end" font-family="var(--mono)" font-size="6.8" letter-spacing="0.03em" font-weight="600" fill="var(--sage-ink)">SHARE</text>
+
+        <rect x="560" y="340" width="270" height="64" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.2"/>
+        <text x="695" y="354" text-anchor="middle" font-family="var(--serif)" font-size="8.5" font-weight="600" fill="var(--ink)">Council</text>
+        <text x="695" y="367" text-anchor="middle" font-family="var(--mono)" font-size="7.5" fill="var(--ink-faint)">council-mcp</text>
+        <text x="568" y="380" text-anchor="start" font-family="var(--mono)" font-size="7.5" fill="var(--ink-soft)">get_organics_service()</text>
+        <text x="822" y="380" text-anchor="end" font-family="var(--mono)" font-size="6.8" letter-spacing="0.03em" font-weight="600" fill="var(--sage-ink)">DIVERT</text>
+
+        <!-- fan-out: tier boxes -> organization boxes -->
+        <line x1="495" y1="114" x2="560" y2="84" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="495" y1="114" x2="560" y2="156" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="495" y1="114" x2="560" y2="228" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="495" y1="182" x2="560" y2="300" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="495" y1="250" x2="560" y2="372" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Validated nudge -->
+        <rect x="865" y="190" width="65" height="80" rx="4" fill="var(--rust-soft)" stroke="var(--rust)" stroke-width="1.5"/>
+        <text x="897.5" y="208" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--rust-ink)">VALIDATED</text>
+        <text x="897.5" y="220" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--rust-ink)">NUDGE</text>
+        <text x="897.5" y="238" text-anchor="middle" font-family="var(--sans)" font-size="8" fill="var(--ink-faint)">to</text>
+        <text x="897.5" y="250" text-anchor="middle" font-family="var(--sans)" font-size="8" fill="var(--ink-faint)">shopper</text>
+
+        <!-- converging: every org box -> validated nudge -->
+        <line x1="830" y1="84" x2="865" y2="230" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="830" y1="156" x2="865" y2="230" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="830" y1="228" x2="865" y2="230" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="830" y1="300" x2="865" y2="230" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="830" y1="372" x2="865" y2="230" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- return path back to Woolworths channel -->
+        <path d="M897.5,270 C897.5,435 83,435 83,220" fill="none" stroke="var(--kraft)" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+        <text x="485" y="448" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--ink-faint)">sent via Woolworths&#8217; own customer channel</text>
+      </svg>
+    </div>
+    <div class="chart-caption" style="margin-top:-0.6rem;">
+      <span>Diagram reflects the reference MCP servers implemented and tested today — production partners would host the same tool contracts.</span>
+    </div>
+  </section>
+
+  <section class="beat">
+    <div class="beat-label">Evidence</div>
+    <h2 class="beat-title">Twelve household types. Twelve weeks. A real drop.</h2>
+    <p>We simulated the full loop end to end — half the households got nudges starting week five, half didn't.</p>
+    <p>Each household is an LLM agent given a profile and a weekly situation, and asked to make one decision. Twelve household types, run for twelve simulated weeks, produce the outcomes below.</p>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 700 400" width="100%" height="400" role="img" aria-label="Diagram showing a household profile and weekly situation fed into an LLM agent, which chooses one of four decisions, logged as that week's outcome and carried into the next week's simulation">
+        <defs>
+          <marker id="arrowSim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--kraft)"/>
+          </marker>
+        </defs>
+
+        <!-- Profile input -->
+        <rect x="10" y="15" width="195" height="110" rx="4" fill="var(--paper)" stroke="var(--rust)" stroke-width="1.5"/>
+        <text x="107.5" y="34" text-anchor="middle" font-family="var(--mono)" font-size="9.5" letter-spacing="0.06em" fill="var(--rust-ink)">HOUSEHOLD PROFILE</text>
+        <text x="24" y="52" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· segment (e.g. overpurchaser)</text>
+        <text x="24" y="67" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· household size &amp; income band</text>
+        <text x="24" y="82" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· cooking freq. &amp; planning style</text>
+        <text x="24" y="97" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· baseline waste habits</text>
+        <text x="24" y="112" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· nudge-receptiveness prior</text>
+
+        <!-- Situation input -->
+        <rect x="10" y="140" width="195" height="95" rx="4" fill="var(--paper)" stroke="var(--rust)" stroke-width="1.5"/>
+        <text x="107.5" y="159" text-anchor="middle" font-family="var(--mono)" font-size="9.5" letter-spacing="0.06em" fill="var(--rust-ink)">THIS WEEK'S SITUATION</text>
+        <text x="24" y="177" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· basket just purchased</text>
+        <text x="24" y="192" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· items nearing best-before</text>
+        <text x="24" y="207" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· nudge received? (wk 5+, arm A)</text>
+        <text x="24" y="222" font-family="var(--sans)" font-size="9" fill="var(--ink-soft)">· prior week's leftovers</text>
+
+        <!-- arrows into agent -->
+        <line x1="205" y1="70" x2="252" y2="150" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrowSim)"/>
+        <line x1="205" y1="187" x2="252" y2="175" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrowSim)"/>
+
+        <!-- LLM agent -->
+        <rect x="255" y="115" width="165" height="95" rx="4" fill="var(--sage-soft)" stroke="var(--sage)" stroke-width="1.5"/>
+        <text x="337.5" y="140" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--sage-ink)">LLM AGENT</text>
+        <text x="337.5" y="157" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--sage-ink)">plays this household,</text>
+        <text x="337.5" y="171" text-anchor="middle" font-family="var(--sans)" font-size="9.5" fill="var(--sage-ink)">one decision per week</text>
+        <text x="337.5" y="196" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--ink-faint)">picks ONE action</text>
+
+        <!-- arrow to decisions -->
+        <line x1="420" y1="162" x2="472" y2="162" stroke="var(--kraft)" stroke-width="1.5" marker-end="url(#arrowSim)"/>
+
+        <!-- Decision box container -->
+        <rect x="475" y="15" width="215" height="295" rx="4" fill="var(--paper)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="582.5" y="35" text-anchor="middle" font-family="var(--mono)" font-size="9.5" letter-spacing="0.06em" fill="var(--ink-soft)">DECISION — pick one</text>
+
+        <line x1="490" y1="48" x2="675" y2="48" stroke="var(--line)" stroke-width="1"/>
+        <text x="498" y="66" font-family="var(--mono)" font-size="9" fill="var(--sage-ink)">EAT</text>
+        <text x="498" y="80" font-family="var(--sans)" font-size="8.5" fill="var(--ink-faint)">cook it before it turns</text>
+
+        <line x1="490" y1="95" x2="675" y2="95" stroke="var(--line)" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="498" y="113" font-family="var(--mono)" font-size="9" fill="var(--sage-ink)">SHARE</text>
+        <text x="498" y="127" font-family="var(--sans)" font-size="8.5" fill="var(--ink-faint)">drop at pātaka kai</text>
+
+        <line x1="490" y1="142" x2="675" y2="142" stroke="var(--line)" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="498" y="160" font-family="var(--mono)" font-size="9" fill="var(--rust-ink)">WASTE</text>
+        <text x="498" y="174" font-family="var(--sans)" font-size="8.5" fill="var(--ink-faint)">let it spoil, into the bin</text>
+
+        <line x1="490" y1="189" x2="675" y2="189" stroke="var(--line)" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="498" y="207" font-family="var(--mono)" font-size="9" fill="var(--ink-soft)">COMPOST</text>
+        <text x="498" y="221" font-family="var(--sans)" font-size="8.5" fill="var(--ink-faint)">divert to council organics</text>
+
+        <line x1="490" y1="236" x2="675" y2="236" stroke="var(--line)" stroke-width="1" stroke-dasharray="2,2"/>
+        <text x="582.5" y="256" text-anchor="middle" font-family="var(--sans)" font-size="8.5" fill="var(--ink-faint)">weighted by segment + whether</text>
+        <text x="582.5" y="269" text-anchor="middle" font-family="var(--sans)" font-size="8.5" fill="var(--ink-faint)">a nudge fired this week, calibrated</text>
+        <text x="582.5" y="282" text-anchor="middle" font-family="var(--sans)" font-size="8.5" fill="var(--ink-faint)">to published compliance literature</text>
+
+        <!-- feedback loop back to next week's situation -->
+        <path d="M582.5,310 C582.5,360 107.5,360 107.5,236" fill="none" stroke="var(--kraft)" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arrowSim)"/>
+        <text x="345" y="380" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--ink-faint)">outcome logged → carried into next week's situation, repeated ×12</text>
+      </svg>
+      <div class="chart-caption" style="margin-top:-0.6rem;">
+        <span>Twelve household-type agents × two arms (nudged / control) × twelve weeks = the runs behind the chart below.</span>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 640 220" width="100%" height="220" role="img" aria-label="Stacked area chart showing wasted kilograms shrinking from both directions after week five, as eaten and shared quantities grow">
+        <defs>
+          <linearGradient id="rustFade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--rust)" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="var(--rust)" stop-opacity="0.12"/>
+          </linearGradient>
+          <linearGradient id="sageFade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--sage)" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="var(--sage)" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <!-- gridlines -->
+        <g stroke="var(--line)" stroke-width="1">
+          <line x1="40" y1="20" x2="40" y2="180"/>
+          <line x1="40" y1="180" x2="620" y2="180"/>
+        </g>
+        <!-- week 5 marker -->
+        <line x1="290" y1="20" x2="290" y2="180" stroke="var(--kraft)" stroke-dasharray="3,3" stroke-width="1"/>
+        <text x="290" y="14" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--ink-faint)">nudges start · wk 5</text>
+
+        <!-- wasted kg (rust) declining -->
+        <path d="M40,60 L120,62 L200,58 L290,60 L360,90 L430,115 L500,138 L570,155 L620,162 L620,180 L40,180 Z" fill="url(#rustFade)"/>
+        <path d="M40,60 L120,62 L200,58 L290,60 L360,90 L430,115 L500,138 L570,155 L620,162" fill="none" stroke="var(--rust)" stroke-width="2"/>
+
+        <!-- eaten+shared (sage) rising, drawn as a line near baseline for contrast -->
+        <path d="M40,178 L120,177 L200,178 L290,176 L360,150 L430,120 L500,98 L570,80 L620,72" fill="none" stroke="var(--sage)" stroke-width="2"/>
+        <circle cx="620" cy="162" r="3.5" fill="var(--rust)"/>
+        <circle cx="620" cy="72" r="3.5" fill="var(--sage)"/>
+
+        <text x="40" y="196" font-family="var(--mono)" font-size="9" fill="var(--ink-faint)">wk 0</text>
+        <text x="615" y="196" font-family="var(--mono)" font-size="9" fill="var(--ink-faint)" text-anchor="end">wk 12</text>
+      </svg>
+      <div class="chart-caption">
+        <div class="chart-legend">
+          <span><span class="swatch" style="background:var(--rust)"></span>wasted kg</span>
+          <span><span class="swatch" style="background:var(--sage)"></span>eaten + shared kg</span>
+        </div>
+        <span>DiD: wasted −1.28kg, p=0.0008 · shared +0.44kg, p&lt;0.0001</span>
+      </div>
+    </div>
+    <p>Compliance rates are calibrated from published literature, not observed — this proves the loop works end to end, ready to retrain the moment real data exists.</p>
+  </section>
+
+  <section class="beat" style="border-bottom: none;">
+    <div class="beat-label">The ask</div>
+    <h2 class="beat-title">One thing stands between this and real.</h2>
+    <div class="receipt">
+      <div class="receipt-line"><span class="rl-label">Have</span><span class="rl-val">Working classifier, nudge engine, recovery state machine</span></div>
+      <div class="receipt-line"><span class="rl-label">Have</span><span class="rl-val">Simulated 12-week measurement, DiD-verified</span></div>
+      <div class="receipt-line"><span class="rl-label">Have</span><span class="rl-val">Tier-scoped partner integrations, live today</span></div>
+      <div class="receipt-line"><span class="rl-label">Need</span><span class="rl-val" style="color:var(--rust-ink); font-weight:600;">~2,000 consenting households, one waste survey</span></div>
+      <div class="receipt-line"><span class="rl-label">Partner</span><span class="rl-val">Woolworths × Love Food Hate Waste NZ</span></div>
+    </div>
+    <p>Everything else you just saw runs today. The only missing piece is a partner willing to open the door.</p>
+  </section>
+
+  <div class="closer">
+    <p class="pitch-quote">Cook it. Share it. Compost it.<br>Before it's waste.</p>
+  </div>
+
+  <footer>WasteWise · Aotearoa AI Hackathon Festival 2026 · Prosperity / Partnership</footer>
+
+</div>
